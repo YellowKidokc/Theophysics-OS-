@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organize</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#ccc;font:14px/1.5 'Consolas','Courier New',monospace;padding:20px}
+h1{color:#e0e0e0;font-size:18px;font-weight:normal;margin-bottom:4px}
+.sub{color:#666;font-size:12px;margin-bottom:20px}
+input[type="text"]{background:#141414;border:1px solid #2a2a2a;color:#e0e0e0;padding:8px 12px;font:14px 'Consolas',monospace;width:100%;border-radius:3px}
+input:focus{outline:none;border-color:#4a4a4a}
+.row{display:flex;gap:10px;margin-bottom:15px;align-items:center}
+.row label{color:#888;font-size:12px;min-width:60px}
+.row input{flex:1}
+.actions{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+button{background:#1a1a1a;border:1px solid #333;color:#aaa;padding:6px 16px;font:13px 'Consolas',monospace;cursor:pointer;border-radius:3px;transition:all .15s}
+button:hover{background:#252525;color:#fff;border-color:#555}
+button.active{background:#1a2a1a;border-color:#3a5a3a;color:#8f8}
+button:disabled{opacity:.4;cursor:default}
+.result{background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:15px;margin-bottom:12px}
+.result h2{color:#999;font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.stat{display:inline-block;background:#141414;border:1px solid #222;padding:6px 14px;margin:3px;border-radius:3px}
+.stat .num{color:#e0e0e0;font-size:16px;font-weight:bold}
+.stat .lbl{color:#666;font-size:11px;display:block}
+.bar-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #151515}
+.bar-row:last-child{border:none}
+.bar-label{min-width:100px;color:#999;font-size:12px}
+.bar-wrap{flex:1;background:#141414;height:18px;border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .3s}
+.bar-count{min-width:80px;text-align:right;color:#777;font-size:12px}
+.bar-size{min-width:80px;text-align:right;color:#555;font-size:11px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;border-bottom:1px solid #222}
+td{padding:5px 8px;border-bottom:1px solid #141414;color:#999;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{color:#ccc;background:#0f0f0f}
+.empty{color:#555;font-style:italic;padding:20px;text-align:center}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #333;border-top-color:#888;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tag{display:inline-block;padding:2px 8px;border-radius:2px;font-size:11px;margin:1px}
+.tag-identical{background:#1a2a1a;color:#6a6}
+.tag-only{background:#2a1a1a;color:#a66}
+.tag-diff{background:#2a2a1a;color:#aa6}
+#status{color:#555;font-size:12px;margin-top:8px}
+.section{margin-bottom:20px}
+.colors{display:flex;gap:0;margin:6px 0}
+.colors div{height:4px;transition:width .3s}
+</style>
+</head>
+<body>
+<h1>Organize</h1>
+<p class="sub">scan / clean / compare</p>
+
+<div class="section">
+  <div class="row">
+    <label>Path</label>
+    <input type="text" id="path1" placeholder="D:\GitHub" value="">
+  </div>
+  <div class="row" id="path2row" style="display:none">
+    <label>Compare</label>
+    <input type="text" id="path2" placeholder="H:\Backup">
+  </div>
+</div>
+
+<div class="actions">
+  <button onclick="doScan()" id="btnScan">Scan</button>
+  <button onclick="doDupes()" id="btnDupes">Find Duplicates</button>
+  <button onclick="toggleCompare()" id="btnCompare">Compare Two</button>
+</div>
+<div id="status"></div>
+<div id="results"></div>
+
+<script>
+const API = window.location.origin;
+const $ = id => document.getElementById(id);
+let compareMode = false;
+
+function toggleCompare() {
+  compareMode = !compareMode;
+  $('path2row').style.display = compareMode ? 'flex' : 'none';
+  $('btnCompare').classList.toggle('active', compareMode);
+  if (compareMode) $('btnCompare').textContent = 'Run Compare';
+  else $('btnCompare').textContent = 'Compare Two';
+  if (compareMode && $('path1').value && $('path2').value) doCompare();
+}
+
+function status(msg) { $('status').innerHTML = msg; }
+
+async function api(endpoint) {
+  const r = await fetch(API + endpoint);
+  return r.json();
+}
+
+async function doScan() {
+  const p = $('path1').value.trim();
+  if (!p) return;
+  status('<span class="spinner"></span> Scanning...');
+  $('btnScan').disabled = true;
+  try {
+    const d = await api('/api/scan?path=' + encodeURIComponent(p));
+    if (d.error) { status('Error: ' + d.error); return; }
+    renderScan(d);
+    status('');
+  } catch(e) { status('Failed: ' + e.message); }
+  $('btnScan').disabled = false;
+}
+
+async function doDupes() {
+  const p = $('path1').value.trim();
+  if (!p) return;
+  status('<span class="spinner"></span> Hashing files... (this can take a minute)');
+  $('btnDupes').disabled = true;
+  try {
+    const d = await api('/api/duplicates?path=' + encodeURIComponent(p));
+    if (d.error) { status('Error: ' + d.error); return; }
+    renderDupes(d);
+    status('');
+  } catch(e) { status('Failed: ' + e.message); }
+  $('btnDupes').disabled = false;
+}
+
+async function doCompare() {
+  const s = $('path1').value.trim(), d2 = $('path2').value.trim();
+  if (!s || !d2) return;
+  status('<span class="spinner"></span> Comparing...');
+  try {
+    const d = await api('/api/compare?src=' + encodeURIComponent(s) + '&dst=' + encodeURIComponent(d2));
+    if (d.error) { status('Error: ' + d.error); return; }
+    renderCompare(d);
+    status('');
+  } catch(e) { status('Failed: ' + e.message); }
+}
+
+const COLORS = {
+  Documents:'#4a7ab5', Spreadsheets:'#5aaa5a', Images:'#b5854a', Audio:'#8a5ab5',
+  Video:'#b54a4a', Code:'#5ab5b5', Archives:'#7a7a5a', PowerPoint:'#b57a4a',
+  Data:'#5a5ab5', Other:'#555'
+};
+
+function renderScan(d) {
+  const types = Object.entries(d.by_type);
+  const maxSize = Math.max(...types.map(([,v]) => v.raw));
+  let bars = types.map(([k,v]) => {
+    const pct = maxSize > 0 ? (v.raw / maxSize * 100) : 0;
+    const c = COLORS[k] || '#555';
+    return `<div class="bar-row">
+      <span class="bar-label">${k}</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${c}"></div></div>
+      <span class="bar-count">${v.count} files</span>
+      <span class="bar-size">${v.size}</span>
+    </div>`;
+  }).join('');
+
+  let colorBar = types.map(([k,v]) => {
+    const pct = d.total_raw > 0 ? (v.raw / d.total_raw * 100) : 0;
+    return `<div style="width:${pct}%;background:${COLORS[k]||'#555'}" title="${k}: ${v.size}"></div>`;
+  }).join('');
+
+  let largestRows = d.largest.map(f =>
+    `<tr><td>${f.name}</td><td>${f.size}</td><td style="color:#555">${f.path}</td></tr>`
+  ).join('');
+
+  $('results').innerHTML = `
+    <div class="result">
+      <h2>Overview</h2>
+      <span class="stat"><span class="num">${d.total_files.toLocaleString()}</span><span class="lbl">files</span></span>
+      <span class="stat"><span class="num">${d.total_size}</span><span class="lbl">total</span></span>
+      <span class="stat"><span class="num">${d.empty_count}</span><span class="lbl">empty folders</span></span>
+      <div class="colors">${colorBar}</div>
+    </div>
+    <div class="result">
+      <h2>By Type</h2>
+      ${bars}
+    </div>
+    <div class="result">
+      <h2>Largest Files</h2>
+      <table><tr><th>Name</th><th>Size</th><th>Location</th></tr>${largestRows}</table>
+    </div>
+    ${d.empty_count > 0 ? `<div class="result"><h2>Empty Folders (${d.empty_count})</h2>
+      <table>${d.empty_folders.map(f => `<tr><td>${f}</td></tr>`).join('')}</table>
+    </div>` : ''}
+  `;
+}
+
+function renderDupes(d) {
+  if (d.total_groups === 0) {
+    $('results').innerHTML = '<div class="result"><div class="empty">No duplicates found.</div></div>';
+    return;
+  }
+  let groups = d.groups.map((g,i) => {
+    let files = g.files.map((f,j) =>
+      `<tr><td>${j===0?'<b style="color:#6a6">keep</b>':'dupe'}</td><td>${f}</td></tr>`
+    ).join('');
+    return `<div class="result" style="border-left:2px solid #333">
+      <h2>Group ${i+1} - ${g.size} each (${g.files.length} copies)</h2>
+      <table>${files}</table>
+    </div>`;
+  }).join('');
+
+  $('results').innerHTML = `
+    <div class="result">
+      <h2>Duplicates</h2>
+      <span class="stat"><span class="num">${d.total_groups}</span><span class="lbl">groups</span></span>
+      <span class="stat"><span class="num">${d.wasted}</span><span class="lbl">wasted space</span></span>
+    </div>
+    ${groups}
+  `;
+}
+
+function renderCompare(d) {
+  const total = d.identical + d.only_src + d.only_dst + d.different;
+  $('results').innerHTML = `
+    <div class="result">
+      <h2>Compare Results</h2>
+      <span class="stat"><span class="tag tag-identical">${d.identical} identical</span></span>
+      <span class="stat"><span class="tag tag-only">${d.only_src} only in source</span></span>
+      <span class="stat"><span class="tag tag-only">${d.only_dst} only in target</span></span>
+      <span class="stat"><span class="tag tag-diff">${d.different} different</span></span>
+    </div>
+    ${d.only_src_files.length ? `<div class="result"><h2>Only in Source</h2>
+      <table><tr><th>File</th><th>Size</th></tr>
+      ${d.only_src_files.map(f=>`<tr><td>${f.file}</td><td>${f.size}</td></tr>`).join('')}</table>
+    </div>` : ''}
+    ${d.only_dst_files.length ? `<div class="result"><h2>Only in Target</h2>
+      <table><tr><th>File</th><th>Size</th></tr>
+      ${d.only_dst_files.map(f=>`<tr><td>${f.file}</td><td>${f.size}</td></tr>`).join('')}</table>
+    </div>` : ''}
+    ${d.different_files.length ? `<div class="result"><h2>Different Content</h2>
+      <table><tr><th>File</th><th>Source Size</th><th>Target Size</th></tr>
+      ${d.different_files.map(f=>`<tr><td>${f.file}</td><td>${f.src_size}</td><td>${f.dst_size}</td></tr>`).join('')}</table>
+    </div>` : ''}
+  `;
+}
+
+// Enter key triggers scan
+$('path1').addEventListener('keydown', e => { if (e.key === 'Enter') { compareMode ? doCompare() : doScan(); }});
+$('path2').addEventListener('keydown', e => { if (e.key === 'Enter') doCompare(); });
+</script>
+</body>
+</html>
