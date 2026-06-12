@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HumanCorrection",
+  "description": "Structured correction event from David. This is training data — every correction makes the system smarter.",
+  "type": "object",
+  "required": ["event_type", "file_hash", "timestamp", "corrections"],
+  "properties": {
+    "event_type": { "const": "human_correction" },
+    "file_hash": { "type": "string", "description": "SHA256 prefix of the file being corrected" },
+    "file_path": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "workflow": { "type": "string" },
+    "stage": { "type": "string", "description": "Which stage produced the wrong result" },
+    "corrections": {
+      "type": "object",
+      "properties": {
+        "old_domain": { "type": ["string", "null"] },
+        "new_domain": { "type": ["string", "null"] },
+        "old_subject": { "type": ["string", "null"] },
+        "new_subject": { "type": ["string", "null"] },
+        "old_slug": { "type": ["string", "null"] },
+        "new_slug": { "type": ["string", "null"] },
+        "old_route": { "type": ["string", "null"] },
+        "new_route": { "type": ["string", "null"] },
+        "old_verdict": { "enum": ["pass", "fail", "review", "hold", null] },
+        "new_verdict": { "enum": ["pass", "fail", "review", "hold", null] }
+      }
+    },
+    "reason": { "type": "string", "description": "Why the correction was made — free text" },
+    "bil_weight": { "type": "number", "default": 1.0, "description": "Signal weight for BIL learning: manual correction = 1.0 (strongest)" }
+  }
+}

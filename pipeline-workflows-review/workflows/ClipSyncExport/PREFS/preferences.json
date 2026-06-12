@@ -1,0 +1,5 @@
+{
+  "profile": "ClipSyncExport",
+  "inherits": "clipsync",
+  "notes": "Export clipboard vault material in portable restore-ready form."
+}

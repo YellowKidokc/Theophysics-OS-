@@ -1,0 +1,39 @@
+{
+  "name": "graphify",
+  "version": "1.0",
+  "path": "X:\\graphify",
+  "type": "local",
+  "has_run_bat": false,
+  "status": "active",
+  "input": {
+    "accepts": [
+      "json",
+      "md"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by graphify."
+  },
+  "output": {
+    "produces": [
+      "json",
+      "sql"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by graphify."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "untested",
+    "last_run": "2026-06-04T09:15:44"
+  },
+  "notes": "Deterministic claim -> force classify -> axiom weld -> Postgres bridge"
+}

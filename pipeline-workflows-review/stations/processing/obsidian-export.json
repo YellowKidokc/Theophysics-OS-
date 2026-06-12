@@ -1,0 +1,43 @@
+{
+  "name": "obsidian-export",
+  "version": "1.0",
+  "path": "X:\\Backside\\stations\\obsidian-export.station",
+  "type": "local",
+  "has_run_bat": true,
+  "status": "active",
+  "input": {
+    "accepts": [
+      "md",
+      "txt",
+      "html",
+      "pdf",
+      "docx"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by obsidian-export."
+  },
+  "output": {
+    "produces": [
+      "md",
+      "html",
+      "json"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by obsidian-export."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "untested",
+    "kind": "excluded-family",
+    "last_run": "2026-06-04T09:15:44"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "link-research",
+  "version": "1.0",
+  "path": "\\\\dlowenas\\brain\\Backside\\apps\\link-research-engine-main",
+  "type": "remote",
+  "has_run_bat": true,
+  "status": "active",
+  "input": {
+    "accepts": [
+      "json",
+      "md"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by link-research."
+  },
+  "output": {
+    "produces": [
+      "json",
+      "sql"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by link-research."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "untested",
+    "last_run": "2026-06-04T09:15:44"
+  }
+}

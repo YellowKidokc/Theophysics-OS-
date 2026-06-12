@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipSync Settings</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:#0a0a0f}
+  ::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:#3a3a4a}
+  body{font-family:'IBM Plex Mono',monospace;background:#0a0a0f;color:#c8ccd4;height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+  /* HEADER */
+  .header{padding:10px 16px 8px;border-bottom:1px solid #1e1e2e;background:#0d0d14;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:8px}
+  .brand-tag{font-size:10px;letter-spacing:3px;color:#f59e0b;font-weight:700}
+  .brand-sep{font-size:11px;color:#2a2a3a}
+  .brand-sub{font-size:10px;letter-spacing:2px;color:#444}
+  .save-btn{padding:5px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:4px;color:#f59e0b;font-size:9px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:1px;transition:all .1s}
+  .save-btn:hover{background:rgba(245,158,11,.15)}
+
+  /* TABS */
+  .tab-bar{display:flex;background:#0a0a0f;border-bottom:1px solid #1e1e2e;flex-shrink:0;overflow-x:auto;position:sticky;top:0;z-index:20}
+  .tab{padding:10px 14px;font-size:11px;letter-spacing:1.5px;font-weight:600;color:#3a3a4a;cursor:pointer;border:0;border-bottom:2px solid transparent;transition:all .1s;white-space:nowrap;-webkit-user-select:none;z-index:10;position:relative;background:transparent;font-family:inherit;appearance:none}
+  .tab:hover{color:#666}
+  .tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+
+  /* PANELS */
+  .settings-content{flex:1;overflow-y:auto;min-height:0}
+  .panel{display:block !important;padding:12px 14px;min-height:0;border-bottom:1px solid #141420;scroll-margin-top:54px}
+  .panel.active{display:block !important}
+
+  /* SHARED */
+  .section-label{font-size:9px;font-weight:700;letter-spacing:2px;color:#f59e0b;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #1e1e2e}
+  .setting-group{margin-bottom:18px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:8px;letter-spacing:1.5px;color:#555;margin-bottom:3px;text-transform:uppercase;font-weight:600}
+  .field input,.field select,.field textarea{width:100%;padding:6px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#c8ccd4;font-size:12px;font-family:inherit;outline:none}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(245,158,11,.25)}
+  .field textarea{min-height:70px;resize:vertical;font-size:11px;line-height:1.5}
+  .field .hint{font-size:8px;color:#2a2a3a;margin-top:2px}
+
+  /* HOTKEY/HOTSTRING LIST */
+  .item-list{display:flex;flex-direction:column;gap:4px}
+  .item-row{display:flex;gap:6px;align-items:center;padding:6px 10px;background:#12121c;border-radius:4px;border:1px solid #1e1e2e}
+  .item-row input{flex:1;padding:5px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:3px;color:#c8ccd4;font-size:11px;font-family:inherit;outline:none}
+  .item-row input:focus{border-color:rgba(245,158,11,.25)}
+  .trigger-input{max-width:120px!important}
+  .expansion-input{flex:2!important}
+  .key-input{max-width:140px!important}
+  .action-input{flex:1!important}
+  .remove-btn{background:transparent;border:1px solid #1e1e2e;border-radius:3px;color:#ef4444;padding:3px 7px;font-size:11px;font-family:inherit;cursor:pointer;transition:all .1s}
+  .remove-btn:hover{border-color:rgba(239,68,68,.3)}
+  .add-btn{padding:5px 12px;background:transparent;border:1px dashed #1e1e2e;border-radius:4px;color:#f59e0b;font-size:9px;font-weight:600;font-family:inherit;cursor:pointer;letter-spacing:1px;margin-top:6px;transition:all .1s}
+  .add-btn:hover{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)}
+
+  /* RANGE */
+  .range-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+  .range-row input[type="range"]{flex:1;-webkit-appearance:none;height:3px;background:#1e1e2e;border-radius:2px;outline:none}
+  .range-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#f59e0b;border-radius:50%;cursor:pointer}
+  .range-val{font-size:10px;color:#f59e0b;min-width:28px;text-align:right}
+
+  /* TOAST */
+  .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#10b981;color:#000;padding:10px 24px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:2px;z-index:9999;pointer-events:none;animation:toastPop .3s ease}
+  @keyframes toastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <span class="brand-tag">POF 2828</span>
+    <span class="brand-sep">│</span>
+    <span class="brand-sub">SETTINGS</span>
+  </div>
+  <button class="save-btn" onclick="saveConfig()">SAVE ALL</button>
+</div>
+
+<div class="tab-bar">
+  <button type="button" class="tab active" data-tab="general">GENERAL</button>
+  <button type="button" class="tab" data-tab="hotkeys">HOTKEYS</button>
+  <button type="button" class="tab" data-tab="hotstrings">HOTSTRINGS</button>
+  <button type="button" class="tab" data-tab="tts">TTS</button>
+  <button type="button" class="tab" data-tab="panels">PANELS</button>
+  <button type="button" class="tab" data-tab="sync">SYNC</button>
+</div>
+
+<div class="settings-content">
+<!-- GENERAL -->
+<div class="panel active" id="sec-general">
+  <div class="setting-group">
+    <div class="section-label">CLIPBOARD</div>
+    <div class="field">
+      <label>Monitor Interval (ms)</label>
+      <input type="number" id="clipInterval" value="500" min="100" max="5000">
+      <div class="hint">Lower = faster detection, more CPU</div>
+    </div>
+  </div>
+</div>
+
+<!-- HOTKEYS -->
+<div class="panel" id="sec-hotkeys">
+  <div class="setting-group">
+    <div class="section-label">GLOBAL HOTKEYS</div>
+    <div class="hint" style="margin-bottom:8px">Format: Ctrl+Alt+C, Ctrl+Shift+1, etc. Changes take effect after restart.</div>
+    <div class="item-list" id="hotkeyList"></div>
+    <button class="add-btn" onclick="addHotkey()">+ ADD HOTKEY</button>
+  </div>
+</div>
+
+<!-- HOTSTRINGS -->
+<div class="panel" id="sec-hotstrings">
+  <div class="setting-group">
+    <div class="section-label">HOTSTRINGS</div>
+    <div class="hint" style="margin-bottom:8px">Type the trigger anywhere and it auto-expands. e.g. /gm → Good morning!</div>
+    <div class="item-list" id="hotstringList"></div>
+    <button class="add-btn" onclick="addHotstring()">+ ADD HOTSTRING</button>
+  </div>
+</div>
+
+<!-- TTS -->
+<div class="panel" id="sec-tts">
+  <div class="setting-group">
+    <div class="section-label">TEXT-TO-SPEECH</div>
+    <div class="field">
+      <label>Engine</label>
+      <select id="ttsEngine" onchange="onEngineChange()">
+        <option value="sapi">Windows SAPI</option>
+        <option value="edge">Edge TTS (online)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Voice</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <select id="ttsVoice" style="flex:1"><option value="default">Default (auto)</option></select>
+        <button onclick="refreshVoices()" title="Refresh" style="background:transparent;border:1px solid #1e1e2e;border-radius:4px;color:#555;padding:5px 7px;cursor:pointer;font-size:12px;line-height:1">🔄</button>
+        <button onclick="downloadVoices()" title="Download voices" style="background:transparent;border:1px solid #1e1e2e;border-radius:4px;color:#555;padding:5px 7px;cursor:pointer;font-size:12px;line-height:1">⬇️</button>
+      </div>
+      <div class="hint">Refresh to rescan system voices. Download opens Windows Speech settings.</div>
+    </div>
+    <div class="field">
+      <label>Speed <span style="color:#f59e0b" id="spdVal">2</span></label>
+      <div class="range-row">
+        <input type="range" id="ttsSpeed" min="-10" max="10" step="1" value="2" oninput="document.getElementById('spdVal').textContent=this.value">
+        <span class="range-val">2</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Volume <span style="color:#f59e0b" id="vVal">100</span></label>
+      <div class="range-row">
+        <input type="range" id="ttsVolume" min="0" max="100" step="5" value="100" oninput="document.getElementById('vVal').textContent=this.value">
+        <span class="range-val">100</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="add-btn" onclick="testTTS()">▶ TEST VOICE</button>
+      <button class="add-btn" onclick="stopTTS()" style="color:#ef4444">■ STOP</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panel" id="sec-panels">
+  <div class="setting-group">
+    <div class="section-label">PANEL CONFIGURATION</div>
+    <div class="item-list" id="panelList"></div>
+  </div>
+</div>
+
+<!-- SYNC -->
+<div class="panel" id="sec-sync">
+  <div class="setting-group">
+    <div class="section-label">CLOUDFLARE SYNC</div>
+    <div class="field"><label>API URL</label><input type="text" id="apiUrl" placeholder="https://..."></div>
+    <div class="field"><label>API Token</label><input type="password" id="apiToken" placeholder="Bearer token"></div>
+    <div class="field"><label>Sync Interval (sec)</label><input type="number" id="syncInterval" value="300" min="10"></div>
+  </div>
+</div>
+</div>
+
+<script>
+var config = {};
+var agentConnected = false;
+
+function sendSettingsIpc(msg) {
+  try { window.chrome.webview.postMessage(JSON.stringify(msg)); return true; }
+  catch(e) { return false; }
+}
+
+function showTab(target, name) {
+  var tabName = typeof target === 'string' ? target : name;
+  var el = typeof target === 'string'
+    ? document.querySelector('.tab[data-tab="' + target + '"]')
+    : target;
+
+  if (!el || !tabName) return;
+
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  var panel = document.getElementById('sec-' + tabName);
+  if (panel) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function bindTabs() {
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      showTab(tab, tab.dataset.tab);
+    });
+  });
+}
+
+// HOTKEYS
+function renderHotkeys() {
+  var list = document.getElementById('hotkeyList');
+  list.innerHTML = (config.hotkeys || []).map(function(hk, i) {
+    return '<div class="item-row">' +
+      '<input class="key-input" value="' + esc(hk.keys) + '" onchange="config.hotkeys[' + i + '].keys=this.value" placeholder="Ctrl+Alt+C">' +
+      '<input class="action-input" value="' + esc(hk.action) + '" onchange="config.hotkeys[' + i + '].action=this.value" placeholder="toggle_clipboard">' +
+      '<button class="remove-btn" onclick="config.hotkeys.splice(' + i + ',1);renderHotkeys()">×</button>' +
+    '</div>';
+  }).join('');
+}
+function addHotkey() {
+  config.hotkeys = config.hotkeys || [];
+  config.hotkeys.push({ keys: '', action: '' });
+  renderHotkeys();
+}
+
+// HOTSTRINGS
+function renderHotstrings() {
+  var list = document.getElementById('hotstringList');
+  list.innerHTML = (config.hotstrings || []).map(function(hs, i) {
+    return '<div class="item-row">' +
+      '<input class="trigger-input" value="' + esc(hs.trigger) + '" onchange="config.hotstrings[' + i + '].trigger=this.value" placeholder="/gm">' +
+      '<input class="expansion-input" value="' + esc(hs.expansion) + '" onchange="config.hotstrings[' + i + '].expansion=this.value" placeholder="Good morning!">' +
+      '<button class="remove-btn" onclick="config.hotstrings.splice(' + i + ',1);renderHotstrings()">×</button>' +
+    '</div>';
+  }).join('');
+}
+function addHotstring() {
+  config.hotstrings = config.hotstrings || [];
+  config.hotstrings.push({ trigger: '/', expansion: '', replace_trigger: true });
+  renderHotstrings();
+}
+
+// PANELS
+function renderPanels() {
+  var list = document.getElementById('panelList');
+  list.innerHTML = (config.panels || []).map(function(p, i) {
+    return '<div class="item-row" style="flex-wrap:wrap">' +
+      '<input style="max-width:80px" value="' + esc(p.name) + '" onchange="config.panels[' + i + '].name=this.value" placeholder="name">' +
+      '<input style="max-width:100px" value="' + esc(p.title) + '" onchange="config.panels[' + i + '].title=this.value" placeholder="Title">' +
+      '<input style="flex:2" value="' + esc(p.url) + '" onchange="config.panels[' + i + '].url=this.value" placeholder="URL or path">' +
+    '</div>';
+  }).join('');
+}
+
+// TTS
+function refreshVoices() {
+  if (sendSettingsIpc({ type: 'list_voices' })) { showToast('REFRESHING'); }
+  else { showToast('NO AGENT'); }
+}
+function downloadVoices() {
+  if (sendSettingsIpc({ type: 'open_url', url: 'ms-settings:speech' })) { showToast('OPENING'); }
+  else { try { window.open('ms-settings:speech'); } catch(e) {} showToast('OPEN SETTINGS'); }
+}
+function onEngineChange() { sendSettingsIpc({ type: 'list_voices' }); }
+function populateVoices(voices) {
+  var sel = document.getElementById('ttsVoice');
+  var cur = config.tts ? config.tts.voice : 'default';
+  sel.innerHTML = '<option value="default">Default (auto)</option>';
+  voices.forEach(function(v) {
+    var opt = document.createElement('option');
+    opt.value = v; opt.textContent = v.replace('Microsoft ', '');
+    sel.appendChild(opt);
+  });
+  for (var j = 0; j < sel.options.length; j++) {
+    if (sel.options[j].value === cur || sel.options[j].value.indexOf(cur) !== -1) { sel.value = sel.options[j].value; break; }
+  }
+}
+function testTTS() {
+  config.tts = config.tts || {};
+  config.tts.engine = document.getElementById('ttsEngine').value;
+  config.tts.voice = document.getElementById('ttsVoice').value;
+  config.tts.speed = parseInt(document.getElementById('ttsSpeed').value);
+  config.tts.volume = parseInt(document.getElementById('ttsVolume').value);
+  sendSettingsIpc({ type: 'save_config', config: config });
+  if (sendSettingsIpc({ type: 'test_tts' })) { showToast('PLAYING'); }
+  else {
+    try { var u = new SpeechSynthesisUtterance('ClipSync text to speech is working.'); speechSynthesis.speak(u); showToast('PLAYING'); }
+    catch(e) { showToast('FAILED'); }
+  }
+}
+function stopTTS() { sendSettingsIpc({ type: 'tts_stop' }); }
+
+// SAVE
+function saveConfig() {
+  config.clipboard_interval_ms = parseInt(document.getElementById('clipInterval').value);
+  config.api_url = document.getElementById('apiUrl').value;
+  config.api_token = document.getElementById('apiToken').value;
+  config.sync_interval_secs = parseInt(document.getElementById('syncInterval').value);
+  config.tts = config.tts || {};
+  config.tts.engine = document.getElementById('ttsEngine').value;
+  config.tts.voice = document.getElementById('ttsVoice').value;
+  config.tts.speed = parseInt(document.getElementById('ttsSpeed').value);
+  config.tts.volume = parseInt(document.getElementById('ttsVolume').value);
+  if (sendSettingsIpc({ type: 'save_config', config: config })) { showToast('SAVED'); }
+  else { localStorage.setItem('clipsync-config', JSON.stringify(config)); showToast('SAVED LOCALLY'); }
+}
+
+// LOAD
+function loadConfig() {
+  agentConnected = sendSettingsIpc({ type: 'get_config' });
+  if (!agentConnected) {
+    config = {
+      clipboard_interval_ms: 500, sync_interval_secs: 300, api_url: '', api_token: '',
+      hotkeys: [
+        { keys: 'Ctrl+Alt+C', action: 'toggle_clipboard' },
+        { keys: 'Ctrl+Alt+P', action: 'toggle_prompts' },
+        { keys: 'Ctrl+Alt+L', action: 'toggle_links' },
+        { keys: 'Ctrl+Alt+R', action: 'toggle_research' },
+        { keys: 'Ctrl+Alt+A', action: 'toggle_chat' },
+        { keys: 'Ctrl+Alt+T', action: 'tts_read_selection' },
+        { keys: 'Ctrl+Alt+G', action: 'toggle_dashboard' },
+        { keys: 'Ctrl+Alt+S', action: 'toggle_settings' },
+      ],
+      hotstrings: [
+        { trigger: '/gm', expansion: 'Good morning!', replace_trigger: true },
+        { trigger: '/ty', expansion: 'Thank you, I appreciate it!', replace_trigger: true },
+        { trigger: '/sig', expansion: 'Best regards,\nDavid Lowe', replace_trigger: true },
+        { trigger: '/tp', expansion: 'Theophysics: the mathematical unification of physics, theology, consciousness, and information theory.', replace_trigger: true },
+      ],
+      panels: [],
+      tts: { engine: 'sapi', voice: 'Brian', speed: 2, volume: 100 },
+    };
+    populateUI();
+  }
+  sendSettingsIpc({ type: 'list_voices' });
+}
+
+function populateUI() {
+  document.getElementById('clipInterval').value = config.clipboard_interval_ms || 500;
+  document.getElementById('apiUrl').value = config.api_url || '';
+  document.getElementById('apiToken').value = config.api_token || '';
+  document.getElementById('syncInterval').value = config.sync_interval_secs || 300;
+  if (config.tts) {
+    document.getElementById('ttsEngine').value = config.tts.engine || 'sapi';
+    document.getElementById('ttsSpeed').value = config.tts.speed != null ? config.tts.speed : 2;
+    document.getElementById('ttsVolume').value = config.tts.volume != null ? config.tts.volume : 100;
+    document.getElementById('spdVal').textContent = config.tts.speed != null ? config.tts.speed : 2;
+    document.getElementById('vVal').textContent = config.tts.volume != null ? config.tts.volume : 100;
+  }
+  renderHotkeys();
+  renderHotstrings();
+  renderPanels();
+}
+
+// HELPERS
+function esc(s) { if (!s) return ''; return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.remove(); }, 600);
+}
+
+bindTabs();
+try { loadConfig(); } catch(e) { console.error('loadConfig error:', e); }
+</script>
+</body>
+</html>

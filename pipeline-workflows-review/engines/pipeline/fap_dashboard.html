@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAP Command Center — Folder Automations & Pipelines</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #0a0a0f;
+  --bg-surface: #12121a;
+  --bg-card: #1a1a26;
+  --bg-elevated: #222233;
+  --gold: #c8a64e;
+  --gold-dim: #8a7234;
+  --gold-bright: #e8c95a;
+  --gold-glow: rgba(200,166,78,0.15);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.15);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.15);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251,191,36,0.15);
+  --blue: #60a5fa;
+  --blue-dim: rgba(96,165,250,0.15);
+  --purple: #a78bfa;
+  --text-primary: #e8e6e0;
+  --text-secondary: #9a9890;
+  --text-tertiary: #5a5850;
+  --border: rgba(200,166,78,0.12);
+  --border-hover: rgba(200,166,78,0.25);
+  --font-display: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+}
+.header-left { display:flex; align-items:center; gap:16px; }
+.logo {
+  width:36px; height:36px; border-radius:8px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  display:flex; align-items:center; justify-content:center;
+  font-family: var(--font-mono); font-size:14px; font-weight:600;
+  color: var(--bg-deep);
+}
+.header h1 {
+  font-size:18px; font-weight:500; letter-spacing:-0.02em;
+}
+.header h1 span { color: var(--text-secondary); font-weight:300; }
+.status-badge {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 14px; border-radius:20px;
+  font-size:12px; font-family:var(--font-mono);
+  background: var(--green-dim); color: var(--green);
+  border:1px solid rgba(74,222,128,0.2);
+}
+.status-dot {
+  width:6px; height:6px; border-radius:50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── LAYOUT ── */
+.main { display:grid; grid-template-columns:280px 1fr 300px; min-height:calc(100vh - 73px); }
+
+/* ── SIDEBAR: PIPELINE LIST ── */
+.sidebar {
+  border-right:1px solid var(--border);
+  padding:20px 0;
+  overflow-y:auto;
+}
+.sidebar-title {
+  font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:0.08em; color:var(--text-tertiary);
+  padding:0 20px; margin-bottom:12px;
+}
+.pipeline-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 20px; cursor:pointer;
+  transition: background 0.15s;
+  border-left:2px solid transparent;
+}
+.pipeline-item:hover { background: var(--gold-glow); }
+.pipeline-item.active {
+  background: var(--gold-glow);
+  border-left-color: var(--gold);
+}
+.pipeline-icon {
+  width:32px; height:32px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px;
+}
+.pipeline-icon.hot { background: var(--amber-dim); color:var(--amber); }
+.pipeline-icon.cold { background: var(--blue-dim); color:var(--blue); }
+.pipeline-icon.done { background: var(--green-dim); color:var(--green); }
+.pipeline-name { font-size:13px; font-weight:500; }
+.pipeline-meta { font-size:11px; color:var(--text-tertiary); font-family:var(--font-mono); }
+
+/* ── CENTER: PIPELINE VISUALIZATION ── */
+.center {
+  padding:28px 32px;
+  overflow-y:auto;
+}
+.pipeline-header {
+  display:flex; justify-content:space-between; align-items:flex-start;
+  margin-bottom:28px;
+}
+.pipeline-header h2 {
+  font-size:22px; font-weight:600; letter-spacing:-0.03em;
+}
+.pipeline-header p {
+  font-size:13px; color:var(--text-secondary); margin-top:4px;
+}
+.pipeline-actions { display:flex; gap:8px; }
+.btn {
+  padding:8px 16px; border-radius:6px; border:1px solid var(--border);
+  background:var(--bg-card); color:var(--text-primary);
+  font-family:var(--font-mono); font-size:12px; cursor:pointer;
+  transition: all 0.15s;
+}
+.btn:hover { border-color:var(--gold-dim); background:var(--bg-elevated); }
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  color:var(--bg-deep); border:none; font-weight:500;
+}
+.btn-gold:hover { filter:brightness(1.1); }
+
+/* ── STATION CARDS (the pipeline view) ── */
+.station-flow {
+  display:flex; flex-direction:column; gap:0;
+  position:relative;
+}
+.station-connector {
+  width:2px; height:32px; background:var(--border);
+  margin-left:39px; position:relative;
+}
+.station-connector::after {
+  content:''; position:absolute; bottom:-3px; left:-3px;
+  width:8px; height:8px; border-radius:50%;
+  border:2px solid var(--gold-dim); background:var(--bg-deep);
+}
+.station-card {
+  display:grid; grid-template-columns:80px 1fr auto;
+  align-items:start; gap:16px;
+  padding:16px 20px; border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--bg-card);
+  transition: all 0.2s;
+  cursor:pointer;
+}
+.station-card:hover {
+  border-color:var(--border-hover);
+  background:var(--bg-elevated);
+  transform:translateX(4px);
+}
+.station-card.hot { border-left:3px solid var(--amber); }
+.station-card.active-processing {
+  border-left:3px solid var(--green);
+  box-shadow: 0 0 20px var(--green-dim);
+}
+.station-number {
+  width:40px; height:40px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:16px; font-weight:600;
+}
+.station-number.s1 { background:var(--amber-dim); color:var(--amber); }
+.station-number.s2 { background:var(--blue-dim); color:var(--blue); }
+.station-number.s3 { background:var(--green-dim); color:var(--green); }
+.station-number.s4 { background:rgba(167,139,250,0.15); color:var(--purple); }
+.station-number.s5 { background:var(--red-dim); color:var(--red); }
+.station-number.s6 { background:var(--gold-glow); color:var(--gold); }
+.station-info h3 { font-size:14px; font-weight:600; margin-bottom:4px; }
+.station-info p {
+  font-size:12px; color:var(--text-secondary); line-height:1.5;
+}
+.station-stats {
+  display:flex; flex-direction:column; align-items:flex-end; gap:4px;
+}
+.stat-pill {
+  padding:3px 10px; border-radius:12px;
+  font-size:11px; font-family:var(--font-mono);
+}
+.stat-pill.pending { background:var(--amber-dim); color:var(--amber); }
+.stat-pill.passed { background:var(--green-dim); color:var(--green); }
+.stat-pill.failed { background:var(--red-dim); color:var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">F</div>
+    <h1>FAP Command Center <span>— Folder Automations & Pipelines</span></h1>
+  </div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    WATCHING 6 STATIONS
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Pipelines</div>
+
+    <div class="pipeline-item active" onclick="showPipeline('paper-mill')">
+      <div class="pipeline-icon hot">⚙</div>
+      <div>
+        <div class="pipeline-name">Paper Mill</div>
+        <div class="pipeline-meta">6 stations · 3 pending</div>
+      </div>
+    </div>
+
+    <div class="pipeline-item" onclick="showPipeline('publish')">
+      <div class="pipeline-icon cold">📤</div>
+      <div>
+        <div class="pipeline-name">Publish Pipeline</div>
+        <div class="pipeline-meta">4 stations · 0 pending</div>
+      </div>
+    </div>
+
+    <div class="pipeline-item" onclick="showPipeline('vault-ingest')">
+      <div class="pipeline-icon hot">📥</div>
+      <div>
+        <div class="pipeline-name">Vault Ingest</div>
+        <div class="pipeline-meta">3 stations · 12 pending</div>
+      </div>
+    </div>
+
+    <div class="pipeline-item" onclick="showPipeline('archive')">
+      <div class="pipeline-icon cold">🗄</div>
+      <div>
+        <div class="pipeline-name">Archive Sweep</div>
+        <div class="pipeline-meta">2 stations · scheduled</div>
+      </div>
+    </div>
+
+    <div class="pipeline-item" onclick="showPipeline('tts')">
+      <div class="pipeline-icon done">🔊</div>
+      <div>
+        <div class="pipeline-name">TTS Generation</div>
+        <div class="pipeline-meta">3 stations · idle</div>
+      </div>
+    </div>
+
+    <div style="padding:20px;">
+      <button class="btn" style="width:100%;" onclick="addPipeline()">+ New Pipeline</button>
+    </div>
+
+    <div class="sidebar-title" style="margin-top:20px;">Quick Actions</div>
+    <div class="pipeline-item" onclick="sweepAll()">
+      <div class="pipeline-icon" style="background:var(--gold-glow);color:var(--gold);">↻</div>
+      <div>
+        <div class="pipeline-name">Sweep All Cold</div>
+        <div class="pipeline-meta">run all scheduled sweeps</div>
+      </div>
+    </div>
+    <div class="pipeline-item" onclick="showSignals()">
+      <div class="pipeline-icon" style="background:var(--red-dim);color:var(--red);">!</div>
+      <div>
+        <div class="pipeline-name">Signals (4 unread)</div>
+        <div class="pipeline-meta">gaps, duplicates, alerts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Pipeline View -->
+  <div class="center" id="center">
+    <div class="pipeline-header">
+      <div>
+        <h2>Paper Mill</h2>
+        <p>Raw content → classified → lossless → vectorized → graded → axiom-mapped</p>
+      </div>
+      <div class="pipeline-actions">
+        <button class="btn" onclick="sweepPipeline()">↻ Sweep</button>
+        <button class="btn" onclick="editPipeline()">Edit</button>
+        <button class="btn btn-gold" onclick="dropFile()">+ Drop File</button>
+      </div>
+    </div>
+
+    <div class="station-flow">
+      <!-- Station 1: Intake/Classifier -->
+      <div class="station-card hot" onclick="openStation('classifier')">
+        <div><div class="station-number s1">01</div></div>
+        <div class="station-info">
+          <h3>Classifier</h3>
+          <p>Intake → 10 Laws mapping, 7Q classification, doc type detection. Ollama-assisted when available.</p>
+          <p style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+            D:\FAP\intake\ → D:\FAP\classified\
+          </p>
+        </div>
+        <div class="station-stats">
+          <div class="stat-pill pending">3 pending</div>
+          <div class="stat-pill passed">47 passed</div>
+        </div>
+      </div>
+
+      <div class="station-connector"></div>
+
+      <!-- Station 2: Lossless -->
+      <div class="station-card" onclick="openStation('lossless')">
+        <div><div class="station-number s2">02</div></div>
+        <div class="station-info">
+          <h3>Lossless Prep</h3>
+          <p>Clean, structure, attach metadata. The AI-ready canonical copy. STT artifact removal, formatting normalization.</p>
+          <p style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+            D:\FAP\classified\ → D:\FAP\lossless\
+          </p>
+        </div>
+        <div class="station-stats">
+          <div class="stat-pill pending">0 pending</div>
+          <div class="stat-pill passed">44 passed</div>
+        </div>
+      </div>
+
+      <div class="station-connector"></div>
+
+      <!-- Station 3: Vectorizer -->
+      <div class="station-card" onclick="openStation('vectorizer')">
+        <div><div class="station-number s3">03</div></div>
+        <div class="station-info">
+          <h3>Vectorizer</h3>
+          <p>Generate embeddings, chunk for semantic search, index into vector store. Duplicate detection fires here.</p>
+          <p style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+            D:\FAP\lossless\ → D:\FAP\vectorized\
+          </p>
+        </div>
+        <div class="station-stats">
+          <div class="stat-pill pending">0 pending</div>
+          <div class="stat-pill passed">38 passed</div>
+          <div class="stat-pill failed">2 dupes</div>
+        </div>
+      </div>
+
+      <div class="station-connector"></div>
+
+      <!-- Station 4: Paper Grader -->
+      <div class="station-card" onclick="openStation('grader')">
+        <div><div class="station-number s4">04</div></div>
+        <div class="station-info">
+          <h3>Paper Grader</h3>
+          <p>Coherence check, voice audit, cross-domain strength score, publish-readiness assessment. Can kick back to Lossless.</p>
+          <p style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+            D:\FAP\vectorized\ → D:\FAP\graded\
+          </p>
+        </div>
+        <div class="station-stats">
+          <div class="stat-pill pending">0 pending</div>
+          <div class="stat-pill passed">31 passed</div>
+          <div class="stat-pill failed">7 kicked back</div>
+        </div>
+      </div>
+
+      <div class="station-connector"></div>
+
+      <!-- Station 5: Axiom Mapper -->
+      <div class="station-card" onclick="openStation('axiom-mapper')">
+        <div><div class="station-number s5">05</div></div>
+        <div class="station-info">
+          <h3>Axiom Mapper</h3>
+          <p>Map to 22 public + 188 technical axioms. Detect coverage gaps. Link to Postgres axiom tables.</p>
+          <p style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+            D:\FAP\graded\ → D:\FAP\axiom-mapped\
+          </p>
+        </div>
+        <div class="station-stats">
+          <div class="stat-pill pending">0 pending</div>
+          <div class="stat-pill passed">28 passed</div>
+        </div>
+      </div>
+
+      <div class="station-connector"></div>
+
+      <!-- Station 6: Output -->
+      <div class="station-card" onclick="openStation('output')">
+        <div><div class="station-number s6">06</div></div>
+        <div class="station-info">
+          <h3>Output Router</h3>
+          <p>Final routing: Vault, R2 publish, Substack queue, archive, or Postgres warehouse. Paper is DONE.</p>
+          <p style="margin-top:6px;font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);">
+            D:\FAP\axiom-mapped\ → [multiple destinations]
+          </p>
+        </div>
+        <div class="station-stats">
+          <div class="stat-pill passed">28 completed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR: Activity Feed -->
+  <div class="sidebar" style="border-left:1px solid var(--border); border-right:none;">
+    <div class="sidebar-title">Live Activity</div>
+
+    <div style="padding:8px 20px;">
+      <div style="font-size:12px;color:var(--green);font-family:var(--font-mono);margin-bottom:4px;">
+        ● PASS 0.87
+      </div>
+      <div style="font-size:12px;color:var(--text-primary);">
+        Convergence_P3.md classified
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+        Laws: L5, L9, L10 · paper · 2m ago
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 20px;"></div>
+
+    <div style="padding:8px 20px;">
+      <div style="font-size:12px;color:var(--amber);font-family:var(--font-mono);margin-bottom:4px;">
+        ◉ REVIEW 0.52
+      </div>
+      <div style="font-size:12px;color:var(--text-primary);">
+        draft_weak_force.md gray zone
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+        classifier uncertain · 18m ago
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 20px;"></div>
+
+    <div style="padding:8px 20px;">
+      <div style="font-size:12px;color:var(--red);font-family:var(--font-mono);margin-bottom:4px;">
+        ▲ SIGNAL: DUPLICATE
+      </div>
+      <div style="font-size:12px;color:var(--text-primary);">
+        entropy_paper_v2.md is 94% similar to entropy_paper.md
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+        vectorizer · 1h ago
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 20px;"></div>
+
+    <div style="padding:8px 20px;">
+      <div style="font-size:12px;color:var(--purple);font-family:var(--font-mono);margin-bottom:4px;">
+        ▲ SIGNAL: GAP
+      </div>
+      <div style="font-size:12px;color:var(--text-primary);">
+        No paper covers Axiom A-047
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+        axiom-mapper · 3h ago
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 20px;"></div>
+
+    <div style="padding:8px 20px;">
+      <div style="font-size:12px;color:var(--green);font-family:var(--font-mono);margin-bottom:4px;">
+        ✓ READY
+      </div>
+      <div style="font-size:12px;color:var(--text-primary);">
+        GTQ-08_Moral_Conservation.html completed pipeline
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+        output-router · 5h ago
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 20px;"></div>
+
+    <div style="padding:8px 20px;">
+      <div style="font-size:12px;color:var(--red);font-family:var(--font-mono);margin-bottom:4px;">
+        ✗ KICKED BACK
+      </div>
+      <div style="font-size:12px;color:var(--text-primary);">
+        Silence_Study_v3.md failed voice audit
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+        grader → lossless · 6h ago
+      </div>
+    </div>
+
+    <div class="sidebar-title" style="margin-top:24px;">Pipeline Stats (24h)</div>
+    <div style="padding:12px 20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:22px;font-weight:600;color:var(--green);">47</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">processed</div>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:600;color:var(--gold);">28</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">completed</div>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:600;color:var(--amber);">3</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">in review</div>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:600;color:var(--red);">4</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">signals</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showPipeline(name) {
+  document.querySelectorAll('.pipeline-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  // In production, this fetches pipeline data from the engine's get_status()
+  console.log('Show pipeline:', name);
+}
+function openStation(name) {
+  console.log('Open station detail:', name);
+}
+function sweepPipeline() { console.log('Sweep current pipeline'); }
+function sweepAll() { console.log('Sweep all cold folders'); }
+function editPipeline() { console.log('Edit pipeline config'); }
+function dropFile() { console.log('Open file drop dialog'); }
+function addPipeline() { console.log('Create new pipeline wizard'); }
+function showSignals() { console.log('Show signals panel'); }
+</script>
+</body>
+</html>

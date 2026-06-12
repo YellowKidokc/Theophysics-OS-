@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#09090b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Nerve TTS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #09090b;
+  --surface: #0f0f13;
+  --surface2: #141419;
+  --surface3: #1a1a22;
+  --border: #1f1f2a;
+  --border-hover: #2a2a3a;
+  --text: #d4d4d8;
+  --text-dim: #71717a;
+  --text-muted: #3f3f46;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,.08);
+  --amber-mid: rgba(245,158,11,.2);
+  --red: #ef4444;
+  --green: #10b981;
+  --blue: #3b82f6;
+  --radius: 8px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#27272a; border-radius:4px; }
+
+body {
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+.app {
+  max-width:720px;
+  margin:0 auto;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+}
+.brand { display:flex; align-items:center; gap:12px; }
+.brand-icon {
+  width:36px; height:36px;
+  background:linear-gradient(135deg, var(--amber), #d97706);
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px;
+  box-shadow:0 2px 10px rgba(245,158,11,.25);
+  flex-shrink:0;
+}
+.brand-text { display:flex; flex-direction:column; gap:1px; }
+.brand-title { font-size:15px; font-weight:700; color:#fff; letter-spacing:.3px; }
+.brand-sub { font-size:9px; font-weight:500; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; }
+.voice-count {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; color:var(--text-muted);
+  background:var(--surface2); border:1px solid var(--border);
+  padding:4px 10px; border-radius:6px;
+}
+
+/* ── CARDS ── */
+.card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 18px;
+}
+.card-label {
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  color:var(--text-dim); text-transform:uppercase;
+  margin-bottom:12px;
+}
+
+/* ── TEXT AREA ── */
+.text-area {
+  width:100%; min-height:140px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  color:var(--text); font-size:13px; font-family:'JetBrains Mono',monospace;
+  padding:12px; resize:vertical; outline:none; line-height:1.7;
+  transition:border-color .15s;
+}
+.text-area:focus { border-color:var(--amber-mid); box-shadow:0 0 0 3px rgba(245,158,11,.06); }
+.text-area::placeholder { color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:12px; }
+
+/* ── PLAYBACK BAR ── */
+.playback {
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+}
+.btn {
+  padding:9px 16px; border-radius:8px; font-size:12px; font-weight:600;
+  font-family:inherit; cursor:pointer; letter-spacing:.3px;
+  transition:all .12s; border:1px solid; display:inline-flex; align-items:center; gap:6px;
+  white-space:nowrap;
+}
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+.btn-speak {
+  background:linear-gradient(135deg, rgba(16,185,129,.15), rgba(16,185,129,.08));
+  border-color:rgba(16,185,129,.3); color:var(--green);
+}
+.btn-speak:hover:not(:disabled) { background:rgba(16,185,129,.2); border-color:rgba(16,185,129,.5); box-shadow:0 2px 10px rgba(16,185,129,.12); }
+.btn-pause {
+  background:rgba(59,130,246,.08); border-color:rgba(59,130,246,.2); color:var(--blue);
+}
+.btn-pause:hover:not(:disabled) { background:rgba(59,130,246,.15); }
+.btn-stop {
+  background:rgba(239,68,68,.06); border-color:rgba(239,68,68,.2); color:var(--red);
+}
+.btn-stop:hover:not(:disabled) { background:rgba(239,68,68,.12); }
+.btn-ghost {
+  background:transparent; border-color:var(--border); color:var(--text-dim);
+}
+.btn-ghost:hover:not(:disabled) { border-color:var(--border-hover); color:var(--text); background:rgba(255,255,255,.02); }
+.btn-amber {
+  background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(245,158,11,.06));
+  border-color:rgba(245,158,11,.25); color:var(--amber);
+}
+.btn-amber:hover:not(:disabled) { background:rgba(245,158,11,.18); border-color:rgba(245,158,11,.4); }
+.spacer { flex:1; }
+
+/* ── VOICE CONFIG ── */
+.config-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.config-grid.full { grid-template-columns:1fr; }
+@media(max-width:500px) { .config-grid { grid-template-columns:1fr; } }
+
+.field { display:flex; flex-direction:column; gap:4px; }
+.field label {
+  font-size:10px; letter-spacing:1px; color:var(--text-dim);
+  text-transform:uppercase; font-weight:600;
+}
+.field select {
+  width:100%; padding:8px 12px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  color:var(--text); font-size:13px; font-family:inherit; outline:none;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2371717a'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; padding-right:28px;
+  cursor:pointer; transition:border-color .15s;
+}
+.field select:focus { border-color:var(--amber-mid); }
+.field .hint { font-size:10px; color:var(--text-muted); line-height:1.4; }
+
+/* ── SLIDERS ── */
+.slider-row {
+  display:flex; align-items:center; gap:12px;
+}
+.slider-label {
+  font-size:11px; font-weight:500; color:var(--text-dim);
+  min-width:48px;
+}
+.slider-row input[type="range"] {
+  flex:1; -webkit-appearance:none; height:4px;
+  background:var(--surface3); border-radius:2px; outline:none;
+}
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:16px; height:16px;
+  background:var(--amber); border-radius:50%; cursor:pointer;
+  box-shadow:0 1px 4px rgba(245,158,11,.3);
+}
+.slider-val {
+  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+  color:var(--amber); min-width:36px; text-align:center;
+  background:var(--amber-dim); padding:3px 8px; border-radius:4px;
+}
+
+/* ── STATUS ── */
+.status-bar {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 14px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  font-size:11px; color:var(--text-dim);
+  min-height:36px;
+}
+.dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dot-green { background:var(--green); box-shadow:0 0 6px rgba(16,185,129,.5); }
+.dot-amber { background:var(--amber); box-shadow:0 0 6px rgba(245,158,11,.4); animation:pulse 1.5s infinite; }
+.dot-red { background:var(--red); box-shadow:0 0 6px rgba(239,68,68,.5); }
+.dot-dim { background:var(--text-muted); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.status-text { flex:1; }
+.status-chunk {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:var(--text-muted);
+}
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; top:20px; right:20px;
+  background:var(--surface); border:1px solid var(--amber-mid);
+  color:var(--amber); padding:10px 20px; border-radius:10px;
+  font-size:12px; font-weight:600; letter-spacing:.5px; z-index:999;
+  pointer-events:none; box-shadow:0 4px 20px rgba(0,0,0,.4);
+  animation:slideIn .25s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">&#9835;</div>
+      <div class="brand-text">
+        <span class="brand-title">Nerve TTS</span>
+        <span class="brand-sub">POF 2828 &middot; Voice Engine</span>
+      </div>
+    </div>
+    <div class="voice-count" id="voiceCount">0 voices</div>
+  </div>
+
+  <!-- TEXT INPUT -->
+  <div class="card">
+    <div class="card-label">Text Input</div>
+    <textarea class="text-area" id="text" placeholder="Paste or type text here — articles, notes, scripture, anything.">Hello. This is the Nerve text-to-speech engine, built for the Theophysics research program.</textarea>
+  </div>
+
+  <!-- PLAYBACK -->
+  <div class="card">
+    <div class="playback">
+      <button class="btn btn-speak" id="speakBtn">&#9654; Speak</button>
+      <button class="btn btn-pause" id="pauseBtn" disabled>&#10074;&#10074; Pause</button>
+      <button class="btn btn-pause" id="resumeBtn" disabled>&#9654; Resume</button>
+      <button class="btn btn-stop" id="stopBtn" disabled>&#9632; Stop</button>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" id="testBtn">Test Voice</button>
+      <button class="btn btn-ghost" id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <span class="dot dot-dim" id="statusDot"></span>
+    <span class="status-text" id="statusText">Initializing...</span>
+    <span class="status-chunk" id="statusChunk"></span>
+  </div>
+
+  <!-- VOICE SELECTION -->
+  <div class="card">
+    <div class="card-label">Voice</div>
+    <div class="config-grid full">
+      <div class="field">
+        <label>Voice</label>
+        <select id="voiceSelect"><option value="">Loading voices...</option></select>
+      </div>
+    </div>
+    <div class="config-grid" style="margin-top:10px;">
+      <div class="field">
+        <label>Language Filter</label>
+        <select id="langFilter">
+          <option value="">All Languages</option>
+          <option value="en">English</option>
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="ja">Japanese</option>
+          <option value="ko">Korean</option>
+          <option value="zh">Chinese</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Chunk Size</label>
+        <select id="chunkSize">
+          <option value="200">200 chars</option>
+          <option value="300" selected>300 chars</option>
+          <option value="500">500 chars</option>
+          <option value="800">800 chars</option>
+        </select>
+        <div class="hint">Longer chunks = fewer pauses between sentences</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDERS -->
+  <div class="card">
+    <div class="card-label">Tuning</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="slider-row">
+        <span class="slider-label">Rate</span>
+        <input id="rate" type="range" min="0.5" max="2" step="0.1" value="1">
+        <span class="slider-val" id="rateVal">1.0</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Pitch</span>
+        <input id="pitch" type="range" min="0" max="2" step="0.1" value="1">
+        <span class="slider-val" id="pitchVal">1.0</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Volume</span>
+        <input id="volume" type="range" min="0" max="1" step="0.1" value="1">
+        <span class="slider-val" id="volVal">1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASTE BUTTONS -->
+  <div class="card">
+    <div class="card-label">Quick Actions</div>
+    <div class="playback">
+      <button class="btn btn-ghost" id="pasteBtn">&#128229; Paste from Clipboard</button>
+      <button class="btn btn-ghost" id="cleanBtn">Clean</button>
+      <button class="btn btn-ghost" id="copyBtn">&#128203; Copy Text</button>
+      <button class="btn btn-amber" id="downloadBtn">Download MP3</button>
+      <span class="spacer"></span>
+      <button class="btn btn-amber" id="installBtn" style="display:none">&#8595; Install App</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const synth = window.speechSynthesis;
+const KEY = 'nerve_tts_v2';
+const LOCAL_API = 'http://127.0.0.1:3456/api';
+let voices = [];
+let speaking = false;
+let paused = false;
+let deferredPrompt = null;
+let lastCommandId = '';
+
+// ── Elements ──
+const $ = id => document.getElementById(id);
+const el = {
+  text: $('text'),
+  voiceSelect: $('voiceSelect'),
+  langFilter: $('langFilter'),
+  chunkSize: $('chunkSize'),
+  rate: $('rate'), pitch: $('pitch'), volume: $('volume'),
+  rateVal: $('rateVal'), pitchVal: $('pitchVal'), volVal: $('volVal'),
+  speakBtn: $('speakBtn'), pauseBtn: $('pauseBtn'),
+  resumeBtn: $('resumeBtn'), stopBtn: $('stopBtn'),
+  testBtn: $('testBtn'), clearBtn: $('clearBtn'),
+  pasteBtn: $('pasteBtn'), cleanBtn: $('cleanBtn'), copyBtn: $('copyBtn'),
+  downloadBtn: $('downloadBtn'),
+  installBtn: $('installBtn'),
+  statusDot: $('statusDot'), statusText: $('statusText'),
+  statusChunk: $('statusChunk'), voiceCount: $('voiceCount'),
+};
+
+// ── Status ──
+function setStatus(msg, state) {
+  el.statusText.textContent = msg;
+  el.statusDot.className = 'dot ' + ({
+    ready: 'dot-green', speaking: 'dot-amber',
+    paused: 'dot-amber', error: 'dot-red', idle: 'dot-dim'
+  }[state] || 'dot-dim');
+}
+
+function setChunk(current, total) {
+  el.statusChunk.textContent = total > 1 ? `${current}/${total}` : '';
+}
+
+// ── Toast ──
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1400);
+}
+
+// ── Persistence ──
+function save() {
+  const data = {
+    voiceName: el.voiceSelect.value,
+    lang: el.langFilter.value,
+    rate: el.rate.value, pitch: el.pitch.value, volume: el.volume.value,
+    chunkSize: el.chunkSize.value,
+  };
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (d.lang) el.langFilter.value = d.lang;
+    if (d.rate) el.rate.value = d.rate;
+    if (d.pitch) el.pitch.value = d.pitch;
+    if (d.volume) el.volume.value = d.volume;
+    if (d.chunkSize) el.chunkSize.value = d.chunkSize;
+    updateSliders();
+  } catch {}
+}
+
+function updateSliders() {
+  el.rateVal.textContent = Number(el.rate.value).toFixed(1);
+  el.pitchVal.textContent = Number(el.pitch.value).toFixed(1);
+  el.volVal.textContent = Number(el.volume.value).toFixed(1);
+}
+
+// ── Voice loading ──
+function populateVoices() {
+  const savedName = (() => {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}').voiceName || ''; } catch { return ''; }
+  })();
+  const current = el.voiceSelect.value || savedName;
+
+  voices = synth.getVoices();
+  el.voiceCount.textContent = `${voices.length} voice${voices.length !== 1 ? 's' : ''}`;
+
+  el.voiceSelect.innerHTML = '';
+  const auto = document.createElement('option');
+  auto.value = ''; auto.textContent = `Auto (${voices.length} available)`;
+  el.voiceSelect.appendChild(auto);
+
+  const langF = el.langFilter.value.toLowerCase();
+  const filtered = langF ? voices.filter(v => v.lang.toLowerCase().startsWith(langF)) : voices;
+
+  // Group: online first, then local
+  const online = filtered.filter(v => !v.localService);
+  const local = filtered.filter(v => v.localService);
+
+  function addGroup(list, label) {
+    if (!list.length) return;
+    const grp = document.createElement('optgroup');
+    grp.label = label;
+    list.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = `${v.name} (${v.lang})`;
+      grp.appendChild(opt);
+    });
+    el.voiceSelect.appendChild(grp);
+  }
+
+  addGroup(online, 'Online / Natural');
+  addGroup(local, 'Local / Built-in');
+
+  // Restore selection
+  if (current) {
+    for (const opt of el.voiceSelect.options) {
+      if (opt.value === current) { el.voiceSelect.value = current; break; }
+    }
+  }
+
+  if (voices.length) {
+    setStatus('Ready', 'ready');
+  } else {
+    setStatus('Waiting for voices...', 'idle');
+  }
+}
+
+function getVoice() {
+  const name = el.voiceSelect.value;
+  if (!name) return null;
+  return voices.find(v => v.name === name) || null;
+}
+
+// ── Text chunking ──
+function chunk(text, size) {
+  const parts = [];
+  let i = 0;
+  while (i < text.length) {
+    let end = Math.min(i + size, text.length);
+    if (end < text.length) {
+      const p = Math.max(
+        text.lastIndexOf('.', end), text.lastIndexOf('!', end),
+        text.lastIndexOf('?', end), text.lastIndexOf(',', end),
+        text.lastIndexOf(';', end), text.lastIndexOf('\n', end)
+      );
+      if (p > i + 40) end = p + 1;
+    }
+    parts.push(text.slice(i, end).trim());
+    i = end;
+  }
+  return parts.filter(Boolean);
+}
+
+function cleanForSpeech(raw) {
+  let text = String(raw || '');
+  const replacements = {
+    'Σ': ' Sigma ', 'σ': ' sigma ', 'χ': ' chi ', '∈': ' is in ', '∉': ' is not in ',
+    '∭': ' triple integral of ', '∫': ' integral of ', '⋅': ' times ', '·': ' times ',
+    '→': ' goes to ', '⇒': ' implies ', '↔': ' corresponds to ', '∼': ' is distributed as ',
+    '≤': ' less than or equal to ', '≥': ' greater than or equal to ', '∞': ' infinity ',
+    '∂': ' partial ', 'Δ': ' delta ', 'Ω': ' Omega ', 'π': ' pi ', 'λ': ' lambda ',
+    'μ': ' mu ', 'θ': ' theta '
+  };
+  for (const [from, to] of Object.entries(replacements)) text = text.split(from).join(to);
+  return text
+    .replace(/\r/g, '\n')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/[_*~#]+/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/\b([A-Za-z])\s+([FDCEQ])\b/g, '$1 sub $2')
+    .replace(/\b([A-Z])\s*_\s*([A-Za-z0-9]+)\b/g, '$1 sub $2')
+    .replace(/\b([A-Z])\s*\^\s*([A-Za-z0-9]+)\b/g, '$1 superscript $2')
+    .replace(/([A-Za-z])=([A-Za-z0-9])/g, '$1 equals $2')
+    .replace(/([A-Za-z0-9])\+([A-Za-z0-9])/g, '$1 plus $2')
+    .replace(/([A-Za-z0-9])-([A-Za-z0-9])/g, '$1 minus $2')
+    .replace(/\bconst\b/g, 'constant')
+    .replace(/\bQ=1\b/g, 'Q equals one')
+    .replace(/\bQ=0\b/g, 'Q equals zero')
+    .replace(/\n\s*\n/g, '.\n\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/([.!?]){2,}/g, '$1')
+    .trim();
+}
+
+function cleanTextArea() {
+  el.text.value = cleanForSpeech(el.text.value);
+  toast('Cleaned');
+  return el.text.value;
+}
+
+// ── Speak ──
+function speak(text) {
+  if (!text.trim()) { setStatus('Enter text first', 'error'); return; }
+  synth.cancel();
+  paused = false;
+
+  const chunks = chunk(text.trim(), Number(el.chunkSize.value) || 300);
+  const voice = getVoice();
+  const rate = Number(el.rate.value);
+  const pitch = Number(el.pitch.value);
+  const vol = Number(el.volume.value);
+
+  speaking = true;
+  updateButtons();
+  let idx = 0;
+
+  function next() {
+    if (idx >= chunks.length) {
+      speaking = false;
+      paused = false;
+      updateButtons();
+      setStatus('Done', 'ready');
+      setChunk(0, 0);
+      return;
+    }
+
+    const u = new SpeechSynthesisUtterance(chunks[idx]);
+    u.rate = rate; u.pitch = pitch; u.volume = vol;
+    if (voice) u.voice = voice;
+
+    u.onstart = () => {
+      setStatus('Speaking...', 'speaking');
+      setChunk(idx + 1, chunks.length);
+    };
+    u.onend = () => { idx++; next(); };
+    u.onerror = (e) => {
+      if (e.error === 'canceled') return;
+      setStatus(`Error: ${e.error}`, 'error');
+      speaking = false;
+      paused = false;
+      updateButtons();
+    };
+
+    synth.speak(u);
+  }
+
+  next();
+  save();
+}
+
+function stop() {
+  synth.cancel();
+  speaking = false;
+  paused = false;
+  updateButtons();
+  setStatus('Stopped', 'ready');
+  setChunk(0, 0);
+}
+
+function togglePauseResume() {
+  if (!speaking) return;
+  if (paused || synth.paused) {
+    synth.resume();
+    paused = false;
+    setStatus('Speaking...', 'speaking');
+  } else {
+    synth.pause();
+    paused = true;
+    setStatus('Paused', 'paused');
+  }
+  updateButtons();
+}
+
+function updateButtons() {
+  el.speakBtn.disabled = speaking;
+  el.pauseBtn.disabled = !speaking;
+  el.resumeBtn.disabled = !speaking;
+  el.stopBtn.disabled = !speaking;
+  el.pauseBtn.textContent = paused ? '\u25b6 Resume' : '\u275a\u275a Pause';
+}
+
+async function pollLocalCommand() {
+  try {
+    const r = await fetch(`${LOCAL_API}/tts-command`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const cmd = await r.json();
+    if (!cmd || !cmd.action || cmd.id === lastCommandId) return;
+    lastCommandId = cmd.id || '';
+    if (cmd.action === 'speak') {
+      el.text.value = cmd.text || '';
+      speak(cleanForSpeech(el.text.value));
+    } else if (cmd.action === 'toggle') {
+      togglePauseResume();
+    } else if (cmd.action === 'stop') {
+      stop();
+    } else if (cmd.action === 'clean') {
+      cleanTextArea();
+    }
+  } catch {}
+}
+
+// ── Events ──
+async function downloadMp3(text) {
+  const clean = cleanForSpeech(text);
+  if (!clean) { setStatus('Enter text first', 'error'); return; }
+  el.downloadBtn.disabled = true;
+  setStatus('Generating MP3...', 'idle');
+
+  const wsUrl = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud';
+  const connId = crypto.randomUUID().replace(/-/g, '');
+  const chunks = [];
+  const voiceName = 'en-US-BrianMultilingualNeural';
+  const ratePct = Math.round((Number(el.rate.value) - 1) * 100);
+  const pitchPct = Math.round((Number(el.pitch.value) - 1) * 100);
+  const volumePct = Math.round((Number(el.volume.value) - 1) * 100);
+  const pct = value => value >= 0 ? `+${value}%` : `${value}%`;
+  const escaped = clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  try {
+    const ws = new WebSocket(`${wsUrl}?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=${connId}`);
+    const done = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Download timed out')), 45000);
+      ws.onopen = () => {
+        ws.send('Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}');
+        const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${voiceName}'><prosody rate='${pct(ratePct)}' pitch='${pct(pitchPct)}' volume='${pct(volumePct)}'>${escaped}</prosody></voice></speak>`;
+        ws.send(`X-RequestId:${crypto.randomUUID().replace(/-/g, '')}\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n${ssml}`);
+      };
+      ws.onmessage = event => {
+        if (event.data instanceof Blob) {
+          event.data.arrayBuffer().then(buffer => {
+            const headerLength = new DataView(buffer).getUint16(0);
+            const audio = new Uint8Array(buffer, 2 + headerLength);
+            if (audio.length) chunks.push(audio);
+          });
+          return;
+        }
+        if (typeof event.data === 'string' && event.data.includes('Path:turn.end')) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      };
+      ws.onerror = () => reject(new Error('Download error'));
+    });
+
+    await done;
+    const size = chunks.reduce((sum, c) => sum + c.length, 0);
+    const mp3 = new Uint8Array(size);
+    let offset = 0;
+    chunks.forEach(c => { mp3.set(c, offset); offset += c.length; });
+    const url = URL.createObjectURL(new Blob([mp3], { type: 'audio/mpeg' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nerve-tts-${Date.now()}.mp3`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus('MP3 downloaded', 'ready');
+  } catch (err) {
+    setStatus(err.message || 'Download error', 'error');
+  } finally {
+    el.downloadBtn.disabled = false;
+  }
+}
+
+el.speakBtn.addEventListener('click', () => speak(cleanForSpeech(el.text.value)));
+el.pauseBtn.addEventListener('click', togglePauseResume);
+el.resumeBtn.addEventListener('click', togglePauseResume);
+el.stopBtn.addEventListener('click', stop);
+el.testBtn.addEventListener('click', () => speak('Nerve text-to-speech is working. Voice engine online.'));
+el.clearBtn.addEventListener('click', () => { el.text.value = ''; toast('Cleared'); });
+
+el.pasteBtn.addEventListener('click', () => {
+  navigator.clipboard.readText().then(t => { el.text.value = t; toast('Pasted'); })
+    .catch(() => setStatus('Clipboard denied', 'error'));
+});
+el.copyBtn.addEventListener('click', () => {
+  if (!el.text.value) return;
+  navigator.clipboard.writeText(el.text.value).then(() => toast('Copied'));
+});
+el.cleanBtn.addEventListener('click', cleanTextArea);
+el.downloadBtn.addEventListener('click', () => downloadMp3(el.text.value));
+
+el.text.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') speak(cleanForSpeech(el.text.value));
+});
+
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.code === 'Space') {
+    e.preventDefault();
+    togglePauseResume();
+  }
+});
+setInterval(pollLocalCommand, 700);
+
+el.rate.addEventListener('input', () => { updateSliders(); save(); });
+el.pitch.addEventListener('input', () => { updateSliders(); save(); });
+el.volume.addEventListener('input', () => { updateSliders(); save(); });
+el.voiceSelect.addEventListener('change', save);
+el.langFilter.addEventListener('change', () => { populateVoices(); save(); });
+el.chunkSize.addEventListener('change', save);
+
+// ── Voice init ──
+load();
+populateVoices();
+
+if (typeof synth.onvoiceschanged !== 'undefined') {
+  synth.onvoiceschanged = populateVoices;
+} else {
+  synth.addEventListener('voiceschanged', populateVoices);
+}
+
+// Fallback poll for stubborn browsers
+if (!voices.length) {
+  let tries = 0;
+  const poll = setInterval(() => {
+    if (synth.getVoices().length || tries++ > 20) {
+      clearInterval(poll);
+      populateVoices();
+    }
+  }, 250);
+}
+
+// ── PWA Install ──
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  el.installBtn.style.display = '';
+});
+
+el.installBtn.addEventListener('click', () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') toast('Installed!');
+    deferredPrompt = null;
+    el.installBtn.style.display = 'none';
+  });
+});
+
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+window.addEventListener('beforeunload', save);
+</script>
+</body>
+</html>

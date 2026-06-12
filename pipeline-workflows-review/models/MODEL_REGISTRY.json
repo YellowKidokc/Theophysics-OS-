@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "description": "Model Registry — 19 slots for the FORGE preference and NLP pipeline",
+    "rule": "Configs only. Weights stay on NAS at \\\\dlowenas\\brain\\Backside\\_models\\_Models\\",
+    "updated": "2026-06-10"
+  },
+  "slots": {
+    "01_summarizer": { "slot": 1, "name": "Summarizer", "library": "transformers", "status": "active", "category": "nlp" },
+    "02_embedder": { "slot": 2, "name": "Sentence Embedder", "library": "sentence-transformers", "status": "active", "category": "nlp" },
+    "03_contradiction": { "slot": 3, "name": "Contradiction Detector", "library": "transformers/deberta", "status": "active", "category": "nlp" },
+    "04_clip": { "slot": 4, "name": "CLIP Image-Text", "library": "openai/clip", "status": "active", "category": "nlp" },
+    "05_whisper": { "slot": 5, "name": "Whisper Transcriber", "library": "openai/whisper", "status": "active", "category": "nlp" },
+    "06_llm": { "slot": 6, "name": "Local LLM", "library": "ollama", "status": "active", "category": "nlp" },
+    "07_ner": { "slot": 7, "name": "Named Entity Recognition", "library": "transformers", "status": "active", "category": "nlp" },
+    "08_sentiment": { "slot": 8, "name": "Sentiment Analysis", "library": "transformers", "status": "active", "category": "nlp" },
+    "09_topic": { "slot": 9, "name": "Topic Modeling", "library": "bertopic", "status": "active", "category": "nlp" },
+    "10_qa": { "slot": 10, "name": "Question Answering", "library": "transformers", "status": "active", "category": "nlp" },
+    "11_reranker": { "slot": 11, "name": "Reranker", "library": "sentence-transformers", "status": "active", "category": "nlp" },
+    "12_classifier": { "slot": 12, "name": "Zero-Shot Classifier", "library": "transformers", "status": "active", "category": "nlp" },
+    "13_implicit": {
+      "slot": 13, "name": "Implicit Collaborative Filtering", "library": "implicit",
+      "status": "installed", "category": "preference",
+      "notes": "Learns station co-occurrence patterns",
+      "feeds_into": ["station_routing"], "fed_by": ["correction_logger", "bil_events"]
+    },
+    "14_recbole": { "slot": 14, "name": "RecBole Recommendation", "library": "recbole", "status": "placeholder", "category": "preference" },
+    "15_lightfm": { "slot": 15, "name": "LightFM Hybrid Recommendation", "library": "lightfm", "status": "placeholder", "category": "preference" },
+    "16_paper_recommender": { "slot": 16, "name": "Paper Recommender", "library": "semanticscholar", "status": "active", "category": "preference" },
+    "17_ppk": {
+      "slot": 17, "name": "Portable Preference Kernel", "library": "custom/json-weights",
+      "status": "active", "category": "preference",
+      "notes": "JSON weights only. Copy to USB = portable identity. No personal data.",
+      "feeds_into": ["station_routing", "13_implicit"], "fed_by": ["18_river"]
+    },
+    "18_river": {
+      "slot": 18, "name": "River Streaming ML", "library": "river", "version": "0.25",
+      "status": "active", "category": "preference",
+      "port": 8420, "endpoint": "http://localhost:8420",
+      "notes": "Real-time online learning inside BIL server. Microsecond latency.",
+      "feeds_into": ["17_ppk"], "fed_by": ["bil_events", "clipboard", "browser", "file_classify"]
+    },
+    "19_markovify": {
+      "slot": 19, "name": "Markovify Text Prediction", "library": "markovify",
+      "status": "installed", "category": "preference",
+      "notes": "Needs training corpus from clipboard + vault writing",
+      "feeds_into": ["autocomplete"], "fed_by": ["clipboard_history", "vault_text"]
+    }
+  },
+  "preference_chain_order": ["18_river", "17_ppk", "13_implicit", "19_markovify"],
+  "bil_signal_weights": {
+    "manual_approval": 1.0, "file_reused_later": 0.9, "copied_text": 0.8,
+    "bookmark_save": 0.7, "long_dwell_scroll": 0.5, "opened_tab": 0.2, "accidental_visit": 0.0
+  }
+}

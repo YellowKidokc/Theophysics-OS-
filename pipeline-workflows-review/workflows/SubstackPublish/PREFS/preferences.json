@@ -1,0 +1,9 @@
+{
+  "model_lane": "fast",
+  "llm_backend": "ollama",
+  "stop_for_review": true,
+  "output_destinations": ["r2"],
+  "site_url": "https://faiththruphysics.com",
+  "theme": "gold",
+  "analytics_id": ""
+}

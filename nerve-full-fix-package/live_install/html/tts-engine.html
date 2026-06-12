@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nerve TTS Engine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:#0a0a0f}
+  ::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:3px}
+  body{font-family:'IBM Plex Mono',monospace;background:#0a0a0f;color:#c8ccd4;height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+  .header{padding:10px 16px 8px;border-bottom:1px solid #1e1e2e;background:#0d0d14;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:8px}
+  .brand-tag{font-size:10px;letter-spacing:3px;color:#f59e0b;font-weight:700}
+  .brand-sep{font-size:11px;color:#2a2a3a}
+  .brand-sub{font-size:10px;letter-spacing:2px;color:#444}
+  .pin-btn{background:transparent;border:1px solid #1e1e2e;color:#3a3a4a;padding:3px 8px;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .12s;line-height:1}
+  .pin-btn:hover{border-color:#555;color:#555}
+  .pin-btn.pinned{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#f59e0b}
+
+  /* TABS */
+  .tab-bar{display:flex;background:#0a0a0f;border-bottom:1px solid #1e1e2e;flex-shrink:0}
+  .tab{flex:1;padding:6px 0;text-align:center;font-size:8px;letter-spacing:2px;font-weight:700;color:#2a2a3a;cursor:pointer;border-bottom:2px solid transparent;transition:all .1s}
+  .tab:hover{color:#444}
+  .tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+
+  /* MAIN SCROLL */
+  .main{flex:1;overflow-y:auto;padding:10px 14px}
+
+  /* SECTIONS */
+  .section{display:none}
+  .section.active{display:block}
+  .section-label{font-size:9px;font-weight:700;letter-spacing:2px;color:#f59e0b;margin:12px 0 8px;padding-bottom:4px;border-bottom:1px solid #1e1e2e}
+  .section-label:first-child{margin-top:0}
+
+  /* TEXT AREA */
+  .text-area{width:100%;min-height:120px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#c8ccd4;font-size:11px;font-family:inherit;padding:8px;resize:vertical;outline:none;line-height:1.6}
+  .text-area:focus{border-color:rgba(245,158,11,.25)}
+  .text-area::placeholder{color:#2a2a3a}
+
+  /* CONTROLS ROW */
+  .controls{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+  .btn{padding:5px 12px;border-radius:4px;font-size:9px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:1px;transition:all .1s;border:1px solid}
+  .btn-primary{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);color:#f59e0b}
+  .btn-primary:hover{background:rgba(245,158,11,.15)}
+  .btn-danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:#ef4444}
+  .btn-danger:hover{background:rgba(239,68,68,.15)}
+  .btn-success{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);color:#10b981}
+  .btn-success:hover{background:rgba(16,185,129,.15)}
+  .btn-ghost{background:transparent;border-color:#1e1e2e;color:#555}
+  .btn-ghost:hover{border-color:#333;color:#777}
+
+  /* TOGGLE ROW */
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#12121c;border-radius:4px;border:1px solid #1e1e2e;margin-bottom:4px}
+  .toggle-label{font-size:10px;color:#888;flex:1}
+  .toggle-desc{font-size:8px;color:#333;margin-top:1px}
+  .toggle{position:relative;width:36px;height:18px;flex-shrink:0;cursor:pointer}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle .slider{position:absolute;top:0;left:0;right:0;bottom:0;background:#1e1e2e;border-radius:9px;transition:.15s}
+  .toggle .slider:before{content:'';position:absolute;height:14px;width:14px;left:2px;bottom:2px;background:#3a3a4a;border-radius:50%;transition:.15s}
+  .toggle input:checked + .slider{background:rgba(245,158,11,.3)}
+  .toggle input:checked + .slider:before{transform:translateX(18px);background:#f59e0b}
+
+  /* FIELD */
+  .field{margin-bottom:8px}
+  .field label{display:block;font-size:8px;letter-spacing:1.5px;color:#555;margin-bottom:3px;text-transform:uppercase;font-weight:600}
+  .field input,.field select{width:100%;padding:5px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#c8ccd4;font-size:11px;font-family:inherit;outline:none}
+  .field input:focus,.field select:focus{border-color:rgba(245,158,11,.25)}
+  .field .hint{font-size:8px;color:#2a2a3a;margin-top:2px}
+
+  /* RANGE */
+  .range-row{display:flex;align-items:center;gap:8px;margin-top:3px}
+  .range-row input[type="range"]{flex:1;-webkit-appearance:none;height:3px;background:#1e1e2e;border-radius:2px;outline:none}
+  .range-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#f59e0b;border-radius:50%;cursor:pointer}
+  .range-val{font-size:10px;color:#f59e0b;min-width:28px;text-align:right}
+
+  /* PLACEHOLDER */
+  .placeholder{padding:30px 12px;text-align:center;font-size:10px;color:#2a2a3a;letter-spacing:1px}
+
+  /* STATUS */
+  .status-bar{padding:4px 14px;border-top:1px solid #1e1e2e;background:#0d0d14;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+  .status-left{font-size:8px;color:#2a2a3a;letter-spacing:1px}
+  .status-right{font-size:8px;color:#2a2a3a}
+  .dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:4px}
+  .dot-green{background:#10b981;box-shadow:0 0 4px rgba(16,185,129,.5)}
+  .dot-red{background:#ef4444;box-shadow:0 0 4px rgba(239,68,68,.5)}
+
+  /* TOAST */
+  .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#10b981;color:#000;padding:8px 20px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:2px;z-index:999;pointer-events:none;animation:tp .25s ease}
+  @keyframes tp{0%{opacity:0;transform:translate(-50%,-50%) scale(.85)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <span class="brand-tag">POF 2828</span>
+    <span class="brand-sep">│</span>
+    <span class="brand-sub">TTS ENGINE</span>
+  </div>
+  <button class="pin-btn" id="pinBtn" onclick="togglePin()">📌</button>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="showTab(this,'speak')">SPEAK</div>
+  <div class="tab" onclick="showTab(this,'filters')">FILTERS</div>
+  <div class="tab" onclick="showTab(this,'symbols')">SYMBOLS</div>
+  <div class="tab" onclick="showTab(this,'voice')">VOICE</div>
+</div>
+
+<div class="main">
+
+  <!-- ═══ SPEAK TAB ═══ -->
+  <div class="section active" id="sec-speak">
+    <div class="section-label">INPUT TEXT</div>
+    <textarea class="text-area" id="inputText" placeholder="Paste or type text here... Markdown, LaTeX, equations all welcome." rows="6"></textarea>
+
+    <div class="controls">
+      <button class="btn btn-primary" onclick="doSpeak()">▶ SPEAK</button>
+      <button class="btn btn-ghost" onclick="doPause()">⏸ PAUSE</button>
+      <button class="btn btn-danger" onclick="doStop()">⏹ STOP</button>
+      <button class="btn btn-success" onclick="doClean()">🧹 CLEAN TEXT</button>
+      <button class="btn btn-ghost" onclick="doDownload()">⬇ DOWNLOAD</button>
+    </div>
+
+    <div class="section-label">CLEANED OUTPUT</div>
+    <textarea class="text-area" id="outputText" placeholder="Cleaned text appears here after processing..." rows="6" readonly style="color:#10b981;background:#0c0c14"></textarea>
+
+    <div class="controls">
+      <button class="btn btn-ghost" onclick="copyOutput()">📋 COPY CLEANED</button>
+      <button class="btn btn-ghost" onclick="pasteFromClipboard()">📥 PASTE FROM CLIPBOARD</button>
+    </div>
+  </div>
+
+  <!-- ═══ FILTERS TAB ═══ -->
+  <div class="section" id="sec-filters">
+    <div class="section-label">TEXT NORMALIZATION</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip URLs</div><div class="toggle-desc">Remove http(s) links</div></div>
+      <label class="toggle"><input type="checkbox" id="f_urls" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip #hashtags</div><div class="toggle-desc">Remove hashtag tokens</div></div>
+      <label class="toggle"><input type="checkbox" id="f_hashtags" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip @mentions</div><div class="toggle-desc">Remove @user tokens</div></div>
+      <label class="toggle"><input type="checkbox" id="f_mentions" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip math</div><div class="toggle-desc">$...$ and $$...$$ blocks</div></div>
+      <label class="toggle"><input type="checkbox" id="f_math"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip code blocks</div><div class="toggle-desc">``` and inline `code`</div></div>
+      <label class="toggle"><input type="checkbox" id="f_code"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip emoji</div><div class="toggle-desc">Unicode pictographs</div></div>
+      <label class="toggle"><input type="checkbox" id="f_emoji"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip markdown</div><div class="toggle-desc">*, _, ~, headings, links</div></div>
+      <label class="toggle"><input type="checkbox" id="f_markdown"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Strip parentheticals</div><div class="toggle-desc">(...) and [...]</div></div>
+      <label class="toggle"><input type="checkbox" id="f_parens"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <!-- ═══ SYMBOLS TAB ═══ -->
+  <div class="section" id="sec-symbols">
+    <div class="placeholder">SYMBOL SUBSTITUTIONS<br><br>not yet wired</div>
+  </div>
+
+  <!-- ═══ VOICE TAB ═══ -->
+  <div class="section" id="sec-voice">
+    <div class="section-label">ENGINE</div>
+    <div class="field">
+      <label>Engine</label>
+      <select id="engine" onchange="onEngineChange()">
+        <option value="sapi">SAPI (built-in)</option>
+        <option value="edge">Edge TTS (online)</option>
+      </select>
+      <div class="hint">SAPI works out of the box. Edge TTS needs `edge-playback` installed.</div>
+    </div>
+
+    <div class="field">
+      <label>Voice</label>
+      <select id="voice"><option value="default">Default (auto)</option></select>
+      <div class="hint">Refresh on the right rescans installed voices.</div>
+    </div>
+
+    <div class="field">
+      <label>Speed</label>
+      <div class="range-row">
+        <input id="speed" type="range" min="-10" max="10" step="1" value="2"
+               oninput="document.getElementById('spdVal').textContent=this.value">
+        <span class="range-val" id="spdVal">2</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Volume</label>
+      <div class="range-row">
+        <input id="volume" type="range" min="0" max="100" step="5" value="100"
+               oninput="document.getElementById('volVal').textContent=this.value">
+        <span class="range-val" id="volVal">100</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" onclick="refreshVoices()">🔄 REFRESH VOICES</button>
+      <button class="btn btn-success" onclick="saveVoiceConfig()">💾 SAVE AS DEFAULT</button>
+      <button class="btn btn-ghost" onclick="testVoice()">▶ TEST</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="status-bar">
+  <div class="status-left"><span class="dot dot-green" id="statusDot"></span><span id="statusText">READY</span></div>
+  <div class="status-right" id="engineLabel">SAPI</div>
+</div>
+
+<script>
+  // ── IPC plumbing ────────────────────────────────────────────────
+  // The Rust host is reachable via window.chrome.webview.postMessage.
+  // It calls populateVoices(json) and populateUI() back into us via
+  // evaluate_script — those need to live on `window`.
+  function post(msg) {
+    try {
+      window.chrome.webview.postMessage(JSON.stringify(msg));
+      return true;
+    } catch (e) {
+      console.error('IPC post failed:', e);
+      return false;
+    }
+  }
+
+  // Live config mirror — backend pushes this in via populateUI().
+  let config = { tts: { engine: 'sapi', voice: 'default', speed: 2, volume: 100 } };
+
+  // ── Tabs ────────────────────────────────────────────────────────
+  function showTab(el, name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    const sec = document.getElementById('sec-' + name);
+    if (sec) sec.classList.add('active');
+  }
+
+  // ── Pin (no-op — kept for visual parity with other panels) ─────
+  function togglePin() {
+    document.getElementById('pinBtn').classList.toggle('pinned');
+  }
+
+  // ── Toast ───────────────────────────────────────────────────────
+  function showToast(text) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = text;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1100);
+  }
+
+  function setStatus(text, ok) {
+    document.getElementById('statusText').textContent = text;
+    const dot = document.getElementById('statusDot');
+    dot.className = 'dot ' + (ok === false ? 'dot-red' : 'dot-green');
+  }
+
+  // ── Text normalization ─────────────────────────────────────────
+  const filters = {
+    f_urls:     t => t.replace(/https?:\/\/\S+/g, ' '),
+    f_hashtags: t => t.replace(/#[\w-]+/g, ' '),
+    f_mentions: t => t.replace(/@[\w.-]+/g, ' '),
+    f_code:     t => t.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]+`/g, ' '),
+    f_math:     t => t.replace(/\$\$[\s\S]*?\$\$/g, ' ').replace(/\$[^$]+\$/g, ' '),
+    f_emoji:    t => t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ' '),
+    f_markdown: t => t.replace(/[*_~]{1,3}/g, '').replace(/^#{1,6}\s/gm, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'),
+    f_parens:   t => t.replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' '),
+  };
+
+  function normalizeText(raw) {
+    let t = raw;
+    for (const [id, fn] of Object.entries(filters)) {
+      const el = document.getElementById(id);
+      if (el && el.checked) t = fn(t);
+    }
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  // ── Voice tab actions ──────────────────────────────────────────
+  function getVoiceSettings() {
+    return {
+      engine: document.getElementById('engine').value,
+      voice:  document.getElementById('voice').value,
+      speed:  parseInt(document.getElementById('speed').value, 10),
+      volume: parseInt(document.getElementById('volume').value, 10),
+    };
+  }
+
+  function onEngineChange() {
+    const eng = document.getElementById('engine').value;
+    document.getElementById('engineLabel').textContent = eng.toUpperCase();
+    post({ type: 'list_voices' });
+  }
+
+  function refreshVoices() {
+    post({ type: 'list_voices' });
+    showToast('REFRESHING');
+  }
+
+  function saveVoiceConfig() {
+    const v = getVoiceSettings();
+    config.tts = Object.assign({}, config.tts, v);
+    if (post({ type: 'save_config', config: config })) {
+      showToast('SAVED');
+      setStatus('DEFAULT SAVED', true);
+    }
+  }
+
+  function testVoice() {
+    const v = getVoiceSettings();
+    post({
+      type: 'speak_text',
+      text: 'Nerve text to speech is working.',
+      engine: v.engine, voice: v.voice, speed: v.speed, volume: v.volume,
+    });
+  }
+
+  // Backend pushes voices in via this global.
+  window.populateVoices = function (voices) {
+    const sel = document.getElementById('voice');
+    const cur = (config.tts && config.tts.voice) || 'default';
+    sel.innerHTML = '<option value="default">Default (auto)</option>';
+    (voices || []).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name.replace('Microsoft ', '');
+      sel.appendChild(opt);
+    });
+    // Try to re-select the saved voice.
+    for (const opt of sel.options) {
+      if (opt.value === cur || opt.value.includes(cur)) {
+        sel.value = opt.value;
+        break;
+      }
+    }
+  };
+
+  // Backend pushes config in via this global (after `get_config`).
+  window.populateUI = function () {
+    if (!config || !config.tts) return;
+    const t = config.tts;
+    document.getElementById('engine').value = t.engine || 'sapi';
+    document.getElementById('engineLabel').textContent = (t.engine || 'sapi').toUpperCase();
+    document.getElementById('speed').value  = t.speed  != null ? t.speed  : 2;
+    document.getElementById('volume').value = t.volume != null ? t.volume : 100;
+    document.getElementById('spdVal').textContent = document.getElementById('speed').value;
+    document.getElementById('volVal').textContent = document.getElementById('volume').value;
+    // Re-apply voice selection if voices are already loaded.
+    const sel = document.getElementById('voice');
+    const target = t.voice || '';
+    for (const opt of sel.options) {
+      if (opt.value === target || opt.value.includes(target)) {
+        sel.value = opt.value;
+        break;
+      }
+    }
+  };
+
+  // ── Speak tab actions ──────────────────────────────────────────
+  function doSpeak() {
+    const raw = document.getElementById('inputText').value;
+    if (!raw.trim()) { setStatus('NO TEXT', false); return; }
+    const cleaned = normalizeText(raw);
+    if (!cleaned) { setStatus('EMPTY AFTER FILTERS', false); return; }
+    document.getElementById('outputText').value = cleaned;
+    const v = getVoiceSettings();
+    post({
+      type: 'speak_text',
+      text: cleaned,
+      engine: v.engine, voice: v.voice, speed: v.speed, volume: v.volume,
+    });
+    setStatus('SPEAKING', true);
+  }
+
+  function doPause() { post({ type: 'tts_pause' }); setStatus('PAUSED', true); }
+  function doStop()  { post({ type: 'tts_stop'  }); setStatus('STOPPED', true); }
+
+  function doClean() {
+    const raw = document.getElementById('inputText').value;
+    document.getElementById('outputText').value = normalizeText(raw);
+    showToast('CLEANED');
+  }
+
+  function doDownload() {
+    const raw = document.getElementById('inputText').value;
+    if (!raw.trim()) { setStatus('NO TEXT', false); return; }
+    const cleaned = normalizeText(raw);
+    const v = getVoiceSettings();
+    post({
+      type: 'tts_download',
+      text: cleaned,
+      engine: v.engine, voice: v.voice, speed: v.speed, volume: v.volume,
+    });
+    showToast('SAVING WAV');
+  }
+
+  function copyOutput() {
+    const out = document.getElementById('outputText').value;
+    if (!out) return;
+    navigator.clipboard.writeText(out).then(() => showToast('COPIED'));
+  }
+
+  function pasteFromClipboard() {
+    navigator.clipboard.readText().then(t => {
+      document.getElementById('inputText').value = t;
+      showToast('PASTED');
+    }).catch(() => setStatus('CLIPBOARD DENIED', false));
+  }
+
+  // ── Init ───────────────────────────────────────────────────────
+  post({ type: 'get_config' });
+  post({ type: 'list_voices' });
+</script>
+
+</body>
+</html>

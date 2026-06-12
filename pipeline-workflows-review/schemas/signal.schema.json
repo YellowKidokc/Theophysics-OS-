@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PipelineSignal",
+  "type": "object",
+  "required": ["type", "workflow", "station", "severity", "message", "created_at"],
+  "properties": {
+    "type": { "enum": ["GAP", "DUPLICATE", "QUALITY", "READY", "UPSTREAM"] },
+    "workflow": { "type": "string" },
+    "station": { "type": "string" },
+    "severity": { "enum": ["info", "review", "warning", "fail", "hold"] },
+    "message": { "type": "string" },
+    "source": { "type": "string" },
+    "created_at": { "type": "string" }
+  }
+}

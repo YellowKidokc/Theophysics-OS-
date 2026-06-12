@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PipelineManifest",
+  "description": "Tracks all packets currently in flight across all workflows.",
+  "type": "object",
+  "required": ["updated_at", "packets"],
+  "properties": {
+    "updated_at": { "type": "string", "format": "date-time" },
+    "packets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "workflow", "current_stage", "status", "created_at"],
+        "properties": {
+          "id": { "type": "string" },
+          "workflow": { "type": "string" },
+          "current_stage": { "type": "string" },
+          "status": { "enum": ["active", "completed", "failed", "review", "hold"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "file_count": { "type": "integer" },
+          "input_hash": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "active": { "type": "integer" },
+        "completed": { "type": "integer" },
+        "failed": { "type": "integer" },
+        "review": { "type": "integer" },
+        "hold": { "type": "integer" }
+      }
+    }
+  }
+}

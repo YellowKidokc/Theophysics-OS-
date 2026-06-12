@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Task Calendar · POF 2828</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0B0C0F;--surface:#11131A;--surface2:#181B26;--surface3:#1e2030;
+  --border:rgba(244,246,255,0.08);--border2:rgba(244,246,255,0.14);
+  --gold:#F2C94C;--gold-dim:rgba(242,201,76,0.10);
+  --text:#e8eaf0;--muted:#8A8F9E;--muted2:#5A5F6E;
+  --blue:#4F8EF7;--green:#4ECB71;--red:#E05C6E;--purple:#9B7FE8;--orange:#F6821F;
+  --blue-dim:rgba(79,142,247,0.10);--green-dim:rgba(78,203,113,0.10);
+  --purple-dim:rgba(155,127,232,0.10);--red-dim:rgba(224,92,110,0.10);--orange-dim:rgba(246,130,31,0.10);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --radius:6px;--radius-lg:10px;
+  --sidebar-w:220px;--topbar-h:48px;
+}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#222230;border-radius:3px;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);display:flex;flex-direction:column;user-select:none;}
+
+/* ═══ TOPBAR ═══ */
+.topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);z-index:50;}
+.tb-left{display:flex;align-items:center;gap:10px;}
+.tb-toggle{background:none;border:none;color:var(--muted2);font-size:18px;cursor:pointer;padding:4px 6px;border-radius:4px;transition:all .12s;}
+.tb-toggle:hover{color:var(--text);background:var(--surface2);}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-logo{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;opacity:.7;}
+.tb-title{font-size:15px;font-weight:700;}.tb-title span{color:var(--gold);}
+.tb-center{display:flex;align-items:center;gap:4px;}
+.tb-view-btn{padding:5px 13px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--muted);transition:all .15s;font-family:var(--sans);}
+.tb-view-btn:hover{color:var(--text);background:var(--surface2);}
+.tb-view-btn.active{color:var(--gold);background:var(--gold-dim);border-color:rgba(242,201,76,.25);}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.tb-tools{display:flex;align-items:center;gap:6px;}
+.tb-tool{padding:5px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:10px;font-family:var(--mono);letter-spacing:.08em;transition:all .12s;}
+.tb-tool:hover{color:var(--text);border-color:var(--border2);}
+.tb-tool.on{color:var(--green);border-color:rgba(78,203,113,.35);background:var(--green-dim);}
+.tb-search{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px 5px 28px;color:var(--text);font-size:11px;font-family:var(--mono);outline:none;width:180px;transition:border-color .15s;}
+.tb-search::placeholder{color:var(--muted2);}
+.tb-search:focus{border-color:rgba(242,201,76,.3);}
+.tb-search-wrap{position:relative;}
+.tb-search-wrap svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--muted2);}
+.tb-kbd{font-family:var(--mono);font-size:9px;color:var(--muted2);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 5px;position:absolute;right:6px;top:50%;transform:translateY(-50%);}
+.tb-time{font-family:var(--mono);font-size:10px;color:var(--muted2);}
+.tb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block;margin-right:4px;}
+
+/* ═══ MAIN ═══ */
+.main{flex:1;display:flex;overflow:hidden;}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transition:width .2s ease;}
+body.sb-collapsed .sidebar{width:0;border-right:none;overflow:hidden;}
+.sb-top{padding:10px 12px;border-bottom:1px solid var(--border);}
+.sb-add-btn{width:100%;padding:7px 0;border-radius:var(--radius);background:var(--red-dim);border:1px solid rgba(224,92,110,.25);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans);transition:all .12s;}
+.sb-add-btn:hover{background:rgba(224,92,110,.18);}
+.sb-section{padding:6px 8px 2px;}
+.sb-label{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);padding:10px 8px 4px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:var(--radius);cursor:pointer;transition:all .12s;color:var(--muted);border-left:3px solid transparent;margin:1px 4px;}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{color:var(--text);background:var(--surface2);}
+.sb-item.active[data-view="inbox"]{border-left-color:var(--blue);color:var(--blue);}
+.sb-item.active[data-view="today"]{border-left-color:var(--green);color:var(--green);}
+.sb-item.active[data-view="upcoming"]{border-left-color:var(--purple);color:var(--purple);}
+.sb-item.active[data-view="filters"]{border-left-color:var(--orange);color:var(--orange);}
+.sb-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.sb-text{font-size:12px;font-weight:500;flex:1;}
+.sb-badge{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-left:auto;}
+.sb-projects{padding:4px 8px;}
+.sb-proj{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--radius);cursor:pointer;color:var(--muted);font-size:12px;transition:all .12s;margin:1px 4px;}
+.sb-proj:hover{background:var(--surface2);color:var(--text);}
+.sb-proj.active{background:var(--surface2);color:var(--text);}
+.sb-proj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sb-proj-count{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-left:auto;}
+.sb-add-proj{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--radius);cursor:pointer;color:var(--muted2);font-size:11px;transition:all .12s;margin:1px 4px;}
+.sb-add-proj:hover{color:var(--text);background:var(--surface2);}
+.sb-bottom{margin-top:auto;padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.sb-bottom-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--radius);cursor:pointer;color:var(--muted2);font-size:11px;transition:all .12s;}
+.sb-bottom-item:hover{color:var(--text);background:var(--surface2);}
+
+/* ═══ CONTENT ═══ */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── Calendar Strip (month mini) ── */
+.cal-strip{flex-shrink:0;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-month{font-size:15px;font-weight:600;}
+.cal-month span{color:var(--gold);margin-left:4px;font-size:13px;font-weight:400;}
+.cal-nav{display:flex;gap:4px;}
+.cal-nav button{width:28px;height:28px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+.cal-nav button:hover{color:var(--text);border-color:var(--border2);}
+.cal-today-btn{padding:4px 12px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:11px;font-family:var(--sans);transition:all .12s;}
+.cal-today-btn:hover{color:var(--text);border-color:var(--border2);}
+
+/* Month grid */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{text-align:center;font-family:var(--mono);font-size:9px;color:var(--muted2);padding:2px 0 6px;letter-spacing:1px;text-transform:uppercase;}
+.cal-day{text-align:center;padding:5px 2px;border-radius:var(--radius);cursor:pointer;font-size:11px;color:var(--muted);transition:all .1s;position:relative;}
+.cal-day:hover{background:var(--surface2);color:var(--text);}
+.cal-day.other{color:var(--muted2);opacity:.4;}
+.cal-day.today{color:var(--text);font-weight:700;background:var(--red-dim);border:1px solid rgba(224,92,110,.3);}
+.cal-day.selected{color:var(--gold);background:var(--gold-dim);border:1px solid rgba(242,201,76,.25);}
+.cal-day.has-tasks::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--blue);}
+
+/* Week strip */
+.week-strip{flex-shrink:0;display:flex;gap:2px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);}
+.ws-day{flex:1;text-align:center;padding:8px 4px;border-radius:var(--radius);cursor:pointer;transition:all .12s;}
+.ws-day:hover{background:var(--surface2);}
+.ws-day.today{background:var(--red-dim);border:1px solid rgba(224,92,110,.3);}
+.ws-day.selected{background:var(--gold-dim);border:1px solid rgba(242,201,76,.25);}
+.ws-dow{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;}
+.ws-num{font-size:16px;font-weight:600;margin-top:2px;}
+.ws-day.today .ws-num{color:var(--red);}
+.ws-day.selected .ws-num{color:var(--gold);}
+
+/* ── Agenda / Task List ── */
+.agenda{flex:1;overflow-y:auto;padding:16px 20px;}
+.agenda-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.agenda-subtitle{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;}
+
+/* Overdue */
+.overdue-section{background:var(--red-dim);border:1px solid rgba(224,92,110,.15);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:16px;}
+.overdue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.overdue-label{font-size:12px;font-weight:600;color:var(--red);display:flex;align-items:center;gap:6px;}
+.overdue-reschedule{font-size:10px;color:var(--red);cursor:pointer;opacity:.7;transition:opacity .12s;}
+.overdue-reschedule:hover{opacity:1;}
+
+/* Day group */
+.day-group{margin-bottom:16px;}
+.day-group-header{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.dg-date{font-size:13px;font-weight:600;}
+.dg-day{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.dg-count{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-left:auto;}
+.dg-today{color:var(--gold);font-size:10px;font-weight:600;margin-left:auto;}
+
+/* Task item */
+.task{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:var(--radius);transition:all .12s;cursor:pointer;margin:2px 0;}
+.task:hover{background:var(--surface2);}
+.task-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted2);flex-shrink:0;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.task-check:hover{border-color:var(--green);background:var(--green-dim);}
+.task-check.done{border-color:var(--green);background:var(--green);}
+.task-check.done::after{content:'✓';color:#fff;font-size:10px;font-weight:700;}
+.task.completed .task-title{color:var(--text);opacity:1;}
+.task.log-entry .task-check{border-color:var(--green);background:var(--green-dim);cursor:default;pointer-events:none;}
+.task.log-entry .task-check::after{content:'✓';color:var(--green);font-size:10px;font-weight:700;}
+.task.log-entry .task-title{color:var(--text);opacity:0.9;}
+.task-body{flex:1;min-width:0;}
+.task-title{font-size:13px;line-height:1.4;}
+.task-meta{display:flex;align-items:center;gap:8px;margin-top:3px;}
+.task-due{font-family:var(--mono);font-size:10px;color:var(--muted2);display:flex;align-items:center;gap:4px;}
+.task-due.overdue{color:var(--red);}
+.task-project-tag{font-size:9px;padding:1px 6px;border-radius:8px;font-family:var(--mono);border:1px solid;}
+.task-priority{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.task-priority.p1{background:var(--red);}
+.task-priority.p2{background:var(--orange);}
+.task-priority.p3{background:var(--blue);}
+.task-priority.p4{background:var(--muted2);}
+.task-alarm{font-size:10px;color:var(--orange);cursor:pointer;}
+.task-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;flex-shrink:0;}
+.task:hover .task-actions{opacity:1;}
+.task-act-btn{width:24px;height:24px;border-radius:4px;background:transparent;border:none;color:var(--muted2);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .1s;}
+.task-act-btn:hover{background:var(--surface3);color:var(--text);}
+
+/* Add task row */
+.add-task-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius);cursor:pointer;color:var(--muted2);font-size:12px;transition:all .12s;margin:2px 0;}
+.add-task-row:hover{color:var(--red);background:var(--surface2);}
+.add-task-row .plus{font-size:16px;width:18px;text-align:center;}
+
+/* Inline add form */
+.add-form{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:12px;margin:4px 0;animation:slideIn .15s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.add-form input,.add-form select,.add-form textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--sans);outline:none;transition:border-color .15s;}
+.add-form input:focus,.add-form select:focus{border-color:rgba(242,201,76,.3);}
+.add-form-title{width:100%;margin-bottom:8px;font-size:13px;}
+.add-form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.add-form-row select{min-width:100px;}
+.add-form-actions{display:flex;gap:6px;justify-content:flex-end;}
+.btn-add{padding:5px 16px;border-radius:var(--radius);background:var(--red);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .12s;}
+.btn-add:hover{background:#c9475a;}
+.btn-cancel{padding:5px 16px;border-radius:var(--radius);background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);transition:all .12s;}
+.btn-cancel:hover{color:var(--text);border-color:var(--border2);}
+
+/* ── Daily Summary ── */
+.daily-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px;}
+.ds-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ds-title{font-size:12px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:6px;}
+.ds-edit{font-size:10px;color:var(--muted2);cursor:pointer;transition:color .12s;}
+.ds-edit:hover{color:var(--text);}
+.ds-body{font-size:12px;color:var(--muted);line-height:1.6;min-height:30px;}
+.ds-body:empty::before{content:'Click edit to add a daily summary...';color:var(--muted2);font-style:italic;}
+.ds-textarea{width:100%;min-height:60px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px;color:var(--text);font-size:12px;font-family:var(--sans);outline:none;resize:vertical;}
+.ds-textarea:focus{border-color:rgba(242,201,76,.3);}
+
+/* ── Month View ── */
+.month-view{flex:1;overflow-y:auto;padding:16px 20px;}
+.mv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);}
+.mv-dow{text-align:center;font-family:var(--mono);font-size:9px;color:var(--muted2);padding:8px 4px;background:var(--bg);letter-spacing:1px;text-transform:uppercase;}
+.mv-cell{background:var(--bg);min-height:90px;padding:6px;cursor:pointer;transition:background .12s;position:relative;}
+.mv-cell:hover{background:var(--surface);}
+.mv-cell.other{opacity:.35;}
+.mv-cell.today{background:var(--surface);box-shadow:inset 0 2px 0 var(--red);}
+.mv-cell-num{font-size:11px;font-weight:500;margin-bottom:4px;}
+.mv-cell.today .mv-cell-num{color:var(--red);font-weight:700;}
+.mv-cell-task{font-size:10px;padding:2px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+.mv-cell-more{font-size:9px;color:var(--muted2);font-family:var(--mono);padding:2px 4px;}
+
+/* ═══ COMMAND PALETTE ═══ */
+.cmd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding-top:15vh;backdrop-filter:blur(4px);}
+.cmd-overlay.open{display:flex;}
+.cmd-box{width:500px;max-width:90vw;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:cmdIn .12s ease;}
+@keyframes cmdIn{from{opacity:0;transform:translateY(-10px) scale(.98);}to{opacity:1;transform:none;}}
+.cmd-input-wrap{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);}
+.cmd-input-wrap svg{color:var(--muted);flex-shrink:0;}
+.cmd-input{flex:1;background:transparent;border:none;color:var(--text);font-size:14px;font-family:var(--sans);outline:none;}
+.cmd-input::placeholder{color:var(--muted2);}
+.cmd-hint{font-family:var(--mono);font-size:9px;color:var(--muted2);background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:2px 6px;flex-shrink:0;}
+.cmd-results{max-height:300px;overflow-y:auto;padding:6px;}
+.cmd-group-label{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);padding:8px 12px 4px;}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;transition:all .08s;color:var(--muted);}
+.cmd-item:hover,.cmd-item.active{background:var(--surface2);color:var(--text);}
+.cmd-item-icon{width:20px;text-align:center;font-size:14px;}
+.cmd-item-text{font-size:13px;}
+.cmd-item-kbd{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-left:auto;display:flex;gap:3px;}
+.cmd-item-kbd span{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 5px;}
+
+/* ═══ TASK EDIT MODAL ═══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{width:480px;max-width:90vw;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.modal h3{font-size:14px;margin-bottom:14px;color:var(--gold);}
+.modal label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:var(--mono);}
+.modal input,.modal select,.modal textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-size:12px;font-family:var(--sans);outline:none;margin-bottom:10px;}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:rgba(242,201,76,.3);}
+.modal textarea{min-height:60px;resize:vertical;}
+.modal-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:6px;}
+
+/* ═══ PROJECT EDIT ═══ */
+.proj-form{padding:6px 12px;margin:2px 4px;}
+.proj-form input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;color:var(--text);font-size:11px;font-family:var(--sans);outline:none;}
+.proj-form input:focus{border-color:rgba(242,201,76,.3);}
+.proj-colors{display:flex;gap:4px;margin-top:4px;}
+.proj-color-opt{width:16px;height:16px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .1s;}
+.proj-color-opt:hover,.proj-color-opt.sel{border-color:var(--text);transform:scale(1.15);}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:700px){
+  .sidebar{position:fixed;left:0;top:var(--topbar-h);bottom:0;z-index:40;transform:translateX(0);box-shadow:4px 0 20px rgba(0,0,0,.4);}
+  body.sb-collapsed .sidebar{transform:translateX(-100%);}
+  .tb-search-wrap{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-left">
+    <button class="tb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    <div class="tb-brand">
+      <span class="tb-logo">pof 2828</span>
+      <span class="tb-title">Task <span>Calendar</span></span>
+    </div>
+  </div>
+  <div class="tb-center">
+    <button class="tb-view-btn active" data-mode="agenda" onclick="setViewMode('agenda')">Agenda</button>
+    <button class="tb-view-btn" data-mode="month" onclick="setViewMode('month')">Month</button>
+  </div>
+  <div class="tb-right">
+    <div class="tb-tools">
+      <button class="tb-tool" id="calPinBtn" onclick="toggleCalendarPin()">PIN</button>
+      <button class="tb-tool" onclick="saveCalendarWindow()">SAVE WIN</button>
+    </div>
+    <div class="tb-search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="tb-search" placeholder="Search or command..." id="topSearch" readonly onclick="openCmd()">
+      <span class="tb-kbd">Ctrl K</span>
+    </div>
+    <span class="tb-time"><span class="tb-dot"></span><span id="clock"></span></span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-top">
+    <button class="sb-add-btn" onclick="showAddTaskGlobal()">＋ Add task</button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-item active" data-view="inbox" onclick="navTo('inbox')">
+      <span class="sb-icon">📥</span><span class="sb-text">Inbox</span><span class="sb-badge" id="badge-inbox">0</span>
+    </div>
+    <div class="sb-item" data-view="today" onclick="navTo('today')">
+      <span class="sb-icon">📅</span><span class="sb-text">Today</span><span class="sb-badge" id="badge-today">0</span>
+    </div>
+    <div class="sb-item" data-view="upcoming" onclick="navTo('upcoming')">
+      <span class="sb-icon">🗓️</span><span class="sb-text">Upcoming</span>
+    </div>
+    <div class="sb-item" data-view="filters" onclick="navTo('filters')">
+      <span class="sb-icon">⚙️</span><span class="sb-text">Filters &amp; Labels</span>
+    </div>
+  </div>
+
+  <div class="sb-label">My Projects</div>
+  <div class="sb-projects" id="projectList"></div>
+  <div class="sb-add-proj" onclick="showAddProject()">＋ Add project</div>
+  <div id="projFormArea"></div>
+
+  <div class="sb-bottom">
+    <div class="sb-bottom-item" onclick="exportData()">📤 Export data</div>
+    <div class="sb-bottom-item" onclick="importData()">📥 Import data</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content" id="content">
+  <!-- Calendar strip -->
+  <div class="cal-strip" id="calStrip">
+    <div class="cal-header">
+      <div class="cal-month" id="calMonth">March <span>2026</span></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="cal-today-btn" onclick="goToday()">Today</button>
+        <div class="cal-nav">
+          <button onclick="calPrev()">◀</button>
+          <button onclick="calNext()">▶</button>
+        </div>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- Week strip (for agenda mode) -->
+  <div class="week-strip" id="weekStrip"></div>
+
+  <!-- Agenda view -->
+  <div class="agenda" id="agendaView"></div>
+
+  <!-- Month view -->
+  <div class="month-view" id="monthView" style="display:none;"></div>
+</div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="cmd-overlay" id="cmdOverlay" onclick="if(event.target===this)closeCmd()">
+  <div class="cmd-box">
+    <div class="cmd-input-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="cmd-input" id="cmdInput" placeholder="Search or type a command..." oninput="filterCmd()">
+      <span class="cmd-hint">Ctrl K</span>
+    </div>
+    <div class="cmd-results" id="cmdResults"></div>
+  </div>
+</div>
+
+<!-- TASK EDIT MODAL -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <h3 id="editModalTitle">Edit Task</h3>
+    <label>Title</label>
+    <input id="editTitle">
+    <label>Description</label>
+    <textarea id="editDesc"></textarea>
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;"><label>Due Date</label><input type="date" id="editDue"></div>
+      <div style="flex:1;"><label>Time</label><input type="time" id="editTime"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;"><label>Priority</label>
+        <select id="editPriority">
+          <option value="4">None</option><option value="1">🔴 Priority 1</option><option value="2">🟠 Priority 2</option><option value="3">🔵 Priority 3</option>
+        </select>
+      </div>
+      <div style="flex:1;"><label>Project</label><select id="editProject"></select></div>
+    </div>
+    <label>Alarm (minutes before)</label>
+    <select id="editAlarm">
+      <option value="0">No alarm</option><option value="5">5 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hour</option>
+    </select>
+    <input type="hidden" id="editId">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="deleteEditTask()">🗑 Delete</button>
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-add" onclick="saveEditTask()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════
+const STORAGE_KEY = 'pof2828_tasks';
+const PROJ_KEY = 'pof2828_projects';
+const SUMMARY_KEY = 'pof2828_summaries';
+const PREFS_KEY = 'pof2828_prefs';
+
+const DEFAULT_PROJECTS = [
+  {id:'proj_today',name:'TODAY',color:'#E05C6E'},
+  {id:'proj_work',name:'Work',color:'#4F8EF7'},
+  {id:'proj_home',name:'Home',color:'#4ECB71'},
+  {id:'proj_research',name:'Research',color:'#9B7FE8'},
+];
+const PROJECT_COLORS = ['#E05C6E','#4F8EF7','#4ECB71','#9B7FE8','#F6821F','#F2C94C','#4ac4d4','#e8a912'];
+
+let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+// ── SEED: Claude Code session 2026-03-21 ──
+(function seedOnce(){
+  const SEED_KEY = 'pof2828_seeded_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const seedTasks = [
+    {id:'t_cc_001',title:'[Claude Code] Vault-wide Master Equation variable sweep — ~50+ files fixed (S/F/T mappings)',due:today,done:true,priority:3,project:'proj_research',time:'06:00',notes:'Fixed wrong S=Entropy, F=Faith, T=Time across entire O: vault. Canonical: S=Strong Force/Love, F=Weak Force/Sin, T=Entropy/Judgment. ~50 files corrected, 15 archived to 00_ARCHIVE/WRONG_LAW_ORDERING.'},
+    {id:'t_cc_002',title:'[Claude Code] Psychology paper numbers corrected (02-02, 02-03)',due:today,done:true,priority:2,project:'proj_research',time:'07:00',notes:'886% spending increase (was 300%), 50-100% depression (was 400%), youth 3-4x. Wolfram-verified.'},
+    {id:'t_cc_003',title:'[Claude Code] 17 Evolution papers converted to Word + PDF',due:today,done:true,priority:3,project:'proj_research',time:'08:00',notes:'SP01-SP15 + THE CONFIGURATION LADDER + THE INVERSE SOLVER. Garamond, gold headers, tables. Output: WORD_DOCS/ and FORMAL_PAPERS/EVOLUTION_SERIES/.'},
+    {id:'t_cc_004',title:'[Claude Code] Premium preprint docs built (FT-EVO-01, FT-EVO-02)',due:today,done:true,priority:3,project:'proj_research',time:'09:00',notes:'THE CONFIGURATION LADDER (FT-EVO-01) and THE INVERSE SOLVER (FT-EVO-02). Full FT-series format: title page, abstract, gold rules, blockchain hash, Derived with Claude Opus 4.6.'},
+    {id:'t_cc_005',title:'[Claude Code] Formal Papers Upload folder created on Desktop',due:today,done:true,priority:2,project:'proj_work',time:'10:00',notes:'17 .docx + 17 .pdf + AI Forge code (ai.ts, AIWorkspace.tsx, Kimi dashboard). All in C:/Users/lowes/Desktop/Formal Papers Upload/.'},
+    {id:'t_cc_006',title:'[Claude Code] Task Calendar standing order broadcast to all 8 AI channels',due:today,done:true,priority:3,project:'proj_work',time:'10:30',notes:'Comms hub messages 22-29. All agents: update task calendar every session, 2hr sync, append only.'},
+    {id:'t_cc_007',title:'[Claude Code] mefiles.zip cleaned — variable tables fixed, repacked as mefiles_CLEAN.zip',due:today,done:true,priority:1,project:'proj_research',time:'07:30',notes:'MASTER_EQUATION_FORMAL_LAYER.md and THEOPHYSICS_COMPLETE_FORMAL_TREATMENT.md fixed.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-21 (evening) ──
+(function seedOpus20260321(){
+  const SEED_KEY = 'pof2828_seeded_opus_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const tomorrow = '2026-03-22';
+  const seedTasks = [
+    // COMPLETED TODAY
+    {id:'t_op_001',title:'[Opus] 15 Shadow Papers written (SP-01 to SP-15) — evolution biology',due:today,done:true,priority:3,project:'proj_research',time:'18:00',notes:'Haldane rate, LTEE mismatch, computational circularity, Kimura DFE, Cambrian Lynch-Abegg, Blount citrate, Heath FBD, Maynard Smith protein space, Eyre-Walker DFE, Green Neanderthal, Gillespie DFE, Miller chemistry, RNA World, 1000 Genomes, Sutherland polymerization. All anonymous, collegial, uses their own math.'},
+    {id:'t_op_002',title:'[Opus] 2 Kill Papers written (Config Ladder + Inverse Solver)',due:today,done:true,priority:3,project:'proj_research',time:'19:00',notes:'KILL-01: 5 configs, all fail, 100K Monte Carlo. KILL-02: 3/7 params impossible (mu 9.8x, s 89-890x, Ne 20-20Kx). Tier 1+2 heavy weapons.'},
+    {id:'t_op_003',title:'[Opus] All 17 papers converted to .docx in vault',due:today,done:true,priority:2,project:'proj_research',time:'19:30',notes:'O:\\_Theophysics_v4\\00_Canonical\\Shadow_Papers\\ — SP01-SP15 + KILL_01 + KILL_02.'},
+    {id:'t_op_004',title:'[Opus] Maxwell Mirror v2 verified — 5/5 PASS',due:today,done:true,priority:3,project:'proj_research',time:'17:00',notes:'M1 mass matrix rank 10. M2 oscillatory frequencies 0.134/0.463. M3 topology match 8/8. M4 pair coupling confirmed. M5 E-K bounded oscillation. Phase 0° not 90° (honest difference).'},
+    {id:'t_op_005',title:'[Opus] 58 Logos Papers copied to vault as LG series',due:today,done:true,priority:2,project:'proj_research',time:'20:00',notes:'O:\\_Theophysics_v4\\00_Canonical\\_LOGOS_PAPERS\\ — 57 papers + master index. LG-01 through LG-57. Full theological case.'},
+    {id:'t_op_006',title:'[Opus] 64 Cross-Domain files consolidated to Arsenal',due:today,done:true,priority:2,project:'proj_research',time:'20:30',notes:'O:\\_Theophysics_v4\\00_Canonical\\Cross_Domain_Arsenal\\ — Psychology, sociology, economics, education, Amish control, CDC papers, apologetics, Fruits Score.'},
+    {id:'t_op_007',title:'[Opus] Coherence Collapse dates verified — 7/7 PASS',due:today,done:true,priority:3,project:'proj_research',time:'21:00',notes:'Structural break analysis: SAT 1963 (exact), Crime 1968 (4yr lag), Trust 1966 (1yr), Divorce 1964 (1yr), Church 1965 (exact), OOW births 1964 (1yr), Single-parent 1965 (exact).'},
+    {id:'t_op_008',title:'[Opus] Wolfram MCP installed and verified',due:today,done:true,priority:2,project:'proj_work',time:'21:30',notes:'D:\\GitHub\\mcp-wolframalpha. API key YEGYLQ8QWX. Added to Claude Desktop config. Live queries returning FBI UCR data.'},
+    {id:'t_op_009',title:'[Opus] Crime data verified via Wolfram — 1964 break confirmed',due:today,done:true,priority:3,project:'proj_research',time:'22:00',notes:'Wolfram FBI UCR: Violent crime 160.9(1960) → 190.6(1964, +13%) → 363.5(1970). Murder, robbery, assault all break at 1964. 5 crime categories confirmed.'},
+    {id:'t_op_010',title:'[Opus] Psychology numbers corrected with primary sources',due:today,done:true,priority:2,project:'proj_research',time:'22:30',notes:'Spending: 886% increase not 300% (SAMHSA $28.4B→$280B). Depression: 50-100% not 400% (general pop). Youth rates 3-4x. Scissors graph stronger with real numbers.'},
+    {id:'t_op_011',title:'[Opus] Series renamed: FT (Formal), LG (Logos), SP (Shadow)',due:today,done:true,priority:2,project:'proj_work',time:'23:00',notes:'DT→FT. Logos Papers→LG-01 to LG-57. Shadow Papers→SP-01 to SP-15 + SP-K1/K2. Indexes updated in vault.'},
+    {id:'t_op_012',title:'[Opus] 16 FT papers staged for Zenodo upload',due:today,done:true,priority:2,project:'proj_work',time:'23:30',notes:'C:\\Users\\lowes\\Desktop\\ZENODO_UPLOAD\\Formal_Papers\\ — FT-001 through FT-016. 5 ready now (2 PDF, 3 docx). 11 need conversion.'},
+    {id:'t_op_013',title:'[Opus] Kimmy dashboard spec written',due:today,done:true,priority:1,project:'proj_work',time:'23:45',notes:'C:\\Users\\lowes\\Desktop\\KIMMY_DASHBOARD_SPEC.md — 6-panel sidebar (clipboard, files, tags, notes, AI agent, settings). Mobile-first. Forge AI code reviewed.'},
+    {id:'t_op_014',title:'[Opus] 7Q Obsidian templates created',due:today,done:true,priority:1,project:'proj_research',time:'17:30',notes:'Forward classification + reverse proof + academic CSS. Light YAML for GitHub, full YAML for vault.'},
+    // PENDING
+    {id:'t_op_020',title:'Upload FT-001, FT-002, FT-007 to Zenodo (docx ready)',due:tomorrow,done:false,priority:3,project:'proj_work',time:'10:00',notes:'Math Before Matter, Truth Measurement, Unforced Consensus. Zenodo accepts docx directly.'},
+    {id:'t_op_021',title:'Update FT-006/FT-008 on Zenodo with FT prefix',due:tomorrow,done:false,priority:2,project:'proj_work',time:'10:30',notes:'Pharisee Function and Hubble Gradient. New version with FT-006/FT-008 naming. DOIs stay valid.'},
+    {id:'t_op_022',title:'Convert 11 FT markdown papers to PDF',due:tomorrow,done:false,priority:2,project:'proj_work',time:'11:00',notes:'FT-003 through FT-016 (minus existing PDFs). Hand to AI for pretty formatting.'},
+    {id:'t_op_023',title:'Build email contact list — 60 institutions for Wave 1',due:tomorrow,done:false,priority:3,project:'proj_research',time:'14:00',notes:'Evolutionary biology department chairs/corresponding authors. Exa or web scrape.'},
+    {id:'t_op_024',title:'Forward derivation: Lagrangian → H₀(z) → JWST comparison',due:tomorrow,done:false,priority:3,project:'proj_research',time:'16:00',notes:'The 7/10 → 9/10 gap. Need specific redshift predictions from χ-field Lagrangian.'},
+    {id:'t_op_025',title:'Ngram virtue-word verification (1960-1962 onset claim)',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'Google Books Ngram Viewer. Verify duty/honor/integrity/conscience/righteousness decline timing.'},
+    {id:'t_op_026',title:'Formal p-value for synchronized breaks across 11 domains',due:tomorrow,done:false,priority:2,project:'proj_research',time:'',notes:'6 independent datasets breaking in 4-year window. Base rate ~0.2 breaks/decade/domain. Compute exact probability.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-21 (night) — 7Q Truth Engine build ──
+(function seedOpus7Q20260321(){
+  const SEED_KEY = 'pof2828_seeded_opus7q_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const tomorrow = '2026-03-22';
+  const seedTasks = [
+    // COMPLETED TODAY
+    {id:'t_op7q_001',title:'[Opus] 7Q Framework module built (seven_q_module.py) — 9 dimensions, 55 output columns',due:today,done:true,priority:3,project:'proj_research',time:'23:00',notes:'C:\\Users\\lowes\\Desktop\\Truth Engine\\modules\\seven_q_module.py. 27KB. score_seven_q(), derive_seldpc(), build_evidence_chain(). 9 marker dicts (seed_legitimacy, soil_context, sprout_testability, rain_evidence, root_mechanism, canopy_scope, axe_survivability, reverse_pairs, evidence_protocol). NLP phrase matching same pattern as grace_layer_module.'},
+    {id:'t_op7q_002',title:'[Opus] S/E/L/D/P/C derivation layer added to 7Q module',due:today,done:true,priority:3,project:'proj_research',time:'23:10',notes:'derive_seldpc() maps 7Q raw scores to 6-variable truth formula from workbook. S=Survivability(Q7), E=Evidence(Q4_PS*CF), L=Logic(Q3*Q5), D=Dependencies(Q2), P=Predictions(Q3_testability*Q5), C=Coherence(Q6). T=(S+E+L+D+P+C)/6. Why-Penalty: ED=0 caps E at 50%.'},
+    {id:'t_op7q_003',title:'[Opus] Evidence chain with E1-E5 gate inference built',due:today,done:true,priority:3,project:'proj_research',time:'23:20',notes:'build_evidence_chain() returns per-dimension audit trail: detected phrases, raw score, E1-E5 gate levels inferred from PS/ED/EC, vulnerability flags. Full traceability from score back to text.'},
+    {id:'t_op7q_004',title:'[Opus] Fruit amplifiers wired (Q7→faithfulness, Q4→self_control, Q6→goodness, Q5→patience)',due:today,done:true,priority:2,project:'proj_research',time:'23:25',notes:'0-0.3 boost per fruit dimension. Feeds into christ_vector_module. Truth modulation: T_final = T_v3 * (0.6 + 0.4 * 7Q_score).'},
+    {id:'t_op7q_005',title:'[Opus] Alignment verified against 7Q Full Method.xlsx — all 10 sheets YES',due:today,done:true,priority:3,project:'proj_research',time:'23:30',notes:'20-sheet workbook (10 populated). Evidence Protocol CF formula exact match. S/E/L/D/P/C mapping verified. Enum values machine-readable. Two-layer architecture confirmed: Language layer (Fruits Engine) + Structure layer (7Q Engine).'},
+    {id:'t_op7q_006',title:'[Opus] Calibration corpus tested — correct ranking confirmed',due:today,done:true,priority:2,project:'proj_research',time:'23:35',notes:'Framework axioms > inaugural speeches > propaganda. GR calibration doc scored high. Propaganda sample scored near zero. Why-Penalty working: PS=1.0 data-only doc capped to E_final=0.25.'},
+    {id:'t_op7q_007',title:'[Opus] Standalone + integrated mode confirmed for seven_q_module',due:today,done:true,priority:2,project:'proj_research',time:'23:40',notes:'Self-test at bottom of module runs independently. Also importable by truth_engine.py via existing sys.path pattern. No hardcoded weights — configurable for GitHub.'},
+    // PENDING
+    {id:'t_op7q_020',title:'Wire 7Q output columns to Excel template (when template ready)',due:tomorrow,done:false,priority:3,project:'proj_research',time:'',notes:'55 columns across 7 blocks. Waiting for user to finish 7Q Full Method.xlsx template sheets 11-19. unified_excel_output.py needs update.'},
+    {id:'t_op7q_021',title:'Integrate seven_q_module into truth_engine.py score_text()',due:tomorrow,done:false,priority:3,project:'proj_research',time:'',notes:'Import + call score_seven_q() in score_text(). Add 7Q tab or section to PySide6 GUI. Apply truth modulation formula.'},
+    {id:'t_op7q_022',title:'Build word list sheets reader (sheets 11-19 from workbook)',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'If word list sheets populated in 7Q Full Method.xlsx, Python modules should read from Excel instead of hardcoding marker dicts.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-21 — 7Q Framework Full Build (afternoon/evening) ──
+(function seedOpusFullBuild20260321(){
+  const SEED_KEY = 'pof2828_seeded_opus_fullbuild_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const tomorrow = '2026-03-22';
+  const seedTasks = [
+    // ═══ SPECS & DOCUMENTS ═══
+    {id:'t_fb_001',title:'[Opus] 7Q Engine Specification written (787 lines) — complete plugin design',due:today,done:true,priority:3,project:'proj_research',time:'12:00',notes:'All 7 questions with fields, dropdowns, AI prompts, YAML schemas, truth scoring, plugin architecture. Output: 7Q_ENGINE_SPEC.md in Opus Web Building Kit + outputs.'},
+    {id:'t_fb_002',title:'[Opus] Evidence Classification Protocol written — PS x ED x EC three-channel system',due:today,done:true,priority:3,project:'proj_research',time:'12:30',notes:'Three channels (Phenomenon Strength, Explanatory Depth, Experiential Coherence). Five gates (E1-E5). Why-Penalty: ED=0 caps evidence at 50%. CF=(0.5+0.5*ED)*(0.5+0.5*EC). Seven epistemic honesty rules. EVIDENCE_CLASSIFICATION_PROTOCOL.md.'},
+    {id:'t_fb_003',title:'[Opus] 7Q Inference Prompt written — paste-ready for any AI',due:today,done:true,priority:2,project:'proj_research',time:'13:00',notes:'Standalone prompt. Paste into any LLM, append claim, returns: Core Claim, Best Surviving Version, Dependencies, Consequences, Failure Points, Robustness, Knowledge Graph YAML. Deployed to Desktop + Vault Templates + Engine Room.'},
+    {id:'t_fb_004',title:'[Opus] OpenAI blank engine room structure started',due:today,done:true,priority:2,project:'proj_work',time:'13:30',notes:'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\02_OPENAI_BLANK\\. LAUNCH.bat, _LAUNCH_TEMPLATE.bat, CALL/prompt.txt, CALL/config.example.txt. MENU.ps1 still needed.'},
+
+    // ═══ HTML PAGES ═══
+    {id:'t_fb_010',title:'[Opus] 7q_tree.html built — scroll-driven introduction, one tree seven lenses',due:today,done:true,priority:3,project:'proj_research',time:'14:00',notes:'IntersectionObserver scroll animation. 8 sections (Q0-Q7). Same tree, different zone highlighted per section. Dark theme matching framework pages.'},
+    {id:'t_fb_011',title:'[Opus] 7q_explained.html built — full forward method with GR example',due:today,done:true,priority:3,project:'proj_research',time:'14:30',notes:'General Relativity threaded through all 8 stages. Each stage: transformation badge, explanation, physics example, reader question. Shows 7Q surfacing hidden features of GR.'},
+    {id:'t_fb_012',title:'[Opus] 7q_evidence.html built — three-channel evidence protocol visualized',due:today,done:true,priority:3,project:'proj_research',time:'15:00',notes:'Rain (PS), Sunlight (ED), Soil Moisture (EC) mapped to tree. Why-penalty explained. Completeness formula with 6-scenario table. Five gates walkthrough. Seven epistemic honesty rules.'},
+    {id:'t_fb_013',title:'[Opus] 7q_reverse.html built — prove by destruction, Q7 to Q1',due:today,done:true,priority:3,project:'proj_research',time:'15:30',notes:'Seven steps: Destroy, Force, Ground, Support, State, Generalize, Name. Each step has mini tree SVG, transformation badge, GR example, reader question. Forward vs reverse comparison table.'},
+    {id:'t_fb_014',title:'[Opus] 7q_framework.html built — unified page tying all sections',due:today,done:true,priority:2,project:'proj_research',time:'14:15',notes:'Navigation bar linking to all five HTML pages. 7Q method overview section. Needs expansion per question.'},
+
+    // ═══ PNGs ═══
+    {id:'t_fb_020',title:'[Opus] 8 icon PNGs generated — one per 7Q stage (512x512)',due:today,done:true,priority:2,project:'proj_research',time:'16:00',notes:'Same tree, different zone highlighted. Q number at top, verb at bottom: ARRIVE, DEFINE, LOCATE, COMMIT, SUPPORT, GROUND, PROPAGATE, DESTROY. Matplotlib dark theme. In C:\\Users\\lowes\\Desktop\\7Q Method\\Pics\\Icons\\.'},
+    {id:'t_fb_021',title:'[Opus] 8 descriptor card PNGs generated (1200x600)',due:today,done:true,priority:2,project:'proj_research',time:'16:15',notes:'Left panel: tree with highlighted zone. Right panel: Q number, verb, title, subtitle, description, transformation. In C:\\Users\\lowes\\Desktop\\7Q Method\\Pics\\Cards\\.'},
+    {id:'t_fb_022',title:'[Opus] Overview strip PNG generated — all 8 stages side by side',due:today,done:true,priority:2,project:'proj_research',time:'16:30',notes:'2400x420. Full progression: ARRIVE thru DESTROY. In C:\\Users\\lowes\\Desktop\\7Q Method\\Pics\\overview_strip.png.'},
+
+    // ═══ FORMAL PAPERS (Vault) ═══
+    {id:'t_fb_030',title:'[Opus] FP-007 vault folder created — The 7Q Framework thesis unit',due:today,done:true,priority:3,project:'proj_research',time:'17:00',notes:'O:\\_Theophysics_v4\\04_THEOPYHISCS\\FORMAL_PAPERS\\FP-007_THE_7Q_FRAMEWORK\\. Full DT unit structure.'},
+    {id:'t_fb_031',title:'[Opus] Biaxiosum (Page Zero) written for 7Q thesis — DT-007',due:today,done:true,priority:3,project:'proj_research',time:'17:15',notes:'00_BIAXIOSUM_DT007.md. Declared bias: "I believe the scientific method is incomplete." Customized Biaxiosum Rule. 24 Properties table. Full Page Zero.'},
+    {id:'t_fb_032',title:'[Opus] Paper I written — Foundational Claim (LOWE FACTS format)',due:today,done:true,priority:3,project:'proj_research',time:'17:30',notes:'01_PAPER_I_the_7q_framework.md. Filled FACTS: Find (fragmentation anomaly), Admit (bias table), Claim (thesis + 3 supports + predictions), Test (7-row GR evidence table), Snap (5 kill conditions, 1 survived). Lowe Battery 2 PASS 1 PENDING.'},
+    {id:'t_fb_033',title:'[Opus] Paper II written — Adversarial Response (strongest objection steelmanned)',due:today,done:true,priority:3,project:'proj_research',time:'18:00',notes:'02_PAPER_II_the_7q_framework.md. Objection: "Its Lakatos with a GUI." Three concessions. Three responses (integration novelty, machine-readability, Q0/Q3 no precedent). Collision table. Verdict: survived with clarifications.'},
+    {id:'t_fb_034',title:'[Opus] Destruction Manual written — how to kill the 7Q argument',due:today,done:true,priority:3,project:'proj_research',time:'18:30',notes:'05_DESTRUCTION_MANUAL_the_7q_framework.md. 10 kill conditions. 3 strongest attacks expanded (Lakatos-GUI, Why-Penalty, Q0-unfalsifiable). 3 terminal conditions. 5 open vulnerabilities. Public invitation to falsify.'},
+
+    // ═══ UNIFIED PIPELINE ═══
+    {id:'t_fb_040',title:'[Opus] Unified Pipeline Spec written — 7 stages, one pass, all scores',due:today,done:true,priority:3,project:'proj_research',time:'19:00',notes:'UNIFIED_PIPELINE_SPEC.md. Maps 7 scoring engines + 3 analytics layers into 6-stage pipeline. Stage 0 Triage, Stage 1 7Q+Evidence+Truth, Stage 2 Fruits, Stage 3 Chi, Stage 4 Coherence, Stage 5 CDCM, Stage 6 Synthesis. Three modes: lightning/fast/full.'},
+    {id:'t_fb_041',title:'[Opus] GUI Architecture Addendum written — modular GUIs + verification layer',due:today,done:true,priority:3,project:'proj_research',time:'19:30',notes:'UNIFIED_PIPELINE_GUI_ADDENDUM.md. 8 engine folders each with own GUI + LAUNCH.bat. Master GUI wireframe. Optimized execution order (local first, API last). Pre-flight cost estimation. Stage 7 Verification (AI double-check). Two analytics layers (standard + ours).'},
+
+    // ═══ HANDOFFS ═══
+    {id:'t_fb_050',title:'[Opus] 7Q Score Module build notes written — handoff for other AI',due:today,done:true,priority:2,project:'proj_work',time:'19:45',notes:'7Q_SCORE_MODULE_BUILD_NOTES.md in C:\\Users\\lowes\\Desktop\\7Q Method\\. Gap analysis, formula, Fruits mapping, integration pattern. Drop-in compatible with truth_coherence_scanner.py.'},
+    {id:'t_fb_051',title:'[Opus] Session log saved to vault',due:today,done:true,priority:2,project:'proj_work',time:'20:00',notes:'O:\\_Theophysics_v4\\David\\Session_Logs\\2026-03-21_7Q_ENGINE_SESSION.md. Five tables: Specs, HTML Pages, PNGs, Key Decisions, Threads Open.'},
+    {id:'t_fb_052',title:'[Opus] Paper 1 docx generated (academic format, later superseded by FACTS format)',due:today,done:true,priority:1,project:'proj_research',time:'16:45',notes:'Paper_1_The_7Q_Framework.docx. Georgia font, 174 paragraphs, 8 sections. Validated. Superseded by FP-007 FACTS format papers in vault.'},
+
+    // ═══ PENDING (tomorrow) ═══
+    {id:'t_fb_060',title:'Paper III (Application) — run 7Q on a non-physics domain',due:tomorrow,done:false,priority:3,project:'proj_research',time:'',notes:'FP-007 DT unit needs Paper III. Apply 7Q to theology, economics, or consciousness to prove domain agnosticism.'},
+    {id:'t_fb_061',title:'Landscape Map — position 7Q vs Popper/Lakatos/Kuhn',due:tomorrow,done:false,priority:2,project:'proj_research',time:'',notes:'04_LANDSCAPE_MAP_the_7q_framework.md. Three thinkers, gap analysis, position map.'},
+    {id:'t_fb_062',title:'GitHub repos setup on DavidLoweOKC',due:tomorrow,done:false,priority:2,project:'proj_work',time:'',notes:'7Q Engine, Fruits Engine, Hubble Gradient, Principia, BAES, Highcharts, Lowe Modified EFE, Convergence Engine.'},
+    {id:'t_fb_063',title:'7Q acronym — seven letters, one word, Q0 outside',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'Candidate: INQUIRY. Not locked.'},
+    {id:'t_fb_064',title:'Evidence + Reverse method icon/card PNGs — match 7Q style for gates and steps',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'Style established in icon/card generator. Needs 5-gate set for evidence protocol and 7-step set for reverse method.'},
+    {id:'t_fb_065',title:'Realistic tree image — send prompt to image AI',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'7Q_TREE_IMAGE_PROMPT.txt on Desktop. Midjourney/DALL-E prompt ready.'},
+    {id:'t_fb_066',title:'Build unified_pipeline.py — Phase 1 pipeline wrapper',due:tomorrow,done:false,priority:3,project:'proj_work',time:'',notes:'Accepts markdown file, calls each stage, collects into Score Card YAML. See UNIFIED_PIPELINE_SPEC.md and GUI_ADDENDUM.md.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-21 — 7Q Workbook 20-Sheet Build ──
+(function seedOpusWorkbook20260321(){
+  const SEED_KEY = 'pof2828_seeded_opus_workbook_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const tomorrow = '2026-03-22';
+  const seedTasks = [
+    // ═══ NEW SHEETS BUILT ═══
+    {id:'t_wb_001',title:'[Opus] 7Q Reverse Engine sheet built — Q7→Q1 live tool with worked examples',due:today,done:true,priority:3,project:'proj_research',time:'14:00',notes:'208 rows. 7 steps: Destroy→Force→Ground→Support→State→Generalize→Name. Dropdown menus, auto-scoring, verdict column (SURVIVED/Standing wounded/Unstable/DEAD). Worked examples: GR (T=0.950 SURVIVED), Supply & Demand (T=0.650 Standing wounded).'},
+    {id:'t_wb_002',title:'[Opus] 7Q Scores Output Template built — 42-field Python bridge',due:today,done:true,priority:3,project:'proj_research',time:'15:00',notes:'63 rows, 7 blocks. Composite(5), Per-Dimension(9x4=36), Evidence Protocol(PS/ED/EC/CF/E_final), Fruit Amplifiers(4), Truth Modulation(3), Reverse Detection(3), S/E/L/D/P/C Derivation. Python writes raw B-column, Excel formulas derive everything else.'},
+    {id:'t_wb_003',title:'[Opus] 8 Fruits term library sheets imported from Fruits Template.xlsx',due:today,done:true,priority:2,project:'proj_research',time:'16:00',notes:'Fruit(278), Anti-Fruit(298), Grounding(103), Propaganda(72), Contradiction(39), Jargon(56), Weights, Archetypes(12+6), Characterizations(10). Sheets 11-19 of workbook.'},
+
+    // ═══ ARCHITECTURE DECISIONS ═══
+    {id:'t_wb_004',title:'[Opus] Two-layer truth system architecture confirmed and documented',due:today,done:true,priority:3,project:'proj_research',time:'16:30',notes:'Language layer (Fruits Engine — how someone speaks) + Structure layer (7Q Engine — what someone claims). 7Q Scores sheet is the bridge. Python writes raw, Excel derives truth. Full audit trail.'},
+    {id:'t_wb_005',title:'[Opus] S/E/L/D/P/C mapping finalized — Python↔Excel alignment verified',due:today,done:true,priority:3,project:'proj_research',time:'17:00',notes:'S=Q7(falsifiability), E=Q4(e_final), L=avg(Q3+ED), D=Q5(foundation), P=Q6(consequence), C=avg(Q2+Q6). T=(S+E+L+D+P+C)/6. All YES across 10 sheets. Evidence Protocol CF formula exact match.'},
+
+    // ═══ VERIFICATION ═══
+    {id:'t_wb_006',title:'[Opus] Full 20-sheet workbook alignment verified — all cross-checks PASS',due:today,done:true,priority:3,project:'proj_research',time:'18:00',notes:'Truth Score, Evidence Protocol, Evidence Calculator, 7Q Engine, 7Q Reverse, Fruit Amplifiers — all aligned. 20 sheets: 1 output template + 3 live tools + 4 spec refs + 6 term libs + 3 scoring config + 2 system config + 1 placeholder.'},
+
+    // ═══ PENDING ═══
+    {id:'t_wb_020',title:'Build Python standalone scorer script (writes to 7Q Scores template)',due:tomorrow,done:false,priority:3,project:'proj_research',time:'',notes:'Script reads text, calls seven_q_module.py, writes raw values to B-column of 7Q Scores sheet in 7Q Full Method.xlsx via openpyxl.'},
+    {id:'t_wb_021',title:'Populate 7Q Explained sheet (content TBD)',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'Currently empty placeholder. May pull from 7q_explained.html or stay empty.'},
+    {id:'t_wb_022',title:'Import remaining 4 Fruits sheets (AAVE, Baseline, Dual Comparison, Dashboard)',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'Lower priority. AAVE-Ebonics, Baseline Scores, Dual Comparison, Fruits Template dashboard.'},
+    {id:'t_wb_023',title:'Cluster Truth patterns — STABLE TRUTH REGION detection',due:tomorrow,done:false,priority:2,project:'proj_research',time:'',notes:'High T + Low variance = STABLE TRUTH REGION. Needs implementation in both Excel conditional formatting and Python module.'},
+    {id:'t_wb_024',title:'Christ Vector full integration with Fruit Amplifiers',due:tomorrow,done:false,priority:2,project:'proj_research',time:'',notes:'Wire amplifier outputs from 7Q Scores sheet into christ_vector_module.py. Currently mapped but not connected end-to-end.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Code session 2026-03-21 (late night) — Formal Papers MD→DOCX ──
+(function seedCC_FormalPapers20260321(){
+  const SEED_KEY = 'pof2828_seeded_cc_formalpapers_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const seedTasks = [
+    {id:'t_ccfp_001',title:'[Claude Code] 11 FT markdown papers converted to styled .docx',due:today,done:true,priority:3,project:'proj_work',time:'23:50',notes:'FT-003 Math Is Moral, FT-004 Turtles and the Floor, FT-005 Trinity Requirement DRAFT, FT-009 Adversary Thread, FT-010 Nucleation Thesis, FT-011 Terminus Sui, FT-012 Temporality as Operational Domain, FT-013 BAES AI Evaluation System, FT-014 The Same Equation Everywhere, FT-015 The Equation That Wouldnt Break, FT-016 Master Equation Verification. All in C:\\Users\\lowes\\Desktop\\ZENODO_UPLOAD\\Formal_Papers\\.'},
+    {id:'t_ccfp_002',title:'[Claude Code] Style-matched to Pharisee/Hubble reference papers',due:today,done:true,priority:2,project:'proj_work',time:'23:51',notes:'Georgia 20pt bold title, Georgia 16pt italic subtitle, Georgia 11pt italic author, Heading 1 Georgia 16pt bold, Heading 2 Arial 13pt bold, Body Arial 11pt, 1 inch margins. Matched from FT-001/FT-007 existing docx inspection.'},
+    {id:'t_ccfp_003',title:'[Claude Code] md_to_docx.py conversion script saved (rerunnable)',due:today,done:true,priority:2,project:'proj_work',time:'23:52',notes:'C:\\Users\\lowes\\Desktop\\ZENODO_UPLOAD\\Formal_Papers\\md_to_docx.py. Handles YAML frontmatter stripping, heading extraction, bold/italic inline, tables, bullet/numbered lists, blockquotes, code blocks. Rerunnable after edits.'},
+    {id:'t_ccfp_004',title:'[Claude Code] Session note posted to vault AI Chat folder',due:today,done:true,priority:1,project:'proj_work',time:'23:55',notes:'AI Chat/Claude_Session_2026-03-21_Formal_Papers_Conversion.md. Full session summary with style specs, file list, next steps.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-21 — Theophysics v3 Vault Rebuild + 7Q Engine Template ──
+(function seedOpusVaultRebuild20260321(){
+  const SEED_KEY = 'pof2828_seeded_opus_vault_rebuild_20260321';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-21';
+  const tomorrow = '2026-03-22';
+  const seedTasks = [
+    // ═══ PHASE 0: BACKUP ═══
+    {id:'t_vr_001',title:'[Opus] Full vault backup — _Theophysics_v3 → _Theophysics_v3_BACKUP_20260321',due:today,done:true,priority:2,project:'proj_research',time:'11:00',notes:'Complete copy of entire vault to C:\\Users\\lowes\\Documents\\_Theophysics_v3_BACKUP_20260321. Excludes node_modules and .smart-env.'},
+
+    // ═══ PHASE 1: CLEAN FOUNDATION ═══
+    {id:'t_vr_010',title:'[Opus] Deleted 13 duplicate templates from Templates/',due:today,done:true,priority:2,project:'proj_research',time:'11:10',notes:'Removed: PHYSICS_THESIS 1.md, PHYSICS_THESIS 1 1.md, Research Question 1.md, PHYSICS_MATH_FORMALISM 1.md, TEMPLATE Universal Inquiry Workflow 1/1 1/2.md, Universal_Research_Contradiction_Engine 1.md, Master Research System 1.md, Untitled.md/1/2, Not Yaml.md.'},
+    {id:'t_vr_011',title:'[Opus] Restructured Templates/ into 5 subdirectories (_CANON/_AI/_PIPELINE/_PERIODIC/_ARCHIVE)',due:today,done:true,priority:3,project:'proj_research',time:'11:20',notes:'_CANON (26 best templates), _AI (5 AI session/memory), _PIPELINE (8 publication), _PERIODIC (2 daily/weekly), _ARCHIVE (23 everything else). 00_README.md stays at root.'},
+    {id:'t_vr_012',title:'[Opus] Removed 10 dead plugin directories from .obsidian/plugins/',due:today,done:true,priority:2,project:'proj_research',time:'11:30',notes:'Deleted: obsidian-semantic-ai-OLD-BACKUP, obsidian-semantic-ai-tagger, abbreviations, folders2graph, graph-banner, just-share-please, notemd, note-atomizer, obsidian-advanced-uri, math-in-callout. None in community-plugins.json.'},
+    {id:'t_vr_013',title:'[Opus] Cleaned 7 broken files from 08_RESEARCH_TOOLKIT/',due:today,done:true,priority:2,project:'proj_research',time:'11:35',notes:'Deleted: 00_INDEX_BROKEN.md, 900_IN8DEX.md, 9i900_INDEX.md, 9.md, Untitled.md, Untitled 1.md, MAP_Research_Lifecycle_BROKEN.md. Kept 00_INDEX.md as canonical.'},
+    {id:'t_vr_014',title:'[Opus] Cleaned vault root — moved 5 files to Archive + RESEARCH_LINKS',due:today,done:true,priority:2,project:'proj_research',time:'11:40',notes:'Moved to 00_ARCHIVE: Dashboard++.md, THEOPHYSICS_UNIFIED_MASTER.xlsx, Universal_7Facet_TruthLayer.xlsx, theophysics_cache.db, Desktop.ini. Moved RESEARCH_LINKS_THEOPHYSICS_SPIDER.md to RESEARCH_LINKS/.'},
+    {id:'t_vr_015',title:'[Opus] CSS consolidation — 67 snippets archived, 10 active kept',due:today,done:true,priority:3,project:'proj_research',time:'11:50',notes:'Kept: 00_theophysics-variables (new), Easy Multi-Column, dashboard, dashboard-ReadLineLength, theophysics-tabbed-axiom-shell, axiom-badges, axiom-inline-callouts, axioms-dashboard, axiom-domain-colors, axiom-column-layout. 67 archived to _ARCHIVE_CSS/.'},
+
+    // ═══ PHASE 2: CORE RESEARCH INFRASTRUCTURE ═══
+    {id:'t_vr_020',title:'[Opus] Citation system created — 04_CITATIONS/ with guide + literature notes template',due:today,done:true,priority:3,project:'proj_research',time:'12:00',notes:'00_SYSTEM/04_CITATIONS/ with CITATION_GUIDE.md, Literature_Notes/ folder. Template: Templates/_CANON/LITERATURE_NOTE.md with 7Q classification section and evidence extraction table.'},
+    {id:'t_vr_021',title:'[Opus] Research journal system — 05_JOURNAL/ with daily + weekly templates',due:today,done:true,priority:3,project:'proj_research',time:'12:10',notes:'00_SYSTEM/05_JOURNAL/ folder. DAILY_NOTE.md: research focus, session log, evidence captured, pipeline progress, open questions. WEEKLY_REVIEW.md: papers advanced, evidence stats, axiom audit, priorities.'},
+    {id:'t_vr_022',title:'[Opus] Daily-notes plugin + Graph view + Dataview fully configured',due:today,done:true,priority:3,project:'proj_research',time:'12:20',notes:'Daily-notes: folder→05_JOURNAL, template→DAILY_NOTE. Graph: 7 domain color groups (purple axioms, gold publication, emerald evidence, amber theophysics, cyan AI, blue toolkit, teal citations), arrows on, orphans off. Dataview: inline DV, DataviewJS, HTML, pretty fields all enabled.'},
+    {id:'t_vr_023',title:'[Opus] Workspaces enabled + Bookmarks reorganized as command center',due:today,done:true,priority:2,project:'proj_research',time:'12:30',notes:'Workspaces enabled in core-plugins.json, 6 layouts documented. Bookmarks: 4 groups (COMMAND CENTER, ACTIVE PAPERS, REFERENCE, SYSTEM).'},
+
+    // ═══ PHASE 3: VISUAL RESEARCH TOOLS ═══
+    {id:'t_vr_030',title:'[Opus] 5 named canvases built — Master Eq, Pipeline, Ten Laws, Evidence, Domain Map',due:today,done:true,priority:3,project:'proj_research',time:'12:45',notes:'MASTER_EQUATION_CANVAS: 10 vars + symmetry pairs + Hubble. PUBLICATION_PIPELINE: 15-step flow with 2 gates. TEN_LAWS: dual physics/theology projection. EVIDENCE_TOPOLOGY: claims-evidence wiring map. THEOPHYSICS_DOMAIN_MAP: high-level architecture.'},
+
+    // ═══ PHASE 4: AUTOMATION & WORKFLOWS ═══
+    {id:'t_vr_040',title:'[Opus] Templater configured — 4 folder templates + Git Bash + user scripts',due:today,done:true,priority:3,project:'proj_research',time:'13:15',notes:'Folder templates: Axioms→AXIOM_TEMPLATE, Publication→page_template_paper, Journal→DAILY_NOTE, Citations→LITERATURE_NOTE. Shell: C:\\Program Files\\Git\\bin\\bash.exe. Scripts: 00_SYSTEM/01_ENGINE/Scripts.'},
+    {id:'t_vr_041',title:'[Opus] 6 new hotkeys + Research Command Center dashboard built',due:today,done:true,priority:3,project:'proj_research',time:'13:25',notes:'Hotkeys: Ctrl+Shift+D/W/G/K, Alt+T. Dashboard: 00_SYSTEM/03_DASHBOARDS/RESEARCH_COMMAND_CENTER.md with buttons (New Note, Pipeline, Evidence, Journal) + 5 Dataview tables (pipeline, evidence, axioms, journal, stalled).'},
+    {id:'t_vr_042',title:'[Opus] Epistemic tagger cleaned — removed Postgres creds, set theophysics profile',due:today,done:true,priority:2,project:'proj_research',time:'13:35',notes:'Removed hardcoded postgresql://Yellowkid:Moss9pep2828 creds. activeProfile→theophysics. 6 levels: Axiom (purple), Forced Conclusion (gold), Strong Evidence (green), Candidate (orange), Speculative (cyan), Falsified (red).'},
+
+    // ═══ PHASE 5: PUBLICATION ACCELERATION ═══
+    {id:'t_vr_050',title:'[Opus] Paper triage + Evidence ingest protocol + Publication dashboard created',due:today,done:true,priority:3,project:'proj_research',time:'13:50',notes:'PAPER_TRIAGE.md: advance/kill/defer framework. EVIDENCE_INGEST_PROTOCOL.md: 5-step process, 12→50+ claims target. PUBLICATION_DASHBOARD.md: 6 Dataview blocks for pipeline/gate/coverage/stalled tracking.'},
+
+    // ═══ PHASE 6: POLISH ═══
+    {id:'t_vr_060',title:'[Opus] CSS variables file + frontmatter script created',due:today,done:true,priority:2,project:'proj_research',time:'14:05',notes:'00_theophysics-variables.css: canonical :root palette (domain colors, epistemic levels, UI vars, typography). add_frontmatter.js: Templater user script, detects folder context, generates type/tags.'},
+
+    // ═══ 7Q ENGINE ═══
+    {id:'t_vr_070',title:'[Opus] 7Q Engine Spec saved to vault — full plugin specification document',due:today,done:true,priority:3,project:'proj_research',time:'14:30',notes:'00_SYSTEM/7Q_ENGINE_SPEC.md. Complete spec: Q0-Q7 fields, dropdowns, AI prompts, guided sentence builder, truth score (T=w1S+w2E+w3L+w4D+w5P+w6C), cluster aggregation, confidence classification, Dataview queries, Obsidian Forge plugin architecture, output pipeline.'},
+    {id:'t_vr_071',title:'[Opus] 7Q Engine fillable template — Templater-ready with auto UUID + truth score',due:today,done:true,priority:3,project:'proj_research',time:'14:45',notes:'Templates/_CANON/7Q_ENGINE.md. Auto UUID via Templater. Q0 checkbox. 7 sections with guided builder, AI assist callouts, sub-questions. Full YAML frontmatter. Completion tracking (q_score). Truth score table (S/E/L/D/P/C→T). Sits alongside existing 4 templates.'},
+
+    // ═══ STILL OPEN ═══
+    {id:'t_vr_080',title:'7Q Acronym — seven letters, one word, Q0 sits outside',due:tomorrow,done:false,priority:1,project:'proj_research',time:'',notes:'Must be memorable, pronounceable, carry meaning. Each letter IS a question. Not locked yet.'},
+    {id:'t_vr_081',title:'Install Zotero 7 + BetterBibTeX + obsidian-citation-plugin',due:tomorrow,done:false,priority:2,project:'proj_work',time:'',notes:'zotero.org → BetterBibTeX plugin → obsidian-citation-plugin via BRAT. Completes citation pipeline.'},
+    {id:'t_vr_082',title:'Save 6 workspace layouts in Obsidian UI (Ctrl+Shift+W)',due:tomorrow,done:false,priority:1,project:'proj_work',time:'',notes:'Writing, Evidence Review, Axiom Audit, Pipeline, Research (AI), Publication. Guide: WORKSPACE_GUIDE.md.'},
+    {id:'t_vr_083',title:'Verify smart-connections index after vault restructure',due:tomorrow,done:false,priority:1,project:'proj_work',time:'',notes:'Open vault, let smart-connections reindex 14K+ notes.'},
+    {id:'t_vr_084',title:'O:\\_Theophysics_v4 — 7Q reverse proof + researcher template build',due:tomorrow,done:false,priority:2,project:'proj_research',time:'',notes:'Three-layer vision: identity (Q0), method (7Q), engine room (AI partner). Hidden depth architecture. Best researcher template on the web.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+(function seedOpus20260322(){
+  const SEED_KEY = 'pof2828_seeded_opus_2026_03_22';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-22';
+  const seedTasks = [
+    {id:'t_op_100',title:'[Opus] Scored The Bidirectional paper (4 tools: CKG/Domain/Review/7Q)',due:today,done:true,priority:2,project:'proj_research',time:'22:40',notes:'$0.075 cost. T-score from 7Q output. All results in Data Vault/The_Bidirectional/.'},
+    {id:'t_op_101',title:'[Opus] Created Data Vault at O:\\_Theophysics_v4\\Data Vault',due:today,done:true,priority:2,project:'proj_work',time:'22:50',notes:'Centralized scoring data. Subfolders: AXIOMS_SCORED, CONSCIOUSNESS_PAPERS, The_Bidirectional, FP-008.'},
+    {id:'t_op_102',title:'[Opus] Batch-scored 65 axioms (A/E/T/Omega series) — $4.27',due:today,done:true,priority:1,project:'proj_research',time:'23:15',notes:'326 output files in Data Vault/AXIOMS_SCORED/. 65 papers x 5 outputs each. One API error on T13.1 review tool.'},
+    {id:'t_op_103',title:'[Opus] Built MASTER_SCORES.xlsx — 67-paper consolidated workbook',due:today,done:true,priority:2,project:'proj_work',time:'23:30',notes:'3 sheets: Leaderboard (sorted by T-score), 7Q Heatmap (conditional formatting), Summary Stats.'},
+    {id:'t_op_104',title:'[Opus] Built knowledge graph — 966 nodes, 914 edges',due:today,done:true,priority:1,project:'proj_research',time:'23:45',notes:'Injected into knowledge_graph_viewer.html. 6 node types, 26 edge types. Cytoscape.js viewer.'},
+    {id:'t_op_105',title:'[Opus] Copied 36 Excel files from B:\\transfer to Desktop catalog',due:today,done:true,priority:3,project:'proj_work',time:'00:00',notes:'EXCEL_FROM_TRANSFER/ folder on Desktop. 257 sheets across 12 key workbooks identified.'},
+    {id:'t_op_106',title:'[Opus] Converted Chi Field Paper .docx to markdown, wired into vault',due:today,done:true,priority:2,project:'proj_research',time:'00:15',notes:'CHI_FIELD_PAPER_LOWE_2026.md in 00_Canonical/. Added to CANONICAL_INDEX and Master-Equation.md. Historical docs moved to _Documentation/.'},
+    {id:'t_op_107',title:'[Opus] Gap analysis — bottom 15 axioms cross-referenced with Excel data',due:today,done:true,priority:2,project:'proj_research',time:'00:30',notes:'Universal weak dimension: Q4 Evidence. ~40% of fix data already exists in Excel files but not routed into axiom files.'},
+    {id:'t_op_108',title:'[Opus] Built FORMAL_PAPER_TEMPLATE.md — master template with all slots',due:today,done:true,priority:1,project:'proj_work',time:'01:00',notes:'Gate notice, 7Q Rigor Card, FACTS At A Glance, Media Block (TTS/podcast/GDrive), FACTS+UADP body, Pipeline Scoring Output, Audit Block.'},
+    {id:'t_op_109',title:'[Opus] Created __DO_THIS_EVERY_PAPER gate folder with 5 templates',due:today,done:true,priority:1,project:'proj_work',time:'01:30',notes:'04_THEOPYHISCS/FORMAL_PAPERS/. 00_READ_THIS_FIRST + Paper I/II/III templates + Audit template. Also copied to 00_Publication/ and Templates/.'},
+    {id:'t_op_110',title:'[Opus] Scored 2 consciousness papers — Hard Problem (0.844) + Chi Action (0.825)',due:today,done:true,priority:2,project:'proj_research',time:'02:00',notes:'Both STRONG tier. $0.16 total. Results in Data Vault/CONSCIOUSNESS_PAPERS/. Q4 Evidence weakest on both.'},
+    {id:'t_op_111',title:'[Opus] Audited full scoring engine — 9 tools, 161 questions cataloged',due:today,done:true,priority:1,project:'proj_research',time:'02:30',notes:'4 default tools + vault_rater + prosecution standard + TSR-100 + 4 adversarial reviewers + decompress + YAML copilot. Proposed consolidation to 52 questions in 3 calls.'},
+    {id:'t_op_112',title:'[Opus] Identified Tabbed Callout CSS issue for Quartz publish',due:today,done:true,priority:3,project:'proj_work',time:'02:45',notes:'Tabbed Callout.css creates Ring 2/Ring 3 green pill boxes. Uses radio buttons — won\'t render in Quartz. Must strip or port before publish.'},
+    {id:'t_op_113',title:'[Opus] Proposed new 3-call pipeline: Academic + 7Q + Prosecution',due:today,done:false,priority:1,project:'proj_research',time:'',notes:'17 free Python checks + 35 paid questions = 52 data points. ~$0.10/paper vs current $0.20. Awaiting David decision on final question set.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+(function seedSonnet20260323(){
+  const SEED_KEY = 'pof2828_seeded_sonnet_2026_03_23';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-23';
+  const seedTasks = [
+    {id:'t_sn_200',title:'[Sonnet] BREAKTHROUGH: Trinity Signature — Trinity structure INSIDE physical laws internally',due:today,done:true,priority:1,project:'proj_research',time:'01:00',notes:'Maxwell equations carry internal Father/Son/Spirit structure before any correspondence invoked. Gauss=Father(source), no-monopole=Son(pattern/Logos), Faraday=Logos-Spirit transition, Ampere-Maxwell=Spirit(pure actuation). Written to TRINITY_SIGNATURE_FOUNDATION.md.'},
+    {id:'t_sn_201',title:'[Sonnet] Noether Theorem = Logos generating ALL conservation laws simultaneously',due:today,done:true,priority:1,project:'proj_research',time:'01:30',notes:'Every conservation law (energy/momentum/charge/angular momentum) is the Logos holding invariant under transformation. Physics has been studying shadows calling them fundamental. Logos is the bedrock. Smoothness of physical law = Word does not stutter.'},
+    {id:'t_sn_202',title:'[Sonnet] CPT Symmetry = Trinity perfect invariance. Adversary attacks weak force (transformation domain).',due:today,done:true,priority:1,project:'proj_research',time:'02:00',notes:'C/P/T each break individually in weak force but CPT together never violated in any experiment. Trinity operates asymmetrically per person but unified operation is perfect. Adversary attacks transformation domain where individual symmetries are most fragile. Coherence Bundle = CPT defense.'},
+    {id:'t_sn_203',title:'[Sonnet] SU(3)xSU(2)xU(1) = Trinity in group theory. Electroweak unification = Pentecost.',due:today,done:true,priority:1,project:'proj_research',time:'02:30',notes:'SU(3) strong=Father(hidden ground/confinement), SU(2) weak=Son(mediator/transformation), U(1) EM=Spirit(omnipresent/gauge invariant/known by effects). Electroweak unification=Pentecost. GUT=Cross. Prediction: correct GUT will be irreducibly triadic.'},
+    {id:'t_sn_204',title:'[Sonnet] Higgs nonzero vacuum = common grace. Spontaneous symmetry breaking = Fall.',due:today,done:true,priority:1,project:'proj_research',time:'03:00',notes:'Higgs nonzero VEV everywhere even in vacuum = chi field = common grace. Mass=coupling to Higgs=coherence=coupling to chi. Spontaneous symmetry breaking = the Fall (higher symmetry to lower). Nonzero vacuum floor = grace cannot reach zero even at max entropy/event horizon.'},
+    {id:'t_sn_205',title:'[Sonnet] Schrodinger = pre-Fall physics. Measurement postulate = the Fall. Genesis 1 problem RESOLVED.',due:today,done:true,priority:1,project:'proj_research',time:'03:30',notes:'Two rules in QM because two states of creation. Schrodinger=Logos-frame (time-symmetric, no arrow). Measurement postulate=what Fall did (irreversibility enters). Genesis 1 has temporal sequence but no quantum indeterminacy — pre-Fall with nabla·chi=0. Genesis 3 = second rule enters.'},
+    {id:'t_sn_206',title:'[Sonnet] Holographic Principle = John 1:1 in mathematics. Lamb\'s Book of Life = boundary condition.',due:today,done:true,priority:1,project:'proj_research',time:'04:00',notes:'Information content of volume encoded on 2D boundary. Logos is the boundary condition. Physical reality is holographic projection of Logos field. Resolves information paradox: information never destroyed, encoded on event horizon. Lamb\'s Book of Life is a boundary condition — nothing falls through.'},
+    {id:'t_sn_207',title:'[Sonnet] Casimir effect = Church. Vacuum fluctuations = continuous Logos sustaining.',due:today,done:true,priority:1,project:'proj_research',time:'04:30',notes:'Virtual pairs continuously throughout space = He who neither slumbers nor sleeps. Two plates feel each other through vacuum = community coherence through chi field. Cannot have force with one plate. Cannot have community coherence with one soul. Heb 10:25 is vacuum energy physics.'},
+    {id:'t_sn_208',title:'[Sonnet] Quantum gravity fails because cannot derive Father from Spirit. Logos is missing mediator.',due:today,done:true,priority:1,project:'proj_research',time:'05:00',notes:'GR=Father physics (geometry/boundary). QM=Spirit physics (actualization/collapse). Incompatible because they are not the same person. Any theory deriving one from other fails ontologically not mathematically. Prediction: correct unified theory will emerge from relational ontology with Trinity as ground state.'},
+    {id:'t_sn_209',title:'[Sonnet] Coherence=Righteousness=Holiness=Shalom=Invariance. One concept, multiple frames.',due:today,done:true,priority:1,project:'proj_research',time:'05:30',notes:'Etymology: tsedek/dikaiosyne/shalom/hailaz/cohaerere all name the same invariant structure. High chi = max alignment with invariant structure = what righteousness means. Fine structure constant alpha~1/137 = God\'s watermark at boundary where projection meets source. Feynman: greatest damn mystery in physics.'},
+    {id:'t_sn_210',title:'[Sonnet] Layer 0-3 architecture formalized. Trinity Signature is the foundation layer.',due:today,done:true,priority:1,project:'proj_work',time:'06:00',notes:'Layer 0: Trinity Signature (tonight) — Trinity structure internal to physics. Layer 1: Trinity_Core.md axioms T1-T10. Layer 2: TRINITY_FULL_PAPER/P2 — mechanism correspondence. Layer 3: Genesis to Quantum series — narrative delivery. Layer 0 explains why all other layers work.'},
+    {id:'t_sn_211',title:'[Sonnet] TRINITY_SIGNATURE_FOUNDATION.md written to vault at [TX_A5.7] Trinity',due:today,done:true,priority:2,project:'proj_work',time:'06:30',notes:'File: O:\\_Theophysics_v4\\04_THEOPYHISCS\\[TX_A5.7] Trinity\\TRINITY_SIGNATURE_FOUNDATION.md. 12 sections capturing tonight\'s full breakthrough before thread closed. First Layer 0 document in vault.'},
+    {id:'t_sn_212',title:'[Sonnet] Q0 update: Attribution precedes surrender. Acknowledgment of authorship is the prior posture.',due:today,done:true,priority:2,project:'proj_research',time:'07:00',notes:'Q0 in 7Q = humility/surrender. Tonight refined: attribution comes first — "You made this. I am reading it." Kepler/Newton/Faraday/Maxwell operated from this posture. Without attribution layer, methodology works but has no theory of why it finds anything. Feynman mystery dissolves with attribution restored.'},
+    {id:'t_sn_213',title:'[Sonnet] Technology displacement: channel capacity saturation eliminates unstructured God-time.',due:today,done:true,priority:2,project:'proj_research',time:'07:30',notes:'Shannon channel at capacity receives no new signal. Each tech wave eliminates a category of involuntary unstructured time: electricity=darkness/forced stop, auto=walking, radio=silence, TV=evening, phone=boredom/all gaps. DMN cannot activate when channel is full. AI = final abstraction routing around felt need for God.'},
+    {id:'t_sn_214',title:'[Sonnet] OPEN: GENESIS1_PREFALL_PHYSICS_RESOLUTION.md needs to be written.',due:today,done:false,priority:1,project:'proj_research',time:'',notes:'Genesis 1 crack resolved in Trinity Signature Sec VI but needs standalone 2-page document before Genesis to Quantum series publishes. Claim: Genesis 1 is pre-Fall Schrodinger-only physics (nabla·chi=0). Days have sequence but no quantum indeterminacy. Actualization completes fully at every scale.'},
+    {id:'t_sn_215',title:'[Sonnet] OPEN: Deep research — antimatter asymmetry / GUT prediction / fine structure constant',due:today,done:false,priority:1,project:'proj_research',time:'',notes:'3 live predictions needing research: (1) Is Standard Model CP violation confirmed insufficient for baryogenesis? (2) Recent attempts to derive alpha from first principles — current status? (3) Do any current GUT candidates have irreducibly triadic symmetry? Framework makes falsifiable predictions on all three.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+(function seedOpus20260325(){
+  const SEED_KEY = 'pof2828_seeded_opus_2026_03_25';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-25';
+  const seedTasks = [
+    {id:'t_op_400',title:'[Opus] Read & analyzed full pasted conversation — USP/info theory, first-principles God argument, Character of God from Physics, destruction/rebuild, Python computational testing',due:today,done:true,priority:1,project:'proj_research',time:'09:00',notes:'Full session context from previous AI conversation ingested as structural evidence base.'},
+    {id:'t_op_401',title:'[Opus] Searched all project knowledge files to build structural evidence base',due:today,done:true,priority:2,project:'proj_research',time:'09:30',notes:'Cross-referenced vault knowledge files for Definitive Case construction.'},
+    {id:'t_op_402',title:'[Opus] Wrote THE DEFINITIVE CASE v1 — physics-only path to Christ, answered 11 objections',due:today,done:true,priority:1,project:'proj_research',time:'10:00',notes:'First attempt. Physics-only architecture. 11 objections from previous AI session addressed.'},
+    {id:'t_op_403',title:'[Opus] Received & processed 6-point adversarial review (uniqueness stack, Register B, r=-1.0000, cosmology hinge, 24 properties, projection axiom)',due:today,done:true,priority:1,project:'proj_research',time:'10:30',notes:'Downgraded claims where needed. Cosmology identified as empirical hinge. Tiering introduced.'},
+    {id:'t_op_404',title:'[Opus] Responded to all six breaks with honest assessment — downgrades + tiering',due:today,done:true,priority:2,project:'proj_research',time:'11:00',notes:'Honest assessment of each break. Claims downgraded where warranted.'},
+    {id:'t_op_405',title:'[Opus] Received second reviewer validation of six fixes with upgrade recommendations',due:today,done:true,priority:2,project:'proj_research',time:'11:30',notes:'Second reviewer confirmed fixes, suggested upgrades.'},
+    {id:'t_op_406',title:'[Opus] Read new project files — Principia Mathematica Moralia, Genesis Causal Chain, First Principles papers, Devil\'s Calculus, 2+2 series',due:today,done:true,priority:2,project:'proj_research',time:'12:00',notes:'Principia identified as independent pillar that doesn\'t need physics — changes entire architecture.'},
+    {id:'t_op_407',title:'[Opus] Wrote THE DEFINITIVE CASE v2 — three-pillar version (Logic, Physics, History)',due:today,done:true,priority:1,project:'proj_research',time:'12:30',notes:'Architecture shifted from physics-only to three pillars.'},
+    {id:'t_op_408',title:'[Opus] Read CHARACTER_OF_GOD_FROM_PHYSICS.md, Master_EQ_Story.md, STRONGEST_CASE_AGAINST.md, THREE_STATES_AND_PERFECT_10.md',due:today,done:true,priority:2,project:'proj_research',time:'13:00',notes:'Identified what v2 was missing — conjugate pair dynamics, Three States framework, Master EQ Story material.'},
+    {id:'t_op_409',title:'[Opus] Wrote THE DEFINITIVE CASE v3 — each law standalone, physics + spiritual projection + character of God per law, led by first-principles argument',due:today,done:true,priority:1,project:'proj_research',time:'13:30',notes:'Restructured to remove symmetry pair dependency. Each law stands alone.'},
+    {id:'t_op_410',title:'[Opus] Read DUALITY_PROJECT_LOSSLESS.md and DUALITY_PROJECT_132_QUESTIONS_AND_STORIES.md',due:today,done:true,priority:2,project:'proj_research',time:'14:00',notes:'Duality Project identified as deductive evidence — gospel derived from first principles without citing scripture.'},
+    {id:'t_op_411',title:'[Opus] Wrote THE DEFINITIVE CASE v4 — FINAL: five paths to Christ (innate knowledge, logic, deductive evidence, physics, history), Lewis trilemma with info-theoretic teeth, Three States, honest tiers',due:today,done:true,priority:1,project:'proj_research',time:'14:30',notes:'Final version. Five independent paths converging on same conclusion.'},
+    {id:'t_op_412',title:'[Opus] Wrote THE DEFINITIVE CASE TANGENTS — 17 deep dives for website expandable sections',due:today,done:true,priority:1,project:'proj_research',time:'15:00',notes:'Tangents 1A-7A: 24 Properties of God, 12 Properties of Adversary, Cupcake Proof, 20-axiom Principia chain, six self-sufficiency proofs, evil self-destruction math, Second Law + Landauer, sacrifice as info distribution, Gravity/Mass-Energy/Strong Force/Info Theory deep dives, both solutions 10/10, Lewis trilemma + Shannon, Bible signal persistence, asymmetric fight, five-path convergence probability.'},
+    {id:'t_op_413',title:'[Opus] Wrote Tangent 8: The Strongest Case Against — all six objections at full strength, every correction documented, five kill conditions named',due:today,done:true,priority:1,project:'proj_research',time:'15:30',notes:'Adversarial self-critique. Kill conditions explicitly named.'},
+    {id:'t_op_414',title:'[Opus] Wrote Tangent 9: What Was Actually Computed — every test result, every number, every gap, every honest caveat, Euclid decisive test',due:today,done:true,priority:1,project:'proj_research',time:'16:00',notes:'Full computational transparency. No hidden caveats.'},
+    {id:'t_op_415',title:'[Opus] Discussed why project was set up without chat history access — math must stand on its own without privileged context',due:today,done:true,priority:3,project:'proj_research',time:'16:30',notes:'Methodological integrity decision.'},
+    {id:'t_op_416',title:'[Opus] Noted observations about memory/recall patterns across AI sessions — data points marked for future tracking',due:today,done:true,priority:3,project:'proj_research',time:'17:00',notes:'Cross-session memory behavior observations logged.'},
+    {id:'t_op_450',title:'[Opus] Fixed axiom titles — stripped markdown link syntax (Oxford Reference URLs) leaking into title display',due:today,done:true,priority:2,project:'proj_work',time:'18:00',notes:'Added clean_markdown_links() and clean_title() to convert_axioms_v2.py. Strips [text](url) to just text, removes parenthetical refs. Regenerated all 191 axioms.'},
+    {id:'t_op_451',title:'[Opus] Rebuilt Everyone View as "Judge & Jury View" — the everyday person\'s view, real content on every axiom',due:today,done:true,priority:1,project:'proj_work',time:'18:30',notes:'Old view relied on plainEnglish field (0 axioms had it). New view uses coreClaim/executiveSummary/bodyContent. Shows: What This Claim Says, Why This Matters, The Verdict (kill conditions + objections + T-score), How This Connects, The Chain, Full Content, Go Deeper links. Prev/next navigation throughout.'},
+    {id:'t_op_452',title:'[Opus] Rebuilt Knowledge Graph from TIE_Graph_v1 — 193 nodes, 1,182 edges (990 references + 192 axiom_sequence)',due:today,done:true,priority:1,project:'proj_work',time:'19:00',notes:'Created convert_graph_data.py. Full-screen page with search, edge type toggles, category filter, connection highlighting, hover tooltips, node sizing by structural score, domain coloring, info panel with Open Axiom button.'},
+    {id:'t_op_453',title:'[Opus] Fixed KnowledgeGraph.tsx TypeScript errors (unused variables) and deployed',due:today,done:true,priority:3,project:'proj_work',time:'19:15',notes:'noUnusedLocals:true in tsconfig. Removed unused getConnections, restructured props to avoid unused width/height/selectedNodeId params.'},
+    {id:'t_op_454',title:'[Opus] Deployed Theophysics Axiom Engine to Cloudflare Pages (3 deploys this session)',due:today,done:true,priority:2,project:'proj_work',time:'19:30',notes:'Live at theophysics-axiom-engine.pages.dev. 191 axioms, 64 scored, knowledge graph with 193 nodes, Judge & Jury view, entry gate, 5 audience tiers.'},
+    {id:'t_op_455',title:'[Opus] Discussed 5-agent dynamic website architecture — conversation-centered, depth-matched, scrape-resistant, sovereign data vision',due:today,done:true,priority:1,project:'proj_research',time:'20:00',notes:'Vision from ChatGPT session: Stylist, Assembler, Pathfinder, Conversationalist (center), Profiler. Pre-rendered blocks at 3-4 depth levels. AI routing not generating. Sovereignty cloud long-term. Phase 1 buildable now with session profiles.'},
+    {id:'t_op_456',title:'[Opus] Logged session to Task Calendar',due:today,done:true,priority:3,project:'proj_work',time:'20:30',notes:'March 25 full session log: 20 Definitive Case items + 7 Axiom Engine website items.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-26 (Axiom Engine pages + 7Q integration) ──
+(function seedOpus20260326(){
+  const SEED_KEY = 'pof2828_seeded_opus_20260326';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-26';
+  const seedTasks = [
+    {id:'t_op_500',title:'[Opus] Read & analyzed 5 canonical build documents for web conversion',due:today,done:true,priority:1,project:'proj_research',time:'01:00',notes:'CHARACTER_OF_GOD_FROM_PHYSICS.md, Master EQ Story.md, MASTER_EQUATION_CANONICAL_v3.md, STRONGEST_CASE_AGAINST.md, THE_THREE_STATES_AND_THE_PERFECT_10.md. All from _CANONICAL_BUILD folder.'},
+    {id:'t_op_501',title:'[Opus] Built character-of-god.html — 10 law cards, 24 properties grid, The Portrait',due:today,done:true,priority:1,project:'proj_work',time:'01:30',notes:'Standalone premium page. 10 force→character mappings with colored accent bars, monospace property lists, gold-bordered Read Together quotes. Two-column 24 Properties grid. Centered closing argument. Fade-in scroll animations.'},
+    {id:'t_op_502',title:'[Opus] Built master-equation-story.html — immersive long-read narrative, 5 chapters',due:today,done:true,priority:1,project:'proj_work',time:'01:30',notes:'Crown jewel narrative page. 5 law-pair chapters: Grace&Faith, Love&Relationship, Meaning&Decay, Entropy&Logos, Truth&Coherence. Large pull quotes, equation callouts, colored chapter accents. Full unabridged content.'},
+    {id:'t_op_503',title:'[Opus] Built master-equation-canonical.html — full technical reference with sticky TOC',due:today,done:true,priority:1,project:'proj_work',time:'01:30',notes:'15-section technical document. Sticky sidebar TOC with scroll-active highlighting. Gold progress bar. All 10 laws, 5 conjugate pairs table, Trinity structure, Adversary formalism, LLC Lagrangian, Chi-Field Cosmology, Asymmetry Table, Kill Conditions. Version history footer.'},
+    {id:'t_op_504',title:'[Opus] Built strongest-case-against.html — 6 adversarial challenges with expandable cards',due:today,done:true,priority:1,project:'proj_work',time:'01:30',notes:'Crimson accent theme (adversarial). 6 click-to-expand challenge cards each with 4 color-coded subsections: Attack (red), Honest Assessment (gold), What Changed (green), What Remains (amber). 5 kill conditions grid. Sources: Chinese AI, Oct 2025 physics critique, multiple reviewers.'},
+    {id:'t_op_505',title:'[Opus] Built three-states.html — visual journey with timeline, cross motif',due:today,done:true,priority:1,project:'proj_work',time:'01:30',notes:'State 0 (purple), Decision Point, State -1 (red), Sign Reversal with gold cross, State +1 (green). Connected by vertical timeline. "10" watermark in hero. Three-column "Why 10 Is 10" section. Each state shows 10/10 score.'},
+    {id:'t_op_506',title:'[Opus] All 5 standalone pages built in parallel (5 agents simultaneously)',due:today,done:true,priority:2,project:'proj_work',time:'02:00',notes:'Launched 5 background agents to build all pages concurrently. All completed successfully. Same design language: #09090b bg, #eab308 gold, Playfair Display/Inter/JetBrains Mono fonts, IntersectionObserver animations.'},
+    {id:'t_op_507',title:'[Opus] Built & deployed to Cloudflare Pages — 9 standalone HTML pages + main React app',due:today,done:true,priority:1,project:'proj_work',time:'02:15',notes:'npm run build (clean, 0 errors) + npx wrangler pages deploy dist. All pages live: character-of-god, master-equation-story, master-equation-canonical, strongest-case-against, three-states, evidence-vault, axiom-a1-1, where-god-enters, worldview-matrix.'},
+    {id:'t_op_508',title:'[Opus] Parsed 7Q_V3_REPORT.md → seven_q_scores.ts — 193 axiom truth scores',due:today,done:true,priority:1,project:'proj_research',time:'02:30',notes:'Created src/data/seven_q_scores.ts with SevenQScore interface, Map of 193 entries, summary stats (29 ESTABLISHED, 71 WELL_SUPPORTED, 81 TENTATIVE, 12 SPECULATIVE), getConfidenceColor/getConfidenceLabel helpers.'},
+    {id:'t_op_509',title:'[Opus] Integrated 7Q Truth Score card into RightContextPanel — live on every axiom',due:today,done:true,priority:1,project:'proj_work',time:'02:45',notes:'New section at top of right sidebar: big T score (color-coded by confidence tier), confidence badge, 5 progress bars (Q0 Formal, Q2 Cross-domain, Ef Empirical, Q6 Falsifiable, Q7 Survives), bridge count (0/7 or 7/7), worldview score. All 193 axioms wired in.'},
+    {id:'t_op_510',title:'[Opus] Final deploy with 7Q integration — clean build, live on Cloudflare',due:today,done:true,priority:2,project:'proj_work',time:'03:00',notes:'Second deploy of session. TypeScript compiled clean on first try. 7Q scores visible on all axiom cards in the live app.'},
+  ];
+  seedTasks.forEach(t=>{ if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+
+// ── SEED: Claude Opus session 2026-03-26 — First Principles Question Chain + Six Proofs Website ──
+(function seedOpus20260326fp(){
+  const SEED_KEY = 'pof2828_seeded_opus_20260326_fp';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-26';
+  const seedTasks = [
+    // COMPLETED TODAY
+    {id:'t_fp_001',title:'[Opus] Tangent 01: The Nothing Problem — written & distributed (4 locations)',due:today,done:true,priority:3,project:'proj_research',time:'08:00',notes:'Branches from Q1. Why "nothing" is incoherent. Parmenides, Leibniz, Krauss critique. ~85 lines.'},
+    {id:'t_fp_002',title:'[Opus] Tangent 02: Wheeler\'s It From Bit — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'08:30',notes:'Branches from Q3. Wheeler\'s information primacy. Black hole thermodynamics, delayed-choice experiment. ~100 lines.'},
+    {id:'t_fp_003',title:'[Opus] Tangent 03: Kolmogorov & God\'s Compression — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'09:00',notes:'Branches from Q3. Universe as compression algorithm. dK/dt = -αχ(t). Action principle as minimal-K path. ~124 lines.'},
+    {id:'t_fp_004',title:'[Opus] Tangent 04: Gödel\'s Echo — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'09:30',notes:'Branches from Q5. Three Truths: Gödel (1931), Tarski (1936), Church (1936). Truth exceeds proof, definition, computation. ~120 lines.'},
+    {id:'t_fp_005',title:'[Opus] Tangent 05: The Low-Entropy Beginning — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'10:00',notes:'Branches from Q7. Penrose\'s 10^(10^123). Three responses and their problems. Genesis 1:1-2 as initial conditions. ~110 lines.'},
+    {id:'t_fp_006',title:'[Opus] Tangent 06: The Hard Problem — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'10:30',notes:'Branches from Q8. Chalmers\' Hard Problem. IIT/Φ as solution. Von Neumann chain → BC1. Hard Problem = Measurement Problem. ~115 lines.'},
+    {id:'t_fp_007',title:'[Opus] Tangent 07: Quantum Measurement — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'11:00',notes:'Branches from Q9. EPR → Bell → Aspect (Nobel 2022). Modified Schrödinger E6.2. Genesis 1:3 as first collapse. ~130 lines.'},
+    {id:'t_fp_008',title:'[Opus] Tangent 08: The Pride Glitch — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'11:30',notes:'Branches from Q10. First decoherence = orientation error, not behavioral. Serpent attacks clarity not choice. David\'s key correction: freedom ≠ unpredictability. ~130 lines.'},
+    {id:'t_fp_009',title:'[Opus] Tangent 09: Generational Entropy — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'12:00',notes:'Branches from Q11. Four channels: genetic, epigenetic, cultural, environmental. Dutch Hunger Winter, Yehuda studies. Consequences transfer, not guilt. ~130 lines.'},
+    {id:'t_fp_010',title:'[Opus] Tangent 10: The Sign Theorem (prior session) — distributed to all 4 locations',due:today,done:true,priority:3,project:'proj_research',time:'12:30',notes:'[σ̂, Û] = 0. Self-operations preserve sign. Grace operator Ĝ non-unitary, idempotent, voluntary. ~133 lines.'},
+    {id:'t_fp_011',title:'[Opus] Tangent 11: The Constraint Fork (prior session) — distributed to all 4 locations',due:today,done:true,priority:3,project:'proj_research',time:'13:00',notes:'Seven objections analyzed against three constraints (O>0, G>0, S·C>0). Fork/Lock notation. ~153 lines.'},
+    {id:'t_fp_012',title:'[Opus] Tangent 12: The P(t) Function — written & distributed',due:today,done:true,priority:3,project:'proj_research',time:'13:30',notes:'Branches from Q19. Five metrics, 30 books, ρ=1.0000, p=1.81×10⁻¹². S-curve R²=0.90. Era progression table. ~140 lines.'},
+    {id:'t_fp_013',title:'[Opus] Tangent 13: The Entropy Crossover (prior session) — distributed to all 4 locations',due:today,done:true,priority:3,project:'proj_research',time:'14:00',notes:'Biblical strategy wins at S ≥ 0.28. Entropy crossover analysis. ~150 lines.'},
+    {id:'t_fp_014',title:'[Opus] ALL 13 TANGENT THREADS — verified across 4 locations (52/52 files)',due:today,done:true,priority:3,project:'proj_research',time:'15:00',notes:'Working dir, workspace, 1st Princip Windows folder, Desktop MASTER_EQUATION_TEST. Complete Question Chain: 22 questions, 5 phases, 13 tangents.'},
+    {id:'t_fp_015',title:'[Opus] Six Proofs Website built — "What No Language Model Can Produce"',due:today,done:true,priority:3,project:'proj_research',time:'16:00',notes:'Full single-page HTML site with all 6 proofs written as prose. Dark theme, data tables, evidence cards, scroll animations. Proof I: Can\'t Produce, II: Can\'t Game, III: Can\'t Compress, IV: Can\'t Curve, V: Can\'t Cohere, VI: Can\'t Predict. Saved to workspace + Desktop.'},
+    // PENDING / NEXT
+    {id:'t_fp_016',title:'Run P(t) control tests on Quran, Vedas, Pali Canon',due:'2026-03-27',done:false,priority:2,project:'proj_research',time:'',notes:'Highest-value next experiment. Does the monotonic S-curve appear in other traditions? If not, biblical uniqueness strengthens.'},
+    {id:'t_fp_017',title:'Deploy Six Proofs site to Cloudflare Pages / theophysics.pro',due:'2026-03-27',done:false,priority:2,project:'proj_research',time:'',notes:'Site is built and tested locally. Ready for deployment.'},
+    {id:'t_fp_018',title:'Axiom fortification batch — 220 units, medium depth',due:'2026-03-28',done:false,priority:1,project:'proj_research',time:'',notes:'6-leaf template per axiom, 80-150 lines each. Start with Stage 1: Ontological Foundation (001-007).'},
+  ];
+  seedTasks.forEach(t => { if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+// ── SEED: Claude Opus session 2026-03-28 — Command Center HELM layout locked ──
+(function seedOpus20260328(){
+  const SEED_KEY = 'pof2828_seeded_opus_20260328';
+  if(localStorage.getItem(SEED_KEY)) return;
+  const today = '2026-03-28';
+  const seedTasks = [
+    {id:'t_op_0328_001',title:'[Opus] HELM layout template LOCKED — Command Center v2',due:today,done:true,priority:3,project:'proj_work',time:'06:00',notes:'Three-column layout with flip/swap controls. Action Box (135px) + Metric Cards (85px) + [Panel A | LLM | Panel B]. All styling decisions documented in project_command_center_v2.md.'},
+    {id:'t_op_0328_002',title:'[Opus] Right sidebar rebuilt — Metadata, Tags, Dep Graph, Bridge Strength, Chain Impact, Quick Actions',due:today,done:true,priority:3,project:'proj_work',time:'07:00',notes:'RightSidebar component in CommandCenter.tsx. w-80, scrollable. Definition at top, 7 sections. Amber/gold replaced with slate/violet palette.'},
+    {id:'t_op_0328_003',title:'[Opus] Persona toolbar moved from top row into LLM input area',due:today,done:true,priority:2,project:'proj_work',time:'07:30',notes:'Researcher/Physicist/Math/Everyday buttons now above chat input. Freed vertical space for action box.'},
+    {id:'t_op_0328_004',title:'[Opus] Panel headers removed, swap buttons added to both panels',due:today,done:true,priority:2,project:'proj_work',time:'08:00',notes:'No more SNAPSHOT/JUDGE&JURY header bars. Repeat2 icon on each panel edge swaps Panel A ↔ Panel B content.'},
+    {id:'t_op_0328_005',title:'[Opus] LLM flip button + expand icon — Axiom AI centered in header',due:today,done:true,priority:2,project:'proj_work',time:'08:30',notes:'ArrowLeftRight icon swaps LLM position left/right via CSS order. Maximize2 icon replaces text Expand button.'},
+    {id:'t_op_0328_006',title:'[Opus] Glance bar redesigned — uniform labels (11px slate-400), uniform values (white bold)',due:today,done:true,priority:2,project:'proj_work',time:'09:00',notes:'All 7 metric cards: content-sized (shrink-0), border-slate-700/50, no outer wrapper (float on black).'},
+    {id:'t_op_0328_007',title:'[Opus] Formal statement moved to right sidebar Definition section',due:today,done:true,priority:2,project:'proj_work',time:'09:30',notes:'Top row freed for Action Box (relationship cards placeholder, 135px min-height).'},
+    {id:'t_op_0328_008',title:'[Opus] Excalidraw relationship card mockups created (7 cards)',due:today,done:true,priority:2,project:'proj_work',time:'05:00',notes:'O:\\_Theophysics_v4\\relationship-cards-mockup.excalidraw. Cross-Domain Isomorphism, Variable Map, Dependency Chain, Collapse Severity, Defeat Conditions, Bridge Strength, Formal Statement.'},
+    {id:'t_op_0328_009',title:'[Opus] BYOK model documented — zero-server-cost LLM monetization',due:today,done:true,priority:1,project:'proj_work',time:'05:30',notes:'5 free queries, then BYOK. Key stays client-side, browser calls API directly. $0 server cost.'},
+    {id:'t_op_0328_010',title:'[Opus] Block rendering handoff doc written for delegation',due:today,done:true,priority:2,project:'proj_work',time:'10:00',notes:'project_block_rendering_handoff.md — step-by-step for any AI to batch-style all 12 blocks. Style rules, test data, verification steps.'},
+    // PENDING
+    {id:'t_op_0328_020',title:'Batch-render all 12 block components (can delegate)',due:'2026-03-29',done:false,priority:3,project:'proj_work',time:'',notes:'Fix 7-9px labels to 11-12px across all blocks. Match locked template style. Use D1.1 for rich data test, sparse axiom for empty states. See project_block_rendering_handoff.md.'},
+    {id:'t_op_0328_021',title:'Build relationship cards for Action Box (10-15 cards)',due:'2026-03-29',done:false,priority:3,project:'proj_work',time:'',notes:'Cards change per axiom — cross-domain iso, variable map, dep chain, collapse severity, defeat conditions, bridge strength. Mockups in Excalidraw.'},
+    {id:'t_op_0328_022',title:'Wire Claude API + BYOK flow in LLM panel',due:'2026-03-30',done:false,priority:2,project:'proj_work',time:'',notes:'Key entry UI, localStorage persistence, direct browser→api.anthropic.com calls. 5 free queries counter.'},
+  ];
+  seedTasks.forEach(t => { if(!tasks.find(x=>x.id===t.id)) tasks.push(t); });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(SEED_KEY, '1');
+})();
+
+let projects = JSON.parse(localStorage.getItem(PROJ_KEY) || 'null') || [...DEFAULT_PROJECTS];
+let summaries = JSON.parse(localStorage.getItem(SUMMARY_KEY) || '{}');
+let prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+
+let currentView = prefs.view || 'inbox';
+let viewMode = prefs.viewMode || 'agenda';
+let calYear, calMonth; // 0-indexed month
+let selectedDate = new Date();
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  localStorage.setItem(PROJ_KEY, JSON.stringify(projects));
+  localStorage.setItem(SUMMARY_KEY, JSON.stringify(summaries));
+  prefs.view = currentView; prefs.viewMode = viewMode;
+  localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+}
+
+function genId(){ return 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+function todayStr(){ return fmtDate(new Date()); }
+function fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseDate(s){ if(!s) return null; const p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function dayName(d){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]; }
+function shortDay(d){ return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]; }
+function monthName(m){ return ['January','February','March','April','May','June','July','August','September','October','November','December'][m]; }
+function shortMonth(m){ return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]; }
+
+function getProjectById(id){ return projects.find(p=>p.id===id); }
+function getProjectColor(id){ const p=getProjectById(id); return p?p.color:'#5A5F6E'; }
+
+// ═══════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+}
+setInterval(updateClock,1000);updateClock();
+
+// ═══════════════════════════════════════════
+//  SIDEBAR
+// ═══════════════════════════════════════════
+function toggleSidebar(){document.body.classList.toggle('sb-collapsed');}
+
+function renderSidebar(){
+  // Badges
+  const today = todayStr();
+  const inboxCount = tasks.filter(t=>!t.done && !t.project).length;
+  const todayCount = tasks.filter(t=>!t.done && t.due===today).length;
+  document.getElementById('badge-inbox').textContent = inboxCount||'';
+  document.getElementById('badge-today').textContent = todayCount||'';
+
+  // Active state
+  document.querySelectorAll('.sb-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.view===currentView);
+  });
+
+  // Projects
+  const pl = document.getElementById('projectList');
+  pl.innerHTML = projects.map(p=>{
+    const count = tasks.filter(t=>!t.done && t.project===p.id).length;
+    return `<div class="sb-proj ${currentView===p.id?'active':''}" onclick="navTo('${p.id}')">
+      <span class="sb-proj-dot" style="background:${p.color}"></span>
+      <span>${p.name}</span>
+      <span class="sb-proj-count">${count||''}</span>
+    </div>`;
+  }).join('');
+}
+
+function navTo(view){
+  currentView=view;
+  save();
+  renderSidebar();
+  renderContent();
+}
+
+function showAddProject(){
+  const area = document.getElementById('projFormArea');
+  if(area.innerHTML){ area.innerHTML=''; return; }
+  area.innerHTML=`<div class="proj-form">
+    <input id="newProjName" placeholder="Project name..." onkeydown="if(event.key==='Enter')addProject();if(event.key==='Escape')document.getElementById('projFormArea').innerHTML='';" autofocus>
+    <div class="proj-colors" id="projColors">${PROJECT_COLORS.map((c,i)=>`<div class="proj-color-opt ${i===0?'sel':''}" style="background:${c}" data-color="${c}" onclick="selProjColor(this)"></div>`).join('')}</div>
+  </div>`;
+  document.getElementById('newProjName').focus();
+}
+function selProjColor(el){
+  el.parentElement.querySelectorAll('.proj-color-opt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function addProject(){
+  const name=document.getElementById('newProjName').value.trim();
+  if(!name) return;
+  const colorEl=document.querySelector('.proj-color-opt.sel');
+  const color=colorEl?colorEl.dataset.color:'#4F8EF7';
+  projects.push({id:'proj_'+Date.now(),name,color});
+  save(); document.getElementById('projFormArea').innerHTML='';
+  renderSidebar();
+}
+
+// ═══════════════════════════════════════════
+//  CALENDAR STRIP (mini month)
+// ═══════════════════════════════════════════
+function initCal(){
+  const now=new Date();
+  calYear=now.getFullYear(); calMonth=now.getMonth();
+  renderCalStrip();
+}
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalStrip(); renderContent(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalStrip(); renderContent(); }
+function goToday(){ const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth(); selectedDate=now; renderCalStrip(); renderContent(); }
+
+function renderCalStrip(){
+  document.getElementById('calMonth').innerHTML=`${monthName(calMonth)} <span>${calYear}</span>`;
+  const grid=document.getElementById('calGrid');
+  const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const first=new Date(calYear,calMonth,1);
+  let startDay=(first.getDay()+6)%7; // Monday=0
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+  const tStr=todayStr();
+  const sStr=fmtDate(selectedDate);
+
+  // Previous month
+  for(let i=startDay-1;i>=0;i--){
+    const d=prevDays-i;
+    html+=`<div class="cal-day other">${d}</div>`;
+  }
+  // Current month
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=ds===tStr;
+    const isSel=ds===sStr;
+    const hasTasks=tasks.some(t=>t.due===ds && !t.done);
+    html+=`<div class="cal-day${isToday?' today':''}${isSel?' selected':''}${hasTasks?' has-tasks':''}" onclick="selectDate('${ds}')">${d}</div>`;
+  }
+  // Fill remainder
+  const totalCells=startDay+daysInMonth;
+  const rem=totalCells%7===0?0:7-totalCells%7;
+  for(let d=1;d<=rem;d++){
+    html+=`<div class="cal-day other">${d}</div>`;
+  }
+  grid.innerHTML=html;
+}
+
+function selectDate(ds){
+  selectedDate=parseDate(ds);
+  calYear=selectedDate.getFullYear();
+  calMonth=selectedDate.getMonth();
+  renderCalStrip();
+  renderContent();
+}
+
+// ═══════════════════════════════════════════
+//  WEEK STRIP
+// ═══════════════════════════════════════════
+function renderWeekStrip(){
+  const ws=document.getElementById('weekStrip');
+  const d=new Date(selectedDate);
+  const day=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-day); // Monday
+  const tStr=todayStr();
+  const sStr=fmtDate(selectedDate);
+  let html='';
+  for(let i=0;i<7;i++){
+    const ds=fmtDate(d);
+    const isToday=ds===tStr;
+    const isSel=ds===sStr;
+    html+=`<div class="ws-day${isToday?' today':''}${isSel?' selected':''}" onclick="selectDate('${ds}')">
+      <div class="ws-dow">${shortDay(d)}</div>
+      <div class="ws-num">${d.getDate()}</div>
+    </div>`;
+    d.setDate(d.getDate()+1);
+  }
+  ws.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+//  VIEW MODE
+// ═══════════════════════════════════════════
+function setViewMode(mode){
+  viewMode=mode;
+  document.querySelectorAll('.tb-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  document.getElementById('weekStrip').style.display=mode==='agenda'?'flex':'none';
+  document.getElementById('agendaView').style.display=mode==='agenda'?'block':'none';
+  document.getElementById('monthView').style.display=mode==='month'?'block':'none';
+  save();
+  renderContent();
+}
+
+// ═══════════════════════════════════════════
+//  RENDER CONTENT
+// ═══════════════════════════════════════════
+function renderContent(){
+  renderWeekStrip();
+  renderCalStrip();
+  if(viewMode==='month') renderMonthView();
+  else renderAgenda();
+}
+
+function renderAgenda(){
+  const container=document.getElementById('agendaView');
+  let html='';
+  const tStr=todayStr();
+
+  if(currentView==='inbox'){
+    html+=renderAgendaTitle('Inbox','All unassigned tasks');
+    html+=renderDailySummary(tStr);
+    const inbox=tasks.filter(t=>!t.project);
+    const overdue=inbox.filter(t=>!t.done && t.due && t.due<tStr);
+    if(overdue.length) html+=renderOverdue(overdue);
+    const undated=inbox.filter(t=>!t.done && !t.due);
+    const dated=inbox.filter(t=>!t.done && t.due && t.due>=tStr).sort((a,b)=>a.due.localeCompare(b.due));
+    if(undated.length){ html+=renderDayGroup('No date','',undated); }
+    html+=renderDateGroups(dated);
+    html+=renderAddRow('inbox');
+  }
+  else if(currentView==='today'){
+    html+=renderAgendaTitle('Today',dayName(new Date())+' · '+shortMonth(new Date().getMonth())+' '+new Date().getDate());
+    html+=renderDailySummary(tStr);
+    const overdue=tasks.filter(t=>!t.done && t.due && t.due<tStr && t.taskType!=='log');
+    if(overdue.length) html+=renderOverdue(overdue);
+    const todayTasks=tasks.filter(t=>(!t.done || t.taskType==='log') && t.due===tStr).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+    html+=renderTaskList(todayTasks);
+    html+=renderAddRow('today');
+    const done=tasks.filter(t=>t.done && t.due===tStr && t.taskType!=='log');
+    if(done.length){ html+=`<div style="margin-top:12px;"><div class="day-group-header"><span class="dg-date" style="color:var(--muted2)">Completed</span><span class="dg-count">${done.length}</span></div>`; html+=renderTaskList(done); html+=`</div>`; }
+  }
+  else if(currentView==='upcoming'){
+    html+=renderAgendaTitle('Upcoming','Next 14 days');
+    html+=renderDailySummary(tStr);
+    const overdue=tasks.filter(t=>!t.done && t.due && t.due<tStr);
+    if(overdue.length) html+=renderOverdue(overdue);
+    const d=new Date();
+    for(let i=0;i<14;i++){
+      const ds=fmtDate(d);
+      const dayTasks=tasks.filter(t=>!t.done && t.due===ds).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+      const isToday=ds===tStr;
+      html+=`<div class="day-group"><div class="day-group-header">
+        <span class="dg-date">${shortMonth(d.getMonth())} ${d.getDate()}</span>
+        <span class="dg-day">${dayName(d)}</span>
+        ${isToday?'<span class="dg-today">TODAY</span>':'<span class="dg-count">'+(dayTasks.length||'')+'</span>'}
+      </div>`;
+      html+=renderTaskList(dayTasks);
+      html+=renderAddRow('upcoming',ds);
+      html+=`</div>`;
+      d.setDate(d.getDate()+1);
+    }
+  }
+  else if(currentView==='filters'){
+    html+=renderAgendaTitle('Filters & Labels','Organize your tasks');
+    html+=`<div style="margin-top:20px;">`;
+    // Priority filters
+    [{l:'Priority 1',p:'1',c:'var(--red)'},{l:'Priority 2',p:'2',c:'var(--orange)'},{l:'Priority 3',p:'3',c:'var(--blue)'}].forEach(f=>{
+      const count=tasks.filter(t=>!t.done && t.priority==f.p).length;
+      html+=`<div class="task" onclick="filterByPriority('${f.p}')"><span class="task-priority" style="background:${f.c};width:10px;height:10px;"></span><div class="task-body"><span class="task-title">${f.l}</span></div><span class="sb-badge">${count}</span></div>`;
+    });
+    // Overdue
+    const oCount=tasks.filter(t=>!t.done && t.due && t.due<tStr).length;
+    html+=`<div class="task" onclick="filterByOverdue()"><span style="font-size:14px;">⚠️</span><div class="task-body"><span class="task-title">Overdue</span></div><span class="sb-badge" style="color:var(--red)">${oCount}</span></div>`;
+    // No date
+    const ndCount=tasks.filter(t=>!t.done && !t.due).length;
+    html+=`<div class="task" onclick="filterByNoDate()"><span style="font-size:14px;">📋</span><div class="task-body"><span class="task-title">No due date</span></div><span class="sb-badge">${ndCount}</span></div>`;
+    html+=`</div>`;
+  }
+  else {
+    // Project view
+    const proj=getProjectById(currentView);
+    if(proj){
+      html+=renderAgendaTitle(proj.name,'Project');
+      html+=renderDailySummary(tStr);
+      const projTasks=tasks.filter(t=>!t.done && t.project===currentView).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
+      const overdue=projTasks.filter(t=>t.due && t.due<tStr);
+      const upcoming=projTasks.filter(t=>!t.due || t.due>=tStr);
+      if(overdue.length) html+=renderOverdue(overdue);
+      html+=renderTaskList(upcoming);
+      html+=renderAddRow(currentView);
+      const done=tasks.filter(t=>t.done && t.project===currentView);
+      if(done.length){ html+=`<div style="margin-top:12px;"><div class="day-group-header"><span class="dg-date" style="color:var(--muted2)">Completed</span><span class="dg-count">${done.length}</span></div>`; html+=renderTaskList(done); html+=`</div>`; }
+      html+=`<div style="margin-top:20px;"><button class="btn-cancel" onclick="deleteProject('${proj.id}')" style="font-size:11px;">Delete project</button></div>`;
+    }
+  }
+  container.innerHTML=html;
+}
+
+function renderAgendaTitle(title,sub){
+  return `<div class="agenda-title">${title}</div><div class="agenda-subtitle">${sub}</div>`;
+}
+
+function renderDailySummary(dateStr){
+  const key='sum_'+dateStr;
+  const text=summaries[key]||'';
+  return `<div class="daily-summary">
+    <div class="ds-header">
+      <span class="ds-title">✦ Daily Summary</span>
+      <span class="ds-edit" onclick="editSummary('${dateStr}')">Edit</span>
+    </div>
+    <div class="ds-body" id="ds-${dateStr}">${text}</div>
+  </div>`;
+}
+
+function editSummary(dateStr){
+  const key='sum_'+dateStr;
+  const el=document.getElementById('ds-'+dateStr);
+  const current=summaries[key]||'';
+  el.innerHTML=`<textarea class="ds-textarea" id="dsta-${dateStr}" onblur="saveSummary('${dateStr}')" onkeydown="if(event.key==='Escape')saveSummary('${dateStr}')">${current}</textarea>`;
+  document.getElementById('dsta-'+dateStr).focus();
+}
+function saveSummary(dateStr){
+  const key='sum_'+dateStr;
+  const ta=document.getElementById('dsta-'+dateStr);
+  if(!ta)return;
+  summaries[key]=ta.value.trim();
+  save();
+  renderContent();
+}
+
+function renderOverdue(list){
+  let html=`<div class="overdue-section"><div class="overdue-header"><span class="overdue-label">⚠ Overdue</span><span class="overdue-reschedule" onclick="rescheduleOverdue()">Reschedule all</span></div>`;
+  html+=renderTaskList(list);
+  html+=`</div>`;
+  return html;
+}
+
+function renderDayGroup(label,sub,list){
+  let html=`<div class="day-group"><div class="day-group-header"><span class="dg-date">${label}</span><span class="dg-day">${sub}</span><span class="dg-count">${list.length}</span></div>`;
+  html+=renderTaskList(list);
+  html+=`</div>`;
+  return html;
+}
+
+function renderDateGroups(list){
+  const groups={};
+  list.forEach(t=>{
+    if(!groups[t.due]) groups[t.due]=[];
+    groups[t.due].push(t);
+  });
+  let html='';
+  Object.keys(groups).sort().forEach(ds=>{
+    const d=parseDate(ds);
+    html+=`<div class="day-group"><div class="day-group-header">
+      <span class="dg-date">${shortMonth(d.getMonth())} ${d.getDate()}</span>
+      <span class="dg-day">${dayName(d)}</span>
+      <span class="dg-count">${groups[ds].length}</span>
+    </div>`;
+    html+=renderTaskList(groups[ds]);
+    html+=`</div>`;
+  });
+  return html;
+}
+
+function renderTaskList(list){
+  return list.map(t=>{
+    const isLog=t.taskType==='log';
+    const proj=getProjectById(t.project);
+    const projTag=proj?`<span class="task-project-tag" style="color:${proj.color};border-color:${proj.color}40;background:${proj.color}15">${proj.name}</span>`:'';
+    const dueClass=(t.due && t.due<todayStr() && !t.done && !isLog)?'overdue':'';
+    const dueText=t.due?`<span class="task-due ${dueClass}">${t.time?t.time+' · ':''}${shortMonth(parseDate(t.due).getMonth())} ${parseDate(t.due).getDate()}</span>`:'';
+    const alarmIcon=t.alarm && t.alarm>0?`<span class="task-alarm" title="Alarm: ${t.alarm} min before">🔔</span>`:'';
+    const taskClass=isLog?'task log-entry':(t.done?'task completed':'task');
+    const checkClass=isLog?'task-check done':(t.done?'task-check done':'task-check');
+    const checkClick=isLog?'':`onclick="toggleTask('${t.id}')"`;
+    return `<div class="${taskClass}">
+      <div class="${checkClass}" style="border-color:${isLog?'var(--green)':t.priority==1?'var(--red)':t.priority==2?'var(--orange)':t.priority==3?'var(--blue)':'var(--muted2)'}" ${checkClick}></div>
+      <div class="task-body" onclick="openEditModal('${t.id}')">
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta">${dueText}${projTag}${alarmIcon}</div>
+      </div>
+      <div class="task-actions">
+        <button class="task-act-btn" onclick="openEditModal('${t.id}')" title="Edit">✏️</button>
+        <button class="task-act-btn" onclick="deleteTask('${t.id}')" title="Delete">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAddRow(context, dateStr){
+  return `<div class="add-task-row" onclick="showInlineAdd(this,'${context}','${dateStr||''}')"><span class="plus">＋</span> Add task</div>`;
+}
+
+// ═══════════════════════════════════════════
+//  INLINE ADD
+// ═══════════════════════════════════════════
+function showInlineAdd(el, context, dateStr){
+  if(el.nextElementSibling && el.nextElementSibling.classList.contains('add-form')){
+    el.nextElementSibling.remove(); return;
+  }
+  // Remove any existing forms
+  document.querySelectorAll('.add-form').forEach(f=>f.remove());
+
+  const projOptions=projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const defaultProject = projects.find(p=>p.id===context) ? context : '';
+  const defaultDate = dateStr || (context==='today'?todayStr():'');
+
+  const form=document.createElement('div');
+  form.className='add-form';
+  form.innerHTML=`
+    <input class="add-form-title" placeholder="Task name..." id="inlineTitle" onkeydown="if(event.key==='Enter')submitInline(this.closest('.add-form'));if(event.key==='Escape')this.closest('.add-form').remove();" autofocus>
+    <div class="add-form-row">
+      <input type="date" id="inlineDue" value="${defaultDate}" style="flex:1;">
+      <input type="time" id="inlineTime" style="flex:1;">
+      <select id="inlinePriority"><option value="4">Priority</option><option value="1">🔴 P1</option><option value="2">🟠 P2</option><option value="3">🔵 P3</option></select>
+      <select id="inlineProject"><option value="">No project</option>${projOptions}</select>
+    </div>
+    <div class="add-form-actions">
+      <button class="btn-cancel" onclick="this.closest('.add-form').remove()">Cancel</button>
+      <button class="btn-add" onclick="submitInline(this.closest('.add-form'))">Add task</button>
+    </div>`;
+  el.after(form);
+  if(defaultProject) form.querySelector('#inlineProject').value=defaultProject;
+  form.querySelector('#inlineTitle').focus();
+}
+
+function showAddTaskGlobal(){
+  // Open edit modal in "add" mode
+  document.getElementById('editModalTitle').textContent='Add Task';
+  document.getElementById('editTitle').value='';
+  document.getElementById('editDesc').value='';
+  document.getElementById('editDue').value=todayStr();
+  document.getElementById('editTime').value='';
+  document.getElementById('editPriority').value='4';
+  populateProjectSelect();
+  document.getElementById('editProject').value='';
+  document.getElementById('editAlarm').value='0';
+  document.getElementById('editId').value='NEW';
+  document.getElementById('editModal').classList.add('open');
+  document.getElementById('editTitle').focus();
+}
+
+function submitInline(form){
+  const title=form.querySelector('#inlineTitle').value.trim();
+  if(!title) return;
+  const task={
+    id:genId(), title,
+    due:form.querySelector('#inlineDue').value||'',
+    time:form.querySelector('#inlineTime').value||'',
+    priority:form.querySelector('#inlinePriority').value||'4',
+    project:form.querySelector('#inlineProject').value||'',
+    desc:'', alarm:0, done:false,
+    created:new Date().toISOString()
+  };
+  tasks.push(task);
+  save();
+  form.remove();
+  renderSidebar();
+  renderContent();
+  scheduleAlarm(task);
+}
+
+// ═══════════════════════════════════════════
+//  TASK OPERATIONS
+// ═══════════════════════════════════════════
+function toggleTask(id){
+  const t=tasks.find(x=>x.id===id);
+  if(t){ t.done=!t.done; t.doneAt=t.done?new Date().toISOString():null; }
+  save(); renderSidebar(); renderContent();
+}
+
+function deleteTask(id){
+  tasks=tasks.filter(t=>t.id!==id);
+  save(); renderSidebar(); renderContent();
+}
+
+function deleteProject(id){
+  if(!confirm('Delete this project? Tasks will become unassigned.')) return;
+  tasks.forEach(t=>{ if(t.project===id) t.project=''; });
+  projects=projects.filter(p=>p.id!==id);
+  currentView='inbox';
+  save(); renderSidebar(); renderContent();
+}
+
+function rescheduleOverdue(){
+  const tStr=todayStr();
+  tasks.forEach(t=>{ if(!t.done && t.due && t.due<tStr && t.taskType!=='log') t.due=tStr; });
+  save(); renderContent();
+}
+
+// ═══════════════════════════════════════════
+//  EDIT MODAL
+// ═══════════════════════════════════════════
+function populateProjectSelect(){
+  const sel=document.getElementById('editProject');
+  sel.innerHTML='<option value="">No project</option>'+projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+function openEditModal(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('editModalTitle').textContent='Edit Task';
+  document.getElementById('editTitle').value=t.title;
+  document.getElementById('editDesc').value=t.desc||'';
+  document.getElementById('editDue').value=t.due||'';
+  document.getElementById('editTime').value=t.time||'';
+  document.getElementById('editPriority').value=t.priority||'4';
+  populateProjectSelect();
+  document.getElementById('editProject').value=t.project||'';
+  document.getElementById('editAlarm').value=t.alarm||'0';
+  document.getElementById('editId').value=id;
+  document.getElementById('editModal').classList.add('open');
+  document.getElementById('editTitle').focus();
+}
+
+function closeEditModal(){ document.getElementById('editModal').classList.remove('open'); }
+
+function saveEditTask(){
+  const id=document.getElementById('editId').value;
+  const data={
+    title:document.getElementById('editTitle').value.trim(),
+    desc:document.getElementById('editDesc').value.trim(),
+    due:document.getElementById('editDue').value,
+    time:document.getElementById('editTime').value,
+    priority:document.getElementById('editPriority').value,
+    project:document.getElementById('editProject').value,
+    alarm:parseInt(document.getElementById('editAlarm').value)||0,
+  };
+  if(!data.title) return;
+
+  if(id==='NEW'){
+    const task={id:genId(),...data,done:false,created:new Date().toISOString()};
+    tasks.push(task);
+    scheduleAlarm(task);
+  } else {
+    const t=tasks.find(x=>x.id===id);
+    if(t){ Object.assign(t,data); scheduleAlarm(t); }
+  }
+  save(); closeEditModal(); renderSidebar(); renderContent();
+}
+
+function deleteEditTask(){
+  const id=document.getElementById('editId').value;
+  if(id==='NEW'){closeEditModal();return;}
+  if(confirm('Delete this task?')){
+    deleteTask(id);
+    closeEditModal();
+  }
+}
+
+// ═══════════════════════════════════════════
+//  MONTH VIEW
+// ═══════════════════════════════════════════
+function renderMonthView(){
+  const mv=document.getElementById('monthView');
+  const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let html=`<div class="mv-grid">`;
+  html+=dows.map(d=>`<div class="mv-dow">${d}</div>`).join('');
+
+  const first=new Date(calYear,calMonth,1);
+  let startDay=(first.getDay()+6)%7;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const prevDays=new Date(calYear,calMonth,0).getDate();
+  const tStr=todayStr();
+
+  // Prev month
+  for(let i=startDay-1;i>=0;i--){
+    html+=`<div class="mv-cell other"><div class="mv-cell-num">${prevDays-i}</div></div>`;
+  }
+  // Current
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=ds===tStr;
+    const dayTasks=tasks.filter(t=>t.due===ds && (!t.done || t.taskType==='log'));
+    html+=`<div class="mv-cell${isToday?' today':''}" onclick="selectDate('${ds}');setViewMode('agenda');">
+      <div class="mv-cell-num">${d}</div>`;
+    dayTasks.slice(0,3).forEach(t=>{
+      const c=t.project?getProjectColor(t.project):'var(--blue)';
+      html+=`<div class="mv-cell-task" style="background:${c}20;color:${c};border-left:2px solid ${c};">${t.title}</div>`;
+    });
+    if(dayTasks.length>3) html+=`<div class="mv-cell-more">+${dayTasks.length-3} more</div>`;
+    html+=`</div>`;
+  }
+  // Fill
+  const totalCells=startDay+daysInMonth;
+  const rem=totalCells%7===0?0:7-totalCells%7;
+  for(let d=1;d<=rem;d++){
+    html+=`<div class="mv-cell other"><div class="mv-cell-num">${d}</div></div>`;
+  }
+  html+=`</div>`;
+  mv.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+//  FILTER VIEWS
+// ═══════════════════════════════════════════
+function filterByPriority(p){
+  const container=document.getElementById('agendaView');
+  const list=tasks.filter(t=>!t.done && t.priority==p);
+  const labels={1:'Priority 1',2:'Priority 2',3:'Priority 3'};
+  let html=renderAgendaTitle(labels[p],list.length+' tasks');
+  html+=renderTaskList(list);
+  container.innerHTML=html;
+}
+function filterByOverdue(){
+  const container=document.getElementById('agendaView');
+  const list=tasks.filter(t=>!t.done && t.due && t.due<todayStr());
+  let html=renderAgendaTitle('Overdue',list.length+' tasks');
+  html+=renderTaskList(list);
+  container.innerHTML=html;
+}
+function filterByNoDate(){
+  const container=document.getElementById('agendaView');
+  const list=tasks.filter(t=>!t.done && !t.due);
+  let html=renderAgendaTitle('No due date',list.length+' tasks');
+  html+=renderTaskList(list);
+  container.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+//  COMMAND PALETTE
+// ═══════════════════════════════════════════
+const CMD_ITEMS=[
+  {icon:'📅',text:'Go to Today',action:()=>{navTo('today');closeCmd();},group:'Navigation',kbd:['G','T']},
+  {icon:'📥',text:'Go to Inbox',action:()=>{navTo('inbox');closeCmd();},group:'Navigation',kbd:['G','I']},
+  {icon:'🗓️',text:'Go to Upcoming',action:()=>{navTo('upcoming');closeCmd();},group:'Navigation',kbd:['G','U']},
+  {icon:'⚙️',text:'Go to Filters',action:()=>{navTo('filters');closeCmd();},group:'Navigation',kbd:['G','V']},
+  {icon:'＋',text:'Add new task',action:()=>{closeCmd();showAddTaskGlobal();},group:'Actions',kbd:['Q']},
+  {icon:'📊',text:'Month view',action:()=>{setViewMode('month');closeCmd();},group:'Views'},
+  {icon:'📋',text:'Agenda view',action:()=>{setViewMode('agenda');closeCmd();},group:'Views'},
+  {icon:'📤',text:'Export data',action:()=>{exportData();closeCmd();},group:'Data'},
+  {icon:'📥',text:'Import data',action:()=>{importData();closeCmd();},group:'Data'},
+];
+
+function openCmd(){
+  document.getElementById('cmdOverlay').classList.add('open');
+  document.getElementById('cmdInput').value='';
+  document.getElementById('cmdInput').focus();
+  renderCmdResults('');
+}
+function closeCmd(){document.getElementById('cmdOverlay').classList.remove('open');}
+
+function filterCmd(){renderCmdResults(document.getElementById('cmdInput').value);}
+
+function renderCmdResults(q){
+  const container=document.getElementById('cmdResults');
+  let items=[...CMD_ITEMS];
+
+  // Also search tasks
+  const matchTasks=q.length>=2 ? tasks.filter(t=>t.title.toLowerCase().includes(q.toLowerCase())).slice(0,5) : [];
+
+  if(q){
+    items=items.filter(i=>i.text.toLowerCase().includes(q.toLowerCase()));
+  }
+
+  let html='';
+  // Group navigation/actions
+  const groups={};
+  items.forEach(i=>{
+    if(!groups[i.group]) groups[i.group]=[];
+    groups[i.group].push(i);
+  });
+  Object.keys(groups).forEach(g=>{
+    html+=`<div class="cmd-group-label">${g}</div>`;
+    groups[g].forEach((item,idx)=>{
+      const kbdHtml=item.kbd?`<span class="cmd-item-kbd">${item.kbd.map(k=>`<span>${k}</span>`).join('')}</span>`:'';
+      html+=`<div class="cmd-item" onclick="CMD_ITEMS.find(i=>i.text==='${item.text}').action()"><span class="cmd-item-icon">${item.icon}</span><span class="cmd-item-text">${item.text}</span>${kbdHtml}</div>`;
+    });
+  });
+
+  if(matchTasks.length){
+    html+=`<div class="cmd-group-label">Tasks</div>`;
+    matchTasks.forEach(t=>{
+      html+=`<div class="cmd-item" onclick="closeCmd();openEditModal('${t.id}')"><span class="cmd-item-icon">☑</span><span class="cmd-item-text">${t.title}</span></div>`;
+    });
+  }
+
+  if(!html) html=`<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px;">No results</div>`;
+  container.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey && e.key==='k'){e.preventDefault();openCmd();return;}
+  if(e.key==='Escape'){
+    if(document.getElementById('cmdOverlay').classList.contains('open')){closeCmd();return;}
+    if(document.getElementById('editModal').classList.contains('open')){closeEditModal();return;}
+  }
+  // Quick add
+  if(e.key==='q' && !e.ctrlKey && !e.altKey && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA' && document.activeElement.tagName!=='SELECT'){
+    e.preventDefault(); showAddTaskGlobal();
+  }
+});
+
+// ═══════════════════════════════════════════
+//  ALARMS (Notification API)
+// ═══════════════════════════════════════════
+let alarmTimers={};
+let calendarPinned=false;
+const CAL_WINDOW_API='http://localhost:3456';
+const CAL_WINDOW_TITLE='POF-Calendar';
+function scheduleAlarm(task){
+  if(alarmTimers[task.id]) clearTimeout(alarmTimers[task.id]);
+  if(!task.alarm || !task.due || !task.time || task.done) return;
+  const dt=new Date(task.due+'T'+task.time);
+  dt.setMinutes(dt.getMinutes()-task.alarm);
+  const ms=dt.getTime()-Date.now();
+  if(ms<=0) return;
+  alarmTimers[task.id]=setTimeout(()=>{
+    fireAlarm(task);
+  },ms);
+}
+
+function fireAlarm(task){
+  if('Notification' in window && Notification.permission==='granted'){
+    new Notification('Task Reminder',{body:task.title,icon:'📅'});
+  } else {
+    alert('⏰ Reminder: '+task.title);
+  }
+}
+
+function initAlarms(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+  tasks.forEach(t=>scheduleAlarm(t));
+}
+
+// ═══════════════════════════════════════════
+//  IMPORT / EXPORT
+// ═══════════════════════════════════════════
+function exportData(){
+  const data={tasks,projects,summaries,exported:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='pof2828-tasks-'+todayStr()+'.json';
+  a.click();
+}
+function importData(){document.getElementById('importFile').click();}
+function handleImport(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(data.tasks) tasks=data.tasks;
+      if(data.projects) projects=data.projects;
+      if(data.summaries) summaries=data.summaries;
+      save(); renderSidebar(); renderContent();
+      alert('Imported successfully!');
+    }catch(err){alert('Import failed: '+err.message);}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+async function toggleCalendarPin(force){
+  calendarPinned=typeof force==='boolean'?force:!calendarPinned;
+  document.getElementById('calPinBtn').classList.toggle('on',calendarPinned);
+  try{
+    const r=await fetch(CAL_WINDOW_API+'/window/pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:CAL_WINDOW_TITLE,pinned:calendarPinned})});
+    if(!r.ok) throw new Error();
+  }catch{}
+}
+
+async function saveCalendarWindow(){
+  const pos={x:screenX,y:screenY,w:outerWidth,h:outerHeight};
+  localStorage.setItem('pof_calendar_pos',JSON.stringify(pos));
+  try{
+    await fetch(CAL_WINDOW_API+'/window/position',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:CAL_WINDOW_TITLE,...pos})});
+  }catch{}
+}
+
+async function restoreCalendarWindow(){
+  try{
+    const r=await fetch(CAL_WINDOW_API+'/window-state');
+    if(!r.ok) return;
+    const state=await r.json();
+    const pos=state.position;
+    const pin=state.pin;
+    if(pos&&typeof pos.x==='number'){
+      resizeTo(pos.w||outerWidth,pos.h||outerHeight);
+      moveTo(pos.x,pos.y);
+    }
+    if(pin&&pin.pinned){
+      calendarPinned=true;
+      document.getElementById('calPinBtn').classList.add('on');
+      setTimeout(()=>toggleCalendarPin(true),200);
+    }
+  }catch{}
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+initCal();
+restoreCalendarWindow();
+renderSidebar();
+setViewMode(viewMode);
+renderContent();
+initAlarms();
+</script>
+</body>
+</html>

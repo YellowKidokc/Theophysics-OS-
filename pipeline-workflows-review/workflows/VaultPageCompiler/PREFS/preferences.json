@@ -1,0 +1,5 @@
+{
+  "profile": "VaultPageCompiler",
+  "inherits": "brain",
+  "notes": "Compile vault-ready pages while preserving source meaning and links."
+}

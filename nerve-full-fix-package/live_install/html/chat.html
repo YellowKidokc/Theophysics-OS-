@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Chat</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 12px; display: flex; flex-direction: column; height: 100vh; }
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+.toolbar select, .toolbar button {
+  background: #1a1a2e; color: #e0e0e0; border: 1px solid #333; border-radius: 4px;
+  padding: 5px 10px; font-size: 13px; cursor: pointer;
+}
+.toolbar select:focus, .toolbar button:focus { outline: none; border-color: #60d0ff; }
+.toolbar button { background: #1e3a5f; color: #60d0ff; font-weight: 600; }
+.toolbar button:hover { background: #264d73; }
+label { font-size: 11px; color: #888; }
+
+.output {
+  flex: 1; overflow-y: auto; background: #111122; border: 1px solid #222; border-radius: 6px;
+  padding: 12px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; white-space: pre-wrap;
+  word-wrap: break-word; min-height: 100px;
+}
+.output .msg { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1a1a2e; }
+.output .msg:last-child { border-bottom: none; margin-bottom: 0; }
+.output .msg-role { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+.output .msg-role.user { color: #60d0ff; }
+.output .msg-role.assistant { color: #c0a0ff; }
+.output .msg-content { color: #ccc; }
+.output .error { color: #ff6060; }
+.output .thinking { color: #888; font-style: italic; }
+
+.input-area { display: flex; gap: 8px; }
+textarea {
+  flex: 1; background: #1a1a2e; color: #e0e0e0; border: 1px solid #333; border-radius: 6px;
+  padding: 10px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 80px; max-height: 300px;
+}
+textarea:focus { outline: none; border-color: #60d0ff; }
+.send-btn {
+  background: #1e3a5f; color: #60d0ff; border: 1px solid #264d73; border-radius: 6px;
+  padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; align-self: flex-end;
+}
+.send-btn:hover { background: #264d73; }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <label>Provider</label>
+  <select id="provider"></select>
+  <label>Workflow</label>
+  <select id="workflow"><option value="">Chat</option></select>
+  <button onclick="clearChat()">Clear</button>
+</div>
+
+<div class="output" id="output"></div>
+
+<div class="input-area">
+  <textarea id="input" placeholder="Type or paste text... Ctrl+Enter to send" rows="3"></textarea>
+  <button class="send-btn" id="sendBtn" onclick="send()">Send</button>
+</div>
+
+<script>
+let conversation = [];
+let currentRequestId = null;
+let providers = [];
+let workflows = [];
+
+function ipc(msg) {
+  try { window.chrome.webview.postMessage(JSON.stringify(msg)); return true; }
+  catch(e) { return false; }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  ipc({ type: 'ai_get_providers' });
+  ipc({ type: 'ai_get_workflows' });
+  document.getElementById('input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); send(); }
+  });
+});
+
+function onProvidersLoaded(list, defaultProvider) {
+  providers = list;
+  const sel = document.getElementById('provider');
+  sel.innerHTML = '';
+  list.forEach(p => {
+    if (!p.enabled) return;
+    const opt = document.createElement('option');
+    opt.value = p.provider_type;
+    opt.textContent = p.name + (p.model ? ' (' + p.model + ')' : '');
+    if (p.provider_type === defaultProvider) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function onWorkflowsLoaded(list) {
+  workflows = list;
+  const sel = document.getElementById('workflow');
+  sel.innerHTML = '<option value="">Chat</option>';
+  list.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w.name;
+    opt.textContent = w.name;
+    if (w.description) opt.title = w.description;
+    sel.appendChild(opt);
+  });
+}
+
+function send() {
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const provider = document.getElementById('provider').value;
+  const workflow = document.getElementById('workflow').value || null;
+
+  addMessage('user', text);
+  conversation.push({ role: 'user', content: text });
+  input.value = '';
+  showThinking();
+
+  currentRequestId = 'req_' + Date.now();
+  document.getElementById('sendBtn').disabled = true;
+
+  ipc({
+    type: 'ai_chat',
+    provider: provider,
+    workflow: workflow,
+    messages: conversation.slice(0, -1),
+    input: text,
+    request_id: currentRequestId,
+  });
+}
+
+function onAiResponse(requestId, content) {
+  hideThinking();
+  document.getElementById('sendBtn').disabled = false;
+  if (requestId !== currentRequestId) return;
+  addMessage('assistant', content);
+  conversation.push({ role: 'assistant', content: content });
+}
+
+function onAiError(requestId, error) {
+  hideThinking();
+  document.getElementById('sendBtn').disabled = false;
+  if (requestId !== currentRequestId) return;
+  addError(error);
+}
+
+function addMessage(role, content) {
+  const out = document.getElementById('output');
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = '<div class="msg-role ' + role + '">' + role.toUpperCase() + '</div>'
+    + '<div class="msg-content"></div>';
+  div.querySelector('.msg-content').textContent = content;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function addError(msg) {
+  const out = document.getElementById('output');
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = '<div class="error"></div>';
+  div.querySelector('.error').textContent = 'Error: ' + msg;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function showThinking() {
+  const out = document.getElementById('output');
+  let el = document.getElementById('thinking');
+  if (!el) { el = document.createElement('div'); el.id = 'thinking'; el.className = 'thinking'; el.textContent = 'Thinking...'; out.appendChild(el); }
+  out.scrollTop = out.scrollHeight;
+}
+function hideThinking() { const el = document.getElementById('thinking'); if (el) el.remove(); }
+
+function clearChat() { conversation = []; document.getElementById('output').innerHTML = ''; }
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "profile": "WORKFLOW_NAME",
+  "inherits": "default",
+  "notes": "Override only what this workflow needs."
+}

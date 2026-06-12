@@ -1,0 +1,5 @@
+{
+  "profile": "PaperGrading",
+  "inherits": "paper_grading",
+  "notes": "Grade papers with claims, evidence, kill conditions, and score ledgers."
+}

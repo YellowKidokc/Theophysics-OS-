@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>POF 2828 — Research Links</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f; --surface: #12121c; --surface2: #1a1a25;
+    --border: #1e1e2e; --border-hover: #2a2a3e;
+    --text: #c8ccd4; --text-dim: #666680; --text-bright: #e8ecf4;
+    --accent: #4a6fa5; --gold: #f59e0b; --green: #10b981;
+    --red: #ef4444; --purple: #8b5cf6; --blue: #3b82f6;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
+
+  body {
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    background: var(--bg); color: var(--text);
+    height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column; overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .header {
+    padding: 12px 16px 10px; border-bottom: 1px solid var(--border);
+    background: #0d0d14; flex-shrink: 0;
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand-tag { font-size: 10px; letter-spacing: 3px; color: var(--gold); font-weight: 700; }
+  .brand-sep { font-size: 11px; color: #2a2a3a; }
+  .brand-sub { font-size: 10px; letter-spacing: 2px; color: #444; }
+
+  .hdr-btn {
+    background: transparent; border: 1px solid #2a2a3a; color: #555;
+    padding: 4px 10px; border-radius: 4px; font-size: 10px; font-family: inherit;
+    cursor: pointer; letter-spacing: 1px; transition: all 0.12s ease;
+  }
+  .hdr-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+    background: var(--green); margin-right: 4px; box-shadow: 0 0 6px var(--green);
+  }
+  .status-dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  .search-wrap { position: relative; }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: #3a3a4a; pointer-events: none; font-size: 14px;
+  }
+  .search-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 9px 12px 9px 32px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: #333; }
+
+  .tabs {
+    display: flex; gap: 2px; padding: 8px 16px 0;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    overflow-x: auto; flex-shrink: 0;
+  }
+  .tab {
+    padding: 6px 14px 8px; font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text-dim); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.12s; white-space: nowrap;
+    font-family: inherit; background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .card-list {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 14px; cursor: pointer;
+    transition: all 0.08s ease; border-left: 3px solid var(--accent);
+  }
+  .card:hover { background: #14141e; border-color: var(--border-hover); }
+  .card:active { transform: scale(0.99); }
+
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--text-bright);
+    margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .card-url {
+    font-size: 10px; color: var(--text-dim); margin-bottom: 8px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag-pill {
+    font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 3px; background: #15151f;
+    color: var(--text-dim); border: 1px solid #1e1e2e;
+  }
+
+  .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .action-btn {
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    min-width: 52px; min-height: 44px; padding: 8px 14px;
+    border-radius: 5px; border: 1px solid #2a2a3a; background: transparent;
+    color: var(--text-dim); font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; font-family: inherit; cursor: pointer;
+    transition: all 0.1s ease; font-weight: 500;
+  }
+  .action-btn:active { transform: scale(0.95); }
+  .action-btn.open { border-color: rgba(59,130,246,0.4); color: var(--blue); flex: 1; }
+  .action-btn.open:hover { background: rgba(59,130,246,0.12); }
+  .action-btn.copy { border-color: rgba(16,185,129,0.4); color: var(--green); }
+  .action-btn.copy:hover { background: rgba(16,185,129,0.12); }
+  .action-btn.edit { border-color: rgba(139,92,246,0.4); color: var(--purple); }
+  .action-btn.edit:hover { background: rgba(139,92,246,0.12); }
+  .action-btn.delete { border-color: rgba(239,68,68,0.3); color: #884444; }
+  .action-btn.delete:hover { background: rgba(239,68,68,0.08); color: var(--red); }
+  .action-btn .icon { font-size: 16px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 100; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; width: 100%; max-width: 520px;
+  }
+  .modal h2 { font-size: 14px; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
+  .modal label { display: block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; margin-top: 12px; }
+  .modal input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 10px 12px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 10px 24px; border-radius: 5px; font-size: 11px; font-family: inherit;
+    letter-spacing: 1px; cursor: pointer; font-weight: 600; min-height: 44px;
+    border: 1px solid var(--border);
+  }
+  .modal-btn.save { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .modal-btn.cancel { background: transparent; color: var(--text-dim); }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--blue); color: #fff; padding: 8px 20px;
+    border-radius: 5px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    font-weight: 700; font-family: inherit; z-index: 200;
+    transition: transform 0.2s ease; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Files Bar */
+  .files-bar{display:flex;align-items:center;gap:3px;padding:4px 8px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+  .fbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 4px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text-dim);font-family:inherit;cursor:pointer;font-size:9px;letter-spacing:.4px;transition:all .12s;}
+  .fbtn:hover{border-color:var(--blue);color:var(--blue);background:rgba(79,142,247,.08);}
+  .fbtn.active{border-color:var(--blue);color:var(--blue);background:rgba(79,142,247,.08);}
+  .fbtn-icon{font-size:13px;}
+  .files-panel{display:none;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0;max-height:200px;overflow-y:auto;}
+  .files-panel.open{display:block;}
+  .fp-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;}
+  .fp-title{font-size:9px;color:var(--blue);letter-spacing:1px;text-transform:uppercase;font-weight:500;}
+  .fp-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 4px;font-family:inherit;}.fp-close:hover{color:var(--text);}
+  .fp-list{padding:4px;}
+  .fp-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .1s;font-size:10px;color:var(--text);}
+  .fp-item:hover{background:var(--surface);}
+  .fp-item-icon{font-size:12px;flex-shrink:0;width:18px;text-align:center;}
+  .fp-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fp-item-size{font-size:8px;color:var(--text-dim);flex-shrink:0;}
+  .fp-empty{text-align:center;padding:16px 8px;color:var(--text-dim);font-size:9px;}
+
+  @media (max-width: 480px) {
+    .card-actions { gap: 4px; }
+    .action-btn { min-height: 48px; font-size: 11px; }
+    .action-btn.open { flex: 2; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <span class="brand-tag">POF 2828</span>
+      <span class="brand-sep">|</span>
+      <span class="brand-sub">RESEARCH LINKS</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="status-dot" id="statusDot"></span>
+      <button class="hdr-btn" onclick="exportResearchBridge()">EXPORT</button>
+      <button class="hdr-btn" onclick="openCreateModal()">+ NEW</button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="Search links..." autocomplete="off">
+  </div>
+</div>
+
+<div class="tabs" id="tabsContainer">
+  <button class="tab active" data-category="all">ALL</button>
+</div>
+
+<div class="card-list" id="cardList"></div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modalTitle">New Bookmark</h2>
+    <input type="hidden" id="editId">
+    <label>Title</label>
+    <input type="text" id="fieldTitle" placeholder="e.g. Theophysics Dashboard">
+    <label>URL</label>
+    <input type="url" id="fieldUrl" placeholder="https://...">
+    <label>Category</label>
+    <input type="text" id="fieldCategory" placeholder="e.g. Theophysics, Infrastructure">
+    <label>Tags (comma separated)</label>
+    <input type="text" id="fieldTags" placeholder="e.g. dashboard, api">
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">CANCEL</button>
+      <button class="modal-btn save" onclick="saveBookmark()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<div class="files-bar">
+  <button class="fbtn" data-folder="documents" onclick="toggleFiles('documents')"><span class="fbtn-icon">&#x1F4C4;</span>Docs</button>
+  <button class="fbtn" data-folder="videos" onclick="toggleFiles('videos')"><span class="fbtn-icon">&#x1F3AC;</span>Video</button>
+  <button class="fbtn" data-folder="music" onclick="toggleFiles('music')"><span class="fbtn-icon">&#x1F3B5;</span>Music</button>
+  <button class="fbtn" data-folder="pictures" onclick="toggleFiles('pictures')"><span class="fbtn-icon">&#x1F5BC;</span>Pics</button>
+</div>
+<div class="files-panel" id="filesPanel">
+  <div class="fp-header"><span class="fp-title" id="fpTitle">Documents</span><button class="fp-close" onclick="closeFiles()">&#x2715;</button></div>
+  <div class="fp-list" id="fpList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:3456/api';
+const BRIDGE_HINT = 'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Research';
+let bookmarks = [];
+let activeCategory = 'all';
+let searchQuery = '';
+
+async function fetchBookmarks() {
+  try {
+    const res = await fetch(`${API}/bookmarks`);
+    if (res.ok) {
+      bookmarks = await res.json();
+      document.getElementById('statusDot').classList.remove('offline');
+    } else throw new Error();
+  } catch (e) {
+    document.getElementById('statusDot').classList.add('offline');
+    const cached = localStorage.getItem('bookmarks_cache');
+    if (cached) bookmarks = JSON.parse(cached);
+  }
+  localStorage.setItem('bookmarks_cache', JSON.stringify(bookmarks));
+  buildTabs();
+  render();
+}
+
+async function apiSave(bm) {
+  try {
+    const isNew = !bm._existing;
+    delete bm._existing;
+    const url = isNew ? `${API}/bookmarks` : `${API}/bookmarks/${bm.id}`;
+    const method = isNew ? 'POST' : 'PUT';
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bm),
+    });
+    return res.ok;
+  } catch (e) { return false; }
+}
+
+async function apiDelete(id) {
+  try { return (await fetch(`${API}/bookmarks/${id}`, { method: 'DELETE' })).ok; }
+  catch (e) { return false; }
+}
+
+const catColors = {
+  'theophysics': '#f59e0b', 'infrastructure': '#3b82f6', 'research': '#10b981',
+  'consciousness': '#8b5cf6', 'physics': '#06b6d4', 'general': '#6b7280',
+};
+function getCatColor(cat) {
+  return catColors[(cat||'').toLowerCase()] || '#4a6fa5';
+}
+
+function buildTabs() {
+  const cats = ['all', ...new Set(bookmarks.map(b => b.category || 'General'))];
+  document.getElementById('tabsContainer').innerHTML = cats.map(c =>
+    `<button class="tab${c===activeCategory?' active':''}" data-category="${c}" 
+            onclick="setCategory('${c}')">${c.toUpperCase()}</button>`
+  ).join('');
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.category === cat));
+  render();
+}
+
+function render() {
+  const list = document.getElementById('cardList');
+  let filtered = bookmarks;
+  if (activeCategory !== 'all')
+    filtered = filtered.filter(b => (b.category||'General').toLowerCase() === activeCategory.toLowerCase());
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(b => b.title.toLowerCase().includes(q) || b.url.toLowerCase().includes(q));
+  }
+
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#666680;font-size:12px">No bookmarks found</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(b => `
+    <div class="card" style="border-left-color:${getCatColor(b.category)}">
+      <div class="card-title">${esc(b.title)}</div>
+      <div class="card-url">${esc(b.url)}</div>
+      <div class="card-tags">
+        ${(b.tags||[]).map(t => `<span class="tag-pill">${esc(t)}</span>`).join('')}
+      </div>
+      <div class="card-actions">
+        <button class="action-btn open" onclick="event.stopPropagation();window.open('${esc(b.url)}','_blank')">
+          <span class="icon">🔗</span> OPEN
+        </button>
+        <button class="action-btn copy" onclick="event.stopPropagation();copyUrl('${esc(b.url)}')">
+          <span class="icon">📋</span> COPY
+        </button>
+        <button class="action-btn edit" onclick="event.stopPropagation();openEditModal('${b.id}')">
+          <span class="icon">✏️</span>
+        </button>
+        <button class="action-btn delete" onclick="event.stopPropagation();deleteBookmark('${b.id}')">
+          <span class="icon">🗑️</span>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function copyUrl(url) {
+  await navigator.clipboard.writeText(url);
+  showToast('URL COPIED');
+}
+
+async function exportResearchBridge() {
+  const ts = new Date().toISOString();
+  const items = bookmarks.map(b => ({
+    id: b.id || `bookmark_${Math.random().toString(36).slice(2, 10)}`,
+    type: 'research_link',
+    title: b.title,
+    content: b.url,
+    source_app: 'research_links.html',
+    created_at: b.created_at || ts,
+    updated_at: b.updated_at || ts,
+    tags: b.tags || [],
+    category: b.category || 'General',
+    url: b.url,
+    meta: {
+      api_source: API
+    }
+  }));
+  await saveBridgeExport(items, `research_bridge_${ts.slice(0, 10)}.json`);
+}
+
+async function deleteBookmark(id) {
+  if (!confirm('Delete this bookmark?')) return;
+  if (await apiDelete(id)) {
+    bookmarks = bookmarks.filter(b => b.id !== id);
+    localStorage.setItem('bookmarks_cache', JSON.stringify(bookmarks));
+    render();
+    showToast('DELETED');
+  }
+}
+
+function openCreateModal() {
+  document.getElementById('modalTitle').textContent = 'New Bookmark';
+  document.getElementById('editId').value = '';
+  document.getElementById('fieldTitle').value = '';
+  document.getElementById('fieldUrl').value = '';
+  document.getElementById('fieldCategory').value = '';
+  document.getElementById('fieldTags').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function openEditModal(id) {
+  const b = bookmarks.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('modalTitle').textContent = 'Edit Bookmark';
+  document.getElementById('editId').value = b.id;
+  document.getElementById('fieldTitle').value = b.title;
+  document.getElementById('fieldUrl').value = b.url;
+  document.getElementById('fieldCategory').value = b.category || '';
+  document.getElementById('fieldTags').value = (b.tags||[]).join(', ');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+async function saveBookmark() {
+  const editId = document.getElementById('editId').value;
+  const data = {
+    title: document.getElementById('fieldTitle').value.trim(),
+    url: document.getElementById('fieldUrl').value.trim(),
+    category: document.getElementById('fieldCategory').value.trim() || 'General',
+    tags: document.getElementById('fieldTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+  };
+  if (!data.title || !data.url) { showToast('TITLE AND URL REQUIRED'); return; }
+  if (editId) { data.id = editId; data._existing = true; }
+  if (await apiSave(data)) {
+    closeModal(); await fetchBookmarks(); showToast(editId ? 'UPDATED' : 'CREATED');
+  } else { showToast('SAVE FAILED'); }
+}
+
+function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+async function saveBridgeExport(items, filename) {
+  const payload = {
+    generated_at: new Date().toISOString(),
+    bridge_target: 'ai-hub',
+    hint_path: BRIDGE_HINT,
+    count: items.length,
+    items
+  };
+  const text = JSON.stringify(payload, null, 2);
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      showToast('EXPORT SAVED');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('EXPORT READY');
+}
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+document.getElementById('searchInput').addEventListener('input', e => { searchQuery = e.target.value; render(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape')closeModal(); });
+
+fetchBookmarks();
+setInterval(fetchBookmarks, 5000);
+
+// ═══ FILES PANEL ═══
+const FILE_FOLDERS={documents:{label:'Documents'},videos:{label:'Videos'},music:{label:'Music'},pictures:{label:'Pictures'}};
+const FILE_ICONS={pdf:'\u{1F4D5}',doc:'\u{1F4DD}',docx:'\u{1F4DD}',txt:'\u{1F4C3}',md:'\u{1F4C3}',mp4:'\u{1F3AC}',mkv:'\u{1F3AC}',avi:'\u{1F3AC}',mov:'\u{1F3AC}',mp3:'\u{1F3B5}',wav:'\u{1F3B5}',flac:'\u{1F3B5}',m4a:'\u{1F3B5}',jpg:'\u{1F5BC}',jpeg:'\u{1F5BC}',png:'\u{1F5BC}',gif:'\u{1F5BC}',webp:'\u{1F5BC}',svg:'\u{1F5BC}',zip:'\u{1F4E6}',rar:'\u{1F4E6}',xlsx:'\u{1F4CA}',csv:'\u{1F4CA}',json:'\u{2699}',html:'\u{1F310}',js:'\u{2699}',py:'\u{2699}'};
+let activeFolder=null;
+function getFileIcon(n){const e=(n.split('.').pop()||'').toLowerCase();return FILE_ICONS[e]||'\u{1F4C4}';}
+function fmtSize(b){if(!b||b<0)return'';if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'K';if(b<1073741824)return(b/1048576).toFixed(1)+'M';return(b/1073741824).toFixed(1)+'G';}
+function escF(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function toggleFiles(folder){
+  const panel=document.getElementById('filesPanel');
+  if(activeFolder===folder){closeFiles();return;}
+  activeFolder=folder;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.dataset.folder===folder));
+  document.getElementById('fpTitle').textContent=FILE_FOLDERS[folder].label;
+  document.getElementById('fpList').innerHTML='<div class="fp-empty">Loading...</div>';
+  panel.classList.add('open');
+  loadFiles(folder);
+}
+function closeFiles(){activeFolder=null;document.getElementById('filesPanel').classList.remove('open');document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));}
+async function loadFiles(folder){
+  const list=document.getElementById('fpList');
+  try{const r=await fetch(API+'/files/'+folder);if(!r.ok)throw new Error('Server '+r.status);const files=await r.json();
+    if(!files.length){list.innerHTML='<div class="fp-empty">Folder empty</div>';return;}
+    list.innerHTML=files.map(f=>`<div class="fp-item" onclick="openFile('${escF(f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')"><span class="fp-item-icon">${getFileIcon(f.name)}</span><span class="fp-item-name" title="${escF(f.name)}">${escF(f.name)}</span><span class="fp-item-size">${fmtSize(f.size)}</span></div>`).join('');
+  }catch(e){list.innerHTML='<div class="fp-empty">'+escF(e.message)+'</div>';}
+}
+function openFile(path){fetch(API+'/files/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})}).then(r=>{if(r.ok)showToast('OPENED');else throw 0;}).catch(()=>{navigator.clipboard.writeText(path).then(()=>showToast('PATH COPIED'));});}
+</script>
+</body>
+</html>

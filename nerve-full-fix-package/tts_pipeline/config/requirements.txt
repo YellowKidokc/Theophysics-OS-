@@ -1,0 +1,29 @@
+# Theophysics TTS Pipeline Requirements
+# ======================================
+
+# TTS Engines
+edge-tts>=6.1.0          # Microsoft Edge TTS (free)
+openai>=1.0.0            # OpenAI TTS API (premium)
+
+# Audio processing (for chunked OpenAI output)
+pydub>=0.25.0            # Audio concatenation
+
+# Math Translation Layer & Data Processing
+pandas>=2.0.0            # Excel file reading, data processing
+openpyxl>=3.0.0          # Excel .xlsx file support (required by pandas)
+
+# Text normalization dependency
+singleton-decorator>=1.0.0  # Required by TTSTextNormalization converters
+
+# Standard utilities (likely already installed)
+requests>=2.28.0
+
+# Google Drive API (for cloud upload + link insertion)
+google-auth>=2.0.0
+google-auth-oauthlib>=1.0.0
+google-api-python-client>=2.0.0
+
+# Optional: AI-enhanced math translation (for equations not in master file)
+# Uncomment if you want AI fallback:
+# openai>=1.0.0              # Already included above for TTS
+# Note: No additional packages needed - uses existing openai or requests (for Ollama)

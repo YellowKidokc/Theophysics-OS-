@@ -1,0 +1,4 @@
+{
+  "workflow": "sandbox-file-intake",
+  "mode": "dry_run_safety_check"
+}

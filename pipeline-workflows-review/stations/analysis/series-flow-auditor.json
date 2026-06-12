@@ -1,0 +1,37 @@
+{
+  "name": "series-flow-auditor",
+  "version": "1.0",
+  "path": "X:\\Backside\\stations\\series-flow-auditor.station",
+  "type": "local",
+  "has_run_bat": true,
+  "status": "review",
+  "input": {
+    "accepts": [
+      "*"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by series-flow-auditor."
+  },
+  "output": {
+    "produces": [
+      "*"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by series-flow-auditor."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "review",
+    "kind": "usage",
+    "last_run": "2026-06-04T09:15:44"
+  }
+}

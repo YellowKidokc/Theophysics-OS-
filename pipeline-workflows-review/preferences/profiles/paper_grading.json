@@ -1,0 +1,18 @@
+{
+  "profile": "paper_grading",
+  "inherits": "default",
+  "output_style": {
+    "summary": "claims_evidence_kill_conditions_score_ledger",
+    "format": "markdown",
+    "tts_friendly": true
+  },
+  "run_behavior": {
+    "dry_run": true,
+    "preserve_originals": true,
+    "stop_for_review_on_quality_fail": true,
+    "continue_to_route_on_ready": false
+  },
+  "routing": {
+    "default_destination": "REVIEW"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "model_lane": "fast",
+  "llm_backend": "ollama",
+  "stop_for_review": false,
+  "min_word_count_for_scoring": 200,
+  "skip_extensions": [".png", ".jpg", ".gif", ".pdf", ".mp3", ".mp4", ".wav"],
+  "skip_folders": ["__pycache__", ".git", "node_modules", ".obsidian"]
+}

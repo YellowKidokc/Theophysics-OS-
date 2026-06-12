@@ -1,0 +1,19 @@
+{
+  "profile": "tts_render",
+  "inherits": "default",
+  "text_cleanup": {
+    "spellcheck": true,
+    "punctuation": true,
+    "stt_error_repair": true,
+    "remove_filler_phrases": true,
+    "preserve_meaning_over_polish": true
+  },
+  "output_style": {
+    "summary": "clean_readable_chunks",
+    "format": "plain_text",
+    "tts_friendly": true
+  },
+  "routing": {
+    "default_destination": "OUTPUT"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PacketStatus",
+  "description": "Tracks a packet's journey through a workflow. Lives as STATUS.json in every packet root.",
+  "type": "object",
+  "required": ["packet_id", "workflow", "current_stage", "status", "started_at", "input_hash"],
+  "properties": {
+    "packet_id": { "type": "string", "description": "Unique packet identifier" },
+    "workflow": { "type": "string", "description": "Workflow name from WORKFLOW_REGISTRY" },
+    "current_stage": { "type": "string" },
+    "status": { "enum": ["active", "completed", "failed", "review", "hold"] },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" },
+    "input_hash": { "type": "string", "description": "SHA256 prefix of original input for idempotency" },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage", "entered_at", "result"],
+        "properties": {
+          "stage": { "type": "string" },
+          "entered_at": { "type": "string", "format": "date-time" },
+          "exited_at": { "type": ["string", "null"], "format": "date-time" },
+          "result": { "enum": ["pass", "fail", "review", "skip", "hold"] },
+          "score": { "type": "number" },
+          "notes": { "type": "string" },
+          "latency_ms": { "type": "integer" }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": { "type": "string" },
+          "error": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "checkpoints": { "type": "object", "additionalProperties": true }
+  }
+}

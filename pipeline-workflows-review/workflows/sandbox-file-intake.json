@@ -1,0 +1,43 @@
+{
+  "name": "sandbox-file-intake",
+  "description": "Phase 0 safety loop. Proves the system works before anything else runs. NOTHING ORIGINAL IS DESTROYED.",
+  "version": "0.1",
+  "stages": [
+    {
+      "name": "intake",
+      "station": "conversion-station",
+      "description": "Normalize copied file to canonical markdown",
+      "on_error": "stop",
+      "depends_on": []
+    },
+    {
+      "name": "fis-classify",
+      "station": "file-intelligence",
+      "description": "FIS classifies: type, domain, subject, slug, confidence",
+      "on_error": "stop",
+      "depends_on": ["intake"]
+    },
+    {
+      "name": "bil-score",
+      "station": "preference-engine",
+      "description": "BIL scores relevance: does David care about this?",
+      "on_error": "skip",
+      "depends_on": ["fis-classify"]
+    },
+    {
+      "name": "propose-route",
+      "station": "classify-documents",
+      "description": "Propose destination. confidence>85=OUTPUT, 50-85=REVIEW, <50=ERROR/kickout",
+      "on_error": "stop",
+      "depends_on": ["fis-classify", "bil-score"],
+      "llm_gate": {
+        "enabled": true,
+        "engine": "ollama:phi4",
+        "prompt": "Given this classification and relevance score, where should this file go? Respond with: vault, archive, review, or reject."
+      }
+    }
+  ],
+  "preference_profile": "defaults.json",
+  "signals": ["quality", "ready"],
+  "success_condition": "20 files processed without touching originals"
+}

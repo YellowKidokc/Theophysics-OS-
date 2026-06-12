@@ -1,0 +1,53 @@
+{
+  "profile": "default",
+  "model_lanes": {
+    "fast": {
+      "provider": "local",
+      "purpose": "classification, routing, small cleanup"
+    },
+    "strong": {
+      "provider": "local_or_cloud",
+      "purpose": "rewrites, grading, synthesis, cross-domain checks"
+    },
+    "backup": {
+      "provider": "local",
+      "purpose": "fallback when the preferred model is unavailable"
+    }
+  },
+  "text_cleanup": {
+    "spellcheck": true,
+    "punctuation": true,
+    "stt_error_repair": true,
+    "remove_filler_phrases": true,
+    "preserve_meaning_over_polish": true
+  },
+  "run_behavior": {
+    "dry_run": true,
+    "preserve_originals": true,
+    "stop_for_review_on_quality_fail": true,
+    "continue_to_route_on_ready": false
+  },
+  "output_style": {
+    "summary": "dense_concise_handoff",
+    "format": "markdown",
+    "links": "relative_when_portable",
+    "tts_friendly": true
+  },
+  "routing": {
+    "default_destination": "REVIEW",
+    "allowed_destinations": [
+      "vault_drop",
+      "r2_publish",
+      "substack_queue",
+      "pg_warehouse",
+      "nas_archive",
+      "clipboard_vault"
+    ]
+  },
+  "security": {
+    "export_tokens": false,
+    "export_model_weights": false,
+    "export_vector_indexes": false,
+    "repo_safe_by_default": true
+  }
+}

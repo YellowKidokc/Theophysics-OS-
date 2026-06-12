@@ -1,0 +1,36 @@
+{
+  "name": "summarizer",
+  "version": "1.0",
+  "path": "X:\\Backside\\stations\\summarizer.station",
+  "type": "local",
+  "has_run_bat": false,
+  "status": "active",
+  "input": {
+    "accepts": [
+      "*"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by summarizer."
+  },
+  "output": {
+    "produces": [
+      "*"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by summarizer."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "untested",
+    "last_run": "2026-06-04T09:15:44"
+  }
+}

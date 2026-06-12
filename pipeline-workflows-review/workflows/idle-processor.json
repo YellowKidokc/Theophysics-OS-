@@ -1,0 +1,18 @@
+{
+  "name": "idle-processor",
+  "description": "Scheduled batch processing when system idle 60min. 5 files per phase.",
+  "version": "1.0",
+  "stages": [
+    { "name": "html-dump", "station": "html-article", "description": "Process queued HTML dumps", "on_error": "skip", "depends_on": [] },
+    { "name": "wiki-compile", "station": "lossless-context", "description": "C4C-wiki lossless context build", "on_error": "skip", "depends_on": ["html-dump"] },
+    { "name": "vault-sync", "station": "obsidian-export", "description": "Sync to Obsidian vault", "on_error": "skip", "depends_on": ["wiki-compile"] }
+  ],
+  "preference_profile": "defaults.json",
+  "signals": ["ready"],
+  "scheduling": {
+    "trigger": "idle",
+    "idle_minutes": 60,
+    "batch_size": 5,
+    "platform": "windows_task_scheduler"
+  }
+}

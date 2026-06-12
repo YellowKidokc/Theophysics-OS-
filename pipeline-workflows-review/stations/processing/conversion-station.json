@@ -1,0 +1,43 @@
+{
+  "name": "conversion-station",
+  "version": "1.0",
+  "path": "X:\\Backside\\conversion_station",
+  "type": "local",
+  "has_run_bat": false,
+  "status": "active",
+  "input": {
+    "accepts": [
+      "md",
+      "txt",
+      "html",
+      "pdf",
+      "docx"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by conversion-station."
+  },
+  "output": {
+    "produces": [
+      "md",
+      "html",
+      "json"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by conversion-station."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "untested",
+    "last_run": "2026-06-04T09:15:44"
+  },
+  "notes": "Any file -> canonical markdown + metadata"
+}

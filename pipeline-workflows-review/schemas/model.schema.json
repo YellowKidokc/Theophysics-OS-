@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelSlotConfig",
+  "description": "Configuration for a model slot in the FORGE system. Weights stay on NAS, never in repo.",
+  "type": "object",
+  "required": ["slot", "name", "library", "status"],
+  "properties": {
+    "slot": { "type": "integer", "minimum": 1, "maximum": 19 },
+    "name": { "type": "string" },
+    "library": { "type": "string", "description": "Python package: implicit, river, markovify, transformers, etc." },
+    "version": { "type": "string" },
+    "status": { "enum": ["active", "installed", "placeholder", "empty"] },
+    "path": { "type": "string", "description": "Absolute path to model weights on NAS — never committed" },
+    "port": { "type": ["integer", "null"], "description": "If model runs as a service" },
+    "endpoint": { "type": ["string", "null"], "description": "HTTP endpoint if model is a server" },
+    "feeds_into": { "type": "array", "items": { "type": "string" }, "description": "Downstream model slots or stations" },
+    "fed_by": { "type": "array", "items": { "type": "string" }, "description": "Upstream data sources" },
+    "config": { "type": "object", "additionalProperties": true, "description": "Model-specific configuration" }
+  }
+}

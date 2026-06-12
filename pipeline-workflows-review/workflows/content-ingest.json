@@ -1,0 +1,18 @@
+{
+  "name": "content-ingest",
+  "description": "New content intake — classify and route to vault by type",
+  "version": "1.0",
+  "stages": [
+    { "name": "intake", "station": "conversion-station", "description": "Normalize to canonical markdown + metadata", "on_error": "stop", "depends_on": [] },
+    { "name": "metadata", "station": "metadata-extractor", "on_error": "skip", "depends_on": ["intake"] },
+    { "name": "vectorize", "station": "sbert-embedder", "on_error": "skip", "depends_on": ["intake"] },
+    { "name": "cluster", "station": "hdbscan-cluster", "on_error": "skip", "depends_on": ["vectorize"] },
+    { "name": "classify", "station": "classify-documents", "on_error": "stop", "depends_on": ["cluster", "metadata"] },
+    {
+      "name": "route", "station": "postgres-sync", "on_error": "stop", "depends_on": ["classify"],
+      "targets": { "vault": "O:\\_Theophysics_v4\\", "postgres": "192.168.1.97:5432" }
+    }
+  ],
+  "preference_profile": "defaults.json",
+  "signals": ["duplicate", "ready"]
+}

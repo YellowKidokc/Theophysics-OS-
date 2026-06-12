@@ -1,0 +1,24 @@
+{
+  "name": "mda-publication",
+  "description": "MDA series publication pipeline — 61 articles, 8 lanes, sequence locked: Language->Family->Church->Money",
+  "version": "1.0",
+  "stages": [
+    { "name": "intake", "station": "conversion-station", "description": "Normalize source", "on_error": "stop", "depends_on": [] },
+    { "name": "vectorize", "station": "sbert-embedder", "description": "Embed", "on_error": "skip", "depends_on": ["intake"] },
+    { "name": "classify", "station": "classify-documents", "description": "Classify", "on_error": "skip", "depends_on": ["vectorize"] },
+    { "name": "extract-claims", "station": "claim-extractor", "description": "Pull claims", "on_error": "continue", "depends_on": ["classify"] },
+    { "name": "fact-check", "station": "deberta-runner", "description": "NLI scoring", "on_error": "continue", "depends_on": ["extract-claims"] },
+    { "name": "7q-classify", "station": "7q-classifier", "description": "7Q classification", "on_error": "continue", "depends_on": ["extract-claims"] },
+    { "name": "grade", "station": "paper-proof-grader", "description": "Rigor scoring", "on_error": "continue", "depends_on": ["fact-check", "7q-classify"] },
+    { "name": "readability", "station": "readability-rewriter", "description": "Rewrite at 3 reading levels", "on_error": "continue", "depends_on": ["grade"] },
+    { "name": "citation-spine", "station": "mda-citation-spine", "description": "Build citation backbone", "on_error": "continue", "depends_on": ["readability"] },
+    { "name": "html-build", "station": "html-article", "description": "Build HTML", "on_error": "stop", "depends_on": ["citation-spine"] },
+    {
+      "name": "route", "station": "mda-publication", "description": "Route to K-Production-Ready",
+      "on_error": "stop", "depends_on": ["html-build"],
+      "targets": { "production": "K-Production-Ready", "site": "faiththruphysics.com" }
+    }
+  ],
+  "preference_profile": "paper_grading.json",
+  "signals": ["quality", "gap", "ready", "duplicate"]
+}
