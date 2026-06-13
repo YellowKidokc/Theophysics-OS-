@@ -205,7 +205,7 @@ fn main() -> Result<()> {
                 AppEvent::ConfigReloaded => {
                     info!("Config reloaded from remote");
                     if let Some(handle) = hotkey_handle.take() {
-                        handle.interrupt();
+                        handle.stop();
                     }
                     let cfg_lock = cfg.lock().unwrap();
                     hotkey_handle = match hotkeys::register_all(&cfg_lock, proxy.clone()) {
@@ -224,7 +224,7 @@ fn main() -> Result<()> {
                 AppEvent::Quit => {
                     info!("Quit requested");
                     if let Some(handle) = hotkey_handle.take() {
-                        handle.interrupt();
+                        handle.stop();
                     }
                     *control_flow = ControlFlow::Exit;
                 }

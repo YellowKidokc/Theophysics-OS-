@@ -14,9 +14,9 @@ use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
 #[cfg(windows)]
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, DispatchMessageW, GetMessageW, PostThreadMessageW, SetWindowsHookExW,
-    TranslateMessage, UnhookWindowsHookEx, KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL, WM_KEYDOWN,
-    WM_KEYUP, WM_QUIT, WM_SYSKEYDOWN, WM_SYSKEYUP,
+    CallNextHookEx, DispatchMessageW, GetMessageW, PeekMessageW, PostThreadMessageW,
+    SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx, KBDLLHOOKSTRUCT, MSG, PM_NOREMOVE,
+    WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_QUIT, WM_SYSKEYDOWN, WM_SYSKEYUP,
 };
 
 #[derive(Debug, Clone)]
@@ -41,6 +41,7 @@ pub enum VKey {
     Escape,
     Space,
     Delete,
+    Capital,
     LWin,
     RWin,
     LShift,
@@ -112,6 +113,7 @@ impl VKey {
             VKey::Escape => 0x1B,
             VKey::Space => 0x20,
             VKey::Delete => 0x2E,
+            VKey::Capital => 0x14,
             VKey::LWin => 0x5B,
             VKey::RWin => 0x5C,
             VKey::Vk0 => 0x30,
@@ -194,6 +196,7 @@ impl VKey {
             "escape" | "esc" | "vk_escape" => VKey::Escape,
             "back" | "backspace" | "vk_back" => VKey::Back,
             "delete" | "del" | "vk_delete" => VKey::Delete,
+            "caps" | "capslock" | "caps_lock" | "vk_capital" => VKey::Capital,
             "0" | "vk_0" => VKey::Vk0,
             "1" | "vk_1" => VKey::Vk1,
             "2" | "vk_2" => VKey::Vk2,
@@ -343,6 +346,14 @@ impl<T: Send + 'static> HotkeyManager<T> {
 
     #[cfg(windows)]
     pub fn event_loop(&mut self) {
+        unsafe {
+            // Force Windows to create this thread's message queue before the
+            // interrupt handle publishes the thread id. Without this,
+            // PostThreadMessageW can race startup and fail, leaving GetMessageW
+            // blocked during config reload or quit.
+            let mut bootstrap_msg = MSG::default();
+            let _ = PeekMessageW(&mut bootstrap_msg, None, 0, 0, PM_NOREMOVE);
+        }
         self.thread_id
             .store(unsafe { GetCurrentThreadId() }, Ordering::SeqCst);
         let state_ptr: *mut ManagerState = &mut self.state;
@@ -428,5 +439,5 @@ unsafe extern "system" fn keyboard_hook_proc(code: i32, wparam: WPARAM, lparam: 
 #[cfg(windows)]
 fn is_pressed(key: VKey) -> bool {
     let vk = key.to_vk_code() as i32;
-    unsafe { GetAsyncKeyState(vk) & 0x8000u16 as i16 != 0 }
+    unsafe { (GetAsyncKeyState(vk) & (0x8000u16 as i16)) != 0 }
 }

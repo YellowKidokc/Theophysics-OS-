@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::AppEvent;
 use anyhow::{anyhow, Result};
+use std::thread::JoinHandle;
 use tao::event_loop::EventLoopProxy;
 use tracing::{error, info, warn};
 use win_hotkeys::{HotkeyManager, InterruptHandle, VKey};
@@ -10,7 +11,29 @@ use win_hotkeys::{HotkeyManager, InterruptHandle, VKey};
 ///
 /// win-hotkeys uses a WH_KEYBOARD_LL hook and callback dispatch, so it does not
 /// require tao's Windows message pump to receive WM_HOTKEY messages.
-pub fn register_all(cfg: &Config, proxy: EventLoopProxy<AppEvent>) -> Result<InterruptHandle> {
+pub struct HotkeyRuntime {
+    interrupt: InterruptHandle,
+    thread: Option<JoinHandle<()>>,
+}
+
+impl HotkeyRuntime {
+    pub fn stop(mut self) {
+        self.interrupt.interrupt();
+        if let Some(thread) = self.thread.take() {
+            if let Err(e) = thread.join() {
+                warn!("Hotkey thread join failed: {:?}", e);
+            }
+        }
+    }
+}
+
+impl Drop for HotkeyRuntime {
+    fn drop(&mut self) {
+        self.interrupt.interrupt();
+    }
+}
+
+pub fn register_all(cfg: &Config, proxy: EventLoopProxy<AppEvent>) -> Result<HotkeyRuntime> {
     let mut manager = HotkeyManager::<()>::new();
     let mut registered = 0usize;
 
@@ -39,8 +62,8 @@ pub fn register_all(cfg: &Config, proxy: EventLoopProxy<AppEvent>) -> Result<Int
         return Err(anyhow!("No hotkeys were registered"));
     }
 
-    let interrupt_handle = manager.interrupt_handle();
-    std::thread::Builder::new()
+    let interrupt = manager.interrupt_handle();
+    let thread = std::thread::Builder::new()
         .name("nerve-win-hotkeys".into())
         .spawn(move || {
             info!(
@@ -52,7 +75,10 @@ pub fn register_all(cfg: &Config, proxy: EventLoopProxy<AppEvent>) -> Result<Int
         })
         .map_err(|e| anyhow!("Failed to spawn hotkey thread: {}", e))?;
 
-    Ok(interrupt_handle)
+    Ok(HotkeyRuntime {
+        interrupt,
+        thread: Some(thread),
+    })
 }
 
 fn parse_hotkey(s: &str) -> Result<(VKey, Vec<VKey>)> {
@@ -74,6 +100,7 @@ fn parse_hotkey(s: &str) -> Result<(VKey, Vec<VKey>)> {
             "alt" => modifiers.push(VKey::Menu),
             "shift" => modifiers.push(VKey::Shift),
             "win" | "super" | "meta" => modifiers.push(VKey::LWin),
+            "caps" | "capslock" | "caps_lock" => modifiers.push(VKey::Capital),
             _ => {
                 if trigger.is_some() {
                     return Err(anyhow!("Multiple trigger keys in hotkey '{}'", s));
@@ -103,6 +130,7 @@ fn parse_key(s: &str) -> Result<VKey> {
         "esc" => VKey::Escape,
         "backspace" => VKey::Back,
         "delete" | "del" => VKey::Delete,
+        "caps" | "capslock" | "caps_lock" => VKey::Capital,
         other => VKey::from_keyname(other).map_err(|e| anyhow!("Unknown key '{}': {}", s, e))?,
     };
     Ok(key)
