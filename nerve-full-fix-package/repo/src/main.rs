@@ -17,7 +17,7 @@ mod window_mgmt;
 use anyhow::Result;
 use std::sync::{Arc, Mutex};
 use tao::event::{Event, StartCause};
-use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tao::event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy};
 use tracing::{error, info};
 
 /// Custom events the system can send to the main event loop
@@ -25,8 +25,8 @@ use tracing::{error, info};
 pub enum AppEvent {
     /// Clipboard changed — content string
     ClipboardChanged(String),
-    /// Hotkey triggered — hotkey id
-    HotkeyTriggered(u32),
+    /// Hotkey action triggered by win-hotkeys
+    HotkeyAction(String),
     /// Open a webview panel by name
     OpenPanel(String),
     /// Toggle panel visibility
@@ -37,6 +37,52 @@ pub enum AppEvent {
     ConfigReloaded,
     /// Webview panel IPC payload
     PanelIpc { panel: String, payload: String },
+}
+
+fn handle_hotkey_action(action: &str, proxy: &EventLoopProxy<AppEvent>) {
+    match action {
+        "toggle_clipboard" => send_toggle(proxy, "clipboard"),
+        "toggle_prompts" => send_toggle(proxy, "prompts"),
+        "toggle_chat" => send_toggle(proxy, "chat"),
+        "toggle_links" => send_toggle(proxy, "links"),
+        "toggle_research" => send_toggle(proxy, "research"),
+        "toggle_dashboard" => send_toggle(proxy, "dashboard"),
+        "toggle_settings" => send_toggle(proxy, "settings"),
+        "toggle_nexus" => send_toggle(proxy, "nexus"),
+        "toggle_task_calendar" => send_toggle(proxy, "task_calendar"),
+        "toggle_theophysics_hub" => send_toggle(proxy, "theophysics_hub"),
+        "toggle_clipboard3" => send_toggle(proxy, "clipboard3"),
+        "toggle_7q_engine" => send_toggle(proxy, "7q_engine"),
+        "toggle_tts_engine" => send_toggle(proxy, "tts_engine"),
+        "toggle_hub" => send_toggle(proxy, "hub"),
+        "toggle_shortcuts" => send_toggle(proxy, "shortcuts"),
+        "toggle_service_dashboard" => send_toggle(proxy, "service_dashboard"),
+        "tts_read_selection" => {
+            info!("TTS: reading selection");
+            std::thread::spawn(|| {
+                tts::read_selection();
+            });
+        }
+        "paste_slot_1" => clipboard::paste_slot(0),
+        "paste_slot_2" => clipboard::paste_slot(1),
+        "paste_slot_3" => clipboard::paste_slot(2),
+        "paste_slot_4" => clipboard::paste_slot(3),
+        "paste_slot_5" => clipboard::paste_slot(4),
+        "paste_slot_6" => clipboard::paste_slot(5),
+        "paste_slot_7" => clipboard::paste_slot(6),
+        "paste_slot_8" => clipboard::paste_slot(7),
+        "paste_slot_9" => clipboard::paste_slot(8),
+        "paste_slot_10" => clipboard::paste_slot(9),
+        "ai_rewrite_selection" => {
+            info!("AI rewrite hotkey fired");
+            let _ = proxy.send_event(AppEvent::OpenPanel("chat".into()));
+        }
+        other => info!("Hotkey action: {}", other),
+    }
+}
+
+fn send_toggle(proxy: &EventLoopProxy<AppEvent>, panel: &str) {
+    let _ = proxy.send_event(AppEvent::TogglePanel(panel.into()));
 }
 
 fn main() -> Result<()> {
@@ -52,7 +98,13 @@ fn main() -> Result<()> {
 
     // Load config
     let cfg = config::Config::load()?;
-    tts::configure(&cfg.tts.voice, cfg.tts.speed, &cfg.tts.engine, cfg.tts.volume);
+    tts::configure(
+        &cfg.tts.voice,
+        cfg.tts.speed,
+        &cfg.tts.engine,
+        cfg.tts.volume,
+    );
+    tts::warm_voice_cache();
     let cfg = Arc::new(Mutex::new(cfg));
 
     // Build event loop with custom events
@@ -92,12 +144,11 @@ fn main() -> Result<()> {
         });
     });
 
-    // Build hotkey map and register global hotkeys
-    let _hotkey_manager = {
-        let mut hk_cfg = cfg.lock().unwrap();
-        hotkeys::build_hotkey_map(&mut hk_cfg);
-        match hotkeys::register_all(&hk_cfg) {
-            Ok(mgr) => Some(mgr),
+    // Start win-hotkeys on its own low-level keyboard hook thread.
+    let mut hotkey_handle = {
+        let hk_cfg = cfg.lock().unwrap();
+        match hotkeys::register_all(&hk_cfg, proxy.clone()) {
+            Ok(handle) => Some(handle),
             Err(e) => {
                 error!("Failed to register hotkeys: {}", e);
                 None
@@ -118,65 +169,16 @@ fn main() -> Result<()> {
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
 
-        // Check global hotkey events
-        if let Ok(event) = global_hotkey::GlobalHotKeyEvent::receiver().try_recv() {
-            let cfg_lock = cfg.lock().unwrap();
-            if let Some(action) = cfg_lock.hotkey_action(event.id()) {
-                match action.as_str() {
-                    "toggle_clipboard" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("clipboard".into()));
-                    }
-                    "toggle_prompts" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("prompts".into()));
-                    }
-                    "toggle_chat" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("chat".into()));
-                    }
-                    "toggle_links" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("links".into()));
-                    }
-                    "toggle_research" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("research".into()));
-                    }
-                    "toggle_dashboard" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("dashboard".into()));
-                    }
-                    "toggle_settings" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("settings".into()));
-                    }
-                    "toggle_tts_engine" => {
-                        let _ = proxy.send_event(AppEvent::TogglePanel("tts_engine".into()));
-                    }
-                    "tts_read_selection" => {
-                        // Copy current selection (Ctrl+C), then read it aloud
-                        info!("TTS: reading selection");
-                        std::thread::spawn(|| {
-                            tts::read_selection();
-                        });
-                    }
-                    "paste_slot_1" => clipboard::paste_slot(0),
-                    "paste_slot_2" => clipboard::paste_slot(1),
-                    "paste_slot_3" => clipboard::paste_slot(2),
-                    "paste_slot_4" => clipboard::paste_slot(3),
-                    "paste_slot_5" => clipboard::paste_slot(4),
-                    "paste_slot_6" => clipboard::paste_slot(5),
-                    "paste_slot_7" => clipboard::paste_slot(6),
-                    "paste_slot_8" => clipboard::paste_slot(7),
-                    "paste_slot_9" => clipboard::paste_slot(8),
-                    "paste_slot_10" => clipboard::paste_slot(9),
-                    other => {
-                        info!("Hotkey action: {}", other);
-                    }
-                }
-            }
-        }
-
         match event {
             Event::NewEvents(StartCause::Init) => {
                 info!("Event loop initialized");
             }
 
             Event::UserEvent(app_event) => match app_event {
+                AppEvent::HotkeyAction(action) => {
+                    handle_hotkey_action(&action, &proxy);
+                }
+
                 AppEvent::ClipboardChanged(content) => {
                     info!("Clipboard: {} chars", content.len());
                     // Push to sync client (fire and forget)
@@ -202,10 +204,17 @@ fn main() -> Result<()> {
 
                 AppEvent::ConfigReloaded => {
                     info!("Config reloaded from remote");
-                    let cfg_lock = cfg.lock().unwrap();
-                    if let Err(e) = hotkeys::register_all(&cfg_lock) {
-                        error!("Failed to re-register hotkeys: {}", e);
+                    if let Some(handle) = hotkey_handle.take() {
+                        handle.interrupt();
                     }
+                    let cfg_lock = cfg.lock().unwrap();
+                    hotkey_handle = match hotkeys::register_all(&cfg_lock, proxy.clone()) {
+                        Ok(handle) => Some(handle),
+                        Err(e) => {
+                            error!("Failed to re-register hotkeys: {}", e);
+                            None
+                        }
+                    };
                 }
 
                 AppEvent::PanelIpc { panel, payload } => {
@@ -214,6 +223,9 @@ fn main() -> Result<()> {
 
                 AppEvent::Quit => {
                     info!("Quit requested");
+                    if let Some(handle) = hotkey_handle.take() {
+                        handle.interrupt();
+                    }
                     *control_flow = ControlFlow::Exit;
                 }
 

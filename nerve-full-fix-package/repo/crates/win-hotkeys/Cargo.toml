@@ -1,0 +1,18 @@
+[package]
+name = "win-hotkeys"
+version = "0.5.1"
+edition = "2021"
+license = "MIT"
+description = "Local win-hotkeys-compatible low-level keyboard hook implementation for Nerve"
+
+[lib]
+name = "win_hotkeys"
+path = "src/lib.rs"
+
+[dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_Threading",
+] }

@@ -1,20 +1,33 @@
 use crate::config::Config;
+use crate::AppEvent;
 use anyhow::{anyhow, Result};
-use global_hotkey::hotkey::{Code, HotKey, Modifiers};
-use global_hotkey::GlobalHotKeyManager;
+use tao::event_loop::EventLoopProxy;
 use tracing::{error, info, warn};
+use win_hotkeys::{HotkeyManager, InterruptHandle, VKey};
 
-/// Register all hotkeys from config. Must be called from the main thread.
-/// Returns the manager (caller must keep it alive).
-pub fn register_all(cfg: &Config) -> Result<GlobalHotKeyManager> {
-    let manager = GlobalHotKeyManager::new()
-        .map_err(|e| anyhow!("Failed to create hotkey manager: {}", e))?;
+/// Register all hotkeys from config and run win-hotkeys on a dedicated
+/// background thread.
+///
+/// win-hotkeys uses a WH_KEYBOARD_LL hook and callback dispatch, so it does not
+/// require tao's Windows message pump to receive WM_HOTKEY messages.
+pub fn register_all(cfg: &Config, proxy: EventLoopProxy<AppEvent>) -> Result<InterruptHandle> {
+    let mut manager = HotkeyManager::<()>::new();
+    let mut registered = 0usize;
 
     for binding in &cfg.hotkeys {
         match parse_hotkey(&binding.keys) {
-            Ok(hotkey) => {
-                match manager.register(hotkey) {
-                    Ok(()) => info!("Hotkey: {} → {}", binding.keys, binding.action),
+            Ok((trigger_key, mod_keys)) => {
+                let action = binding.action.clone();
+                let keys = binding.keys.clone();
+                let callback_proxy = proxy.clone();
+
+                match manager.register_hotkey(trigger_key, &mod_keys, move || {
+                    let _ = callback_proxy.send_event(AppEvent::HotkeyAction(action.clone()));
+                }) {
+                    Ok(id) => {
+                        registered += 1;
+                        info!("Hotkey: {} → {} (id {})", keys, binding.action, id);
+                    }
                     Err(e) => warn!("Hotkey {} register: {}", binding.keys, e),
                 }
             }
@@ -22,57 +35,75 @@ pub fn register_all(cfg: &Config) -> Result<GlobalHotKeyManager> {
         }
     }
 
-    Ok(manager)
-}
-
-/// Build the hotkey_map (id → action) on the config
-pub fn build_hotkey_map(cfg: &mut Config) {
-    cfg.hotkey_map.clear();
-    for binding in &cfg.hotkeys {
-        if let Ok(hotkey) = parse_hotkey(&binding.keys) {
-            cfg.hotkey_map.insert(hotkey.id(), binding.action.clone());
-        }
+    if registered == 0 {
+        return Err(anyhow!("No hotkeys were registered"));
     }
+
+    let interrupt_handle = manager.interrupt_handle();
+    std::thread::Builder::new()
+        .name("nerve-win-hotkeys".into())
+        .spawn(move || {
+            info!(
+                "win-hotkeys event loop started with {} registered hotkeys",
+                registered
+            );
+            manager.event_loop();
+            info!("win-hotkeys event loop stopped");
+        })
+        .map_err(|e| anyhow!("Failed to spawn hotkey thread: {}", e))?;
+
+    Ok(interrupt_handle)
 }
 
-fn parse_hotkey(s: &str) -> Result<HotKey> {
-    let parts: Vec<&str> = s.split('+').map(|p| p.trim()).collect();
-    let mut modifiers = Modifiers::empty();
-    let mut key_str = "";
+fn parse_hotkey(s: &str) -> Result<(VKey, Vec<VKey>)> {
+    let parts: Vec<&str> = s
+        .split('+')
+        .map(|p| p.trim())
+        .filter(|p| !p.is_empty())
+        .collect();
+    if parts.is_empty() {
+        return Err(anyhow!("Hotkey is empty"));
+    }
 
-    for part in &parts {
+    let mut modifiers = Vec::new();
+    let mut trigger = None;
+
+    for part in parts {
         match part.to_lowercase().as_str() {
-            "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
-            "alt" => modifiers |= Modifiers::ALT,
-            "shift" => modifiers |= Modifiers::SHIFT,
-            "win" | "super" | "meta" => modifiers |= Modifiers::SUPER,
-            _ => key_str = part,
+            "ctrl" | "control" => modifiers.push(VKey::Control),
+            "alt" => modifiers.push(VKey::Menu),
+            "shift" => modifiers.push(VKey::Shift),
+            "win" | "super" | "meta" => modifiers.push(VKey::LWin),
+            _ => {
+                if trigger.is_some() {
+                    return Err(anyhow!("Multiple trigger keys in hotkey '{}'", s));
+                }
+                trigger = Some(parse_key(part)?);
+            }
         }
     }
 
-    let code = parse_key_code(key_str)?;
-    Ok(HotKey::new(Some(modifiers), code))
+    let trigger = trigger.ok_or_else(|| anyhow!("Missing trigger key in hotkey '{}'", s))?;
+    Ok((trigger, modifiers))
 }
 
-fn parse_key_code(s: &str) -> Result<Code> {
-    let code = match s.to_lowercase().as_str() {
-        "a" => Code::KeyA, "b" => Code::KeyB, "c" => Code::KeyC, "d" => Code::KeyD,
-        "e" => Code::KeyE, "f" => Code::KeyF, "g" => Code::KeyG, "h" => Code::KeyH,
-        "i" => Code::KeyI, "j" => Code::KeyJ, "k" => Code::KeyK, "l" => Code::KeyL,
-        "m" => Code::KeyM, "n" => Code::KeyN, "o" => Code::KeyO, "p" => Code::KeyP,
-        "q" => Code::KeyQ, "r" => Code::KeyR, "s" => Code::KeyS, "t" => Code::KeyT,
-        "u" => Code::KeyU, "v" => Code::KeyV, "w" => Code::KeyW, "x" => Code::KeyX,
-        "y" => Code::KeyY, "z" => Code::KeyZ,
-        "0" => Code::Digit0, "1" => Code::Digit1, "2" => Code::Digit2, "3" => Code::Digit3,
-        "4" => Code::Digit4, "5" => Code::Digit5, "6" => Code::Digit6, "7" => Code::Digit7,
-        "8" => Code::Digit8, "9" => Code::Digit9,
-        "f1" => Code::F1, "f2" => Code::F2, "f3" => Code::F3, "f4" => Code::F4,
-        "f5" => Code::F5, "f6" => Code::F6, "f7" => Code::F7, "f8" => Code::F8,
-        "f9" => Code::F9, "f10" => Code::F10, "f11" => Code::F11, "f12" => Code::F12,
-        "space" => Code::Space, "enter" | "return" => Code::Enter, "tab" => Code::Tab,
-        "escape" | "esc" => Code::Escape, "backspace" => Code::Backspace,
-        "delete" | "del" => Code::Delete,
-        _ => return Err(anyhow!("Unknown key: {}", s)),
+fn parse_key(s: &str) -> Result<VKey> {
+    let key = match s.to_lowercase().as_str() {
+        "0" => VKey::Vk0,
+        "1" => VKey::Vk1,
+        "2" => VKey::Vk2,
+        "3" => VKey::Vk3,
+        "4" => VKey::Vk4,
+        "5" => VKey::Vk5,
+        "6" => VKey::Vk6,
+        "7" => VKey::Vk7,
+        "8" => VKey::Vk8,
+        "9" => VKey::Vk9,
+        "enter" => VKey::Return,
+        "esc" => VKey::Escape,
+        "backspace" => VKey::Back,
+        "delete" | "del" => VKey::Delete,
+        other => VKey::from_keyname(other).map_err(|e| anyhow!("Unknown key '{}': {}", s, e))?,
     };
-    Ok(code)
+    Ok(key)
 }
