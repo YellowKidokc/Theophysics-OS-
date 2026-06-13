@@ -1,0 +1,49 @@
+<html><head><title>Merging daily log...</title></head>
+<body style="background:#0B0C0F;color:#e8eaf0;font-family:monospace;padding:40px;">
+<h2 style="color:#F2C94C;">POF 2828 — Daily Log Merger</h2>
+<pre id="log"></pre>
+<script>
+const log = s => { document.getElementById('log').textContent += s + '\n'; };
+
+const newTasks = [
+  {id:"log_20260325_001",title:"Mustard Seed v2 — 4/5 PASS (grace follows gradient, Seal holds)",due:"2026-03-25",priority:"1",project:"",desc:"Tests 15-19. Grace pushes along chi gradient. Phase transition at α=0→>0. Irreversible measurement confirmed.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_002",title:"Definitive Case — 8 parts answering 11 objections with math",due:"2026-03-25",priority:"1",project:"",desc:"THE_DEFINITIVE_CASE.md. Category Question through Complete Argument + Boundary.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_003",title:"Cross-Domain: Education + Scientific Method intros written",due:"2026-03-25",priority:"2",project:"",desc:"Education: Transmission Failure + dashboard. Scientific Method: Coherence Gradient. Psychology: 3 fixes.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_004",title:"5 Cowork email prompts ready (72+ emails to generate)",due:"2026-03-25",priority:"2",project:"",desc:"Education, SciMethod, FedReserve, TheoEng, Evolution. 4-5 audiences × 3 versions each.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_005",title:"Kimi Build Spec v2 — 5 additions, handoff complete",due:"2026-03-25",priority:"1",project:"",desc:"Welcome page, audience tiers, knowledge graph, multi-column, callouts. 6 source files → KIMI_UPLOAD.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_006",title:"Truth Engine Master Excel — 11 sheets",due:"2026-03-25",priority:"2",project:"",desc:"Sentences, Summary, Law Mapping, Axiom Mapping, Comparison + 6 REF sheets.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_007",title:"12 API Calls — exploration mode (not validation)",due:"2026-03-25",priority:"1",project:"",desc:"Domain Extrapolation, Theory Matchmaker, Stress Test, Bridge Builder, Gap-to-Experiment, Cross-Pollinator, Counter-Theory, Compression Expander, Full 7Q, Phase 2.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_008",title:"Truth Engine Unified — 6 repos combined (310MB, 195 scripts)",due:"2026-03-25",priority:"1",project:"",desc:"7q-engine + theory-downloader + RECON + pipeline + TIE-graph + paper-converter + truth-engine. LAUNCH.bat ready.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_009",title:"Master Templates folder — 02_Master_Templates in 00_SYSTEM",due:"2026-03-25",priority:"2",project:"",desc:"7Q templates, Rigor Card, CSS snippets, API calls spec, Project Card, Excel template.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_010",title:"Rigor Card found + 7 GitHub repos identified",due:"2026-03-25",priority:"3",project:"",desc:"FP-008_SCORED_INFOBOX.md = the [!7q-infobox] callout. All 7 repos located and combined.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_011",title:"Obsidian fixes — 8 theme manifests + heavy files relocated",due:"2026-03-25",priority:"3",project:"",desc:"manifest.json for 8 themes. 4.6GB moved to __DATA\\Cross_Domain_Heavy.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"},
+  {id:"log_20260325_012",title:"Website architecture — cover page + tiers + Substack gating",due:"2026-03-25",priority:"2",project:"",desc:"WEBSITE_MASTER_BUILD_SPEC.md. theophysics.pro front door, 5 audience tiers, modular shell.",taskType:"log",done:true,created:"2026-03-25T22:00:00.000Z"}
+];
+
+try {
+  // First remove any old merger tasks from the previous attempt
+  let existing = JSON.parse(localStorage.getItem('pof_calendar_tasks') || '[]');
+  existing = existing.filter(t => !t.id.startsWith('opus_20260325_'));
+  
+  const existingIds = new Set(existing.map(t => t.id));
+  let added = 0;
+  newTasks.forEach(t => {
+    if (!existingIds.has(t.id)) { existing.push(t); added++; }
+  });
+  localStorage.setItem('pof_calendar_tasks', JSON.stringify(existing));
+  log('Existing tasks: ' + (existing.length - added));
+  log('Daily log entries added: ' + added);
+  log('Total tasks now: ' + existing.length);
+  log('');
+  log('These are LOG entries — they:');
+  log('  • Stay on March 25 forever (no carryover)');
+  log('  • Show with green check (not clickable)');
+  log('  • Appear in Today view and Month view');
+  log('  • Never move to overdue');
+  log('');
+  log('✅ DONE — Close this tab and REFRESH the calendar.');
+} catch(e) {
+  log('ERROR: ' + e.message);
+}
+</script>
+</body></html>

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotkeys, Hotstrings & AI</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f0f0f; --surface: #1a1a2e; --surface2: #16213e;
+    --border: #2a2a4a; --text: #e0e0e0; --text-dim: #888;
+    --accent: #60d0ff; --accent2: #a78bfa; --danger: #ff6b6b;
+    --success: #4caf50; --row-hover: #1e1e3e;
+  }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px; line-height: 1.4;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* Tab bar — matches your AI-HUB layout */
+  .tab-bar {
+    display: flex; background: var(--surface);
+    border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto;
+  }
+  .tab-bar .tab {
+    padding: 8px 14px; font-size: 13px; cursor: pointer;
+    color: var(--text-dim); border: 1px solid var(--border);
+    border-bottom: none; background: var(--bg); white-space: nowrap;
+  }
+  .tab-bar .tab:hover { color: var(--text); }
+  .tab-bar .tab.active { background: var(--surface); color: var(--accent); }
+
+  /* Main layout: left editor + right library */
+  .main {
+    display: flex; flex: 1; overflow: hidden;
+  }
+
+  /* Left: Editor panel */
+  .editor {
+    width: 380px; min-width: 300px; padding: 16px;
+    border-right: 1px solid var(--border); overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block; font-size: 13px; font-weight: 600;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 7px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { min-height: 100px; resize: vertical; font-family: 'Consolas', monospace; font-size: 13px; }
+
+  .modifiers {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .modifiers label {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 13px; cursor: pointer;
+  }
+  .modifiers input[type="checkbox"] {
+    width: auto; accent-color: var(--accent);
+  }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .btn {
+    padding: 7px 16px; border: 1px solid var(--border); border-radius: 4px;
+    background: var(--surface); color: var(--text); font-size: 13px;
+    cursor: pointer; font-weight: 500;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover { border-color: var(--danger); }
+
+  /* Toggles at bottom of editor */
+  .toggle-row {
+    display: flex; gap: 16px; margin-top: 16px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .toggle-row label {
+    display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;
+  }
+
+  /* Right: Library table */
+  .library {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .library h3 {
+    padding: 12px 14px; font-size: 14px; color: var(--accent);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .table-wrap { flex: 1; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: var(--surface2); color: var(--accent);
+    padding: 8px 10px; text-align: left; font-weight: 600;
+    border-bottom: 2px solid var(--border); position: sticky; top: 0;
+  }
+  td {
+    padding: 6px 10px; border-bottom: 1px solid var(--border);
+    max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  tr { cursor: pointer; }
+  tr:hover { background: var(--row-hover); }
+  tr.selected { background: var(--surface2); border-left: 3px solid var(--accent); }
+
+  /* Status bar */
+  .status-bar {
+    padding: 6px 14px; background: var(--surface);
+    border-top: 1px solid var(--border); font-size: 12px;
+    color: var(--success); flex-shrink: 0;
+  }
+
+  .toast {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: white; padding: 6px 18px;
+    border-radius: 6px; font-size: 13px; opacity: 0; transition: all 0.2s;
+    pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="shortcuts">Shortcuts</div>
+  <div class="tab" data-tab="prompts">Prompts</div>
+  <div class="tab" data-tab="ai-chat">AI Chat</div>
+  <div class="tab" data-tab="research">Research</div>
+  <div class="tab" data-tab="links">Research Links</div>
+  <div class="tab" data-tab="data">Data</div>
+  <div class="tab" data-tab="utilities">Utilities</div>
+  <div class="tab" data-tab="settings">Settings</div>
+  <div class="tab" data-tab="tts">TTS</div>
+</div>
+
+<div class="main">
+  <!-- Left: Editor -->
+  <div class="editor">
+    <div class="field">
+      <label>Type:</label>
+      <select id="itemType" onchange="onTypeChange()">
+        <option value="hotstring">Hotstring</option>
+        <option value="hotkey">Hotkey</option>
+      </select>
+    </div>
+
+    <!-- Hotkey-specific fields -->
+    <div id="hotkeyFields" style="display:none">
+      <div class="field">
+        <label>Action:</label>
+        <select id="hotkeyAction">
+          <option value="send_text">Send Text</option>
+          <option value="open_panel">Open Panel</option>
+          <option value="run_command">Run Command</option>
+          <option value="tts_speak">TTS Speak</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Modifiers:</label>
+        <div class="modifiers">
+          <label><input type="checkbox" id="modCtrl"> Ctrl</label>
+          <label><input type="checkbox" id="modAlt"> Alt</label>
+          <label><input type="checkbox" id="modShift"> Shift</label>
+          <label><input type="checkbox" id="modWin"> Win</label>
+          <label><input type="checkbox" id="modCaps"> CapsLock (as modifier)</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Key:</label>
+        <input type="text" id="hotkeyKey" placeholder="None" maxlength="10" />
+      </div>
+    </div>
+
+    <!-- Hotstring-specific fields -->
+    <div id="hotstringFields">
+      <div class="field">
+        <label>Trigger (CAPS 1-32):</label>
+        <input type="text" id="hsTrigger" placeholder="/gm" style="font-family:Consolas,monospace" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Description:</label>
+      <input type="text" id="itemDesc" placeholder="Quick email" />
+    </div>
+
+    <div class="field">
+      <label>Output / Payload:</label>
+      <textarea id="itemOutput" placeholder="example@email.com"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn primary" onclick="addOrSave()">Add/Save</button>
+      <button class="btn" onclick="testItem()">Test</button>
+      <button class="btn danger" onclick="deleteItem()">Delete</button>
+      <button class="btn" onclick="exportConfig()">Export .json</button>
+    </div>
+
+    <div class="toggle-row">
+      <label><input type="checkbox" id="enableHotkeys" checked> Enable Hotkeys</label>
+      <label><input type="checkbox" id="enableHotstrings" checked> Enable Hotstrings</label>
+    </div>
+  </div>
+
+  <!-- Right: Library -->
+  <div class="library">
+    <h3>Library</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Trigger</th>
+            <th>Description</th>
+            <th>Output Preview</th>
+          </tr>
+        </thead>
+        <tbody id="libraryBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">Ready - 0 items loaded</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // All items (hotkeys + hotstrings combined)
+  let items = [];
+  let selectedIndex = -1;
+
+  // Demo data
+  items = [
+    { type: 'hotkey', trigger: '^!I', description: 'Quick email', output: 'example@email.com', mods: { ctrl: true, alt: true }, key: 'I', action: 'send_text' },
+    { type: 'hotstring', trigger: 'MYEMAIL', description: '', output: 'example@email.com' },
+    { type: 'hotstring', trigger: '/gm', description: 'Greeting', output: 'Good morning! Hope you\'re doing well.' },
+    { type: 'hotstring', trigger: '/ty', description: 'Thank you', output: 'Thank you, I really appreciate it!' },
+    { type: 'hotstring', trigger: '/sig', description: 'Signature', output: 'Best regards,\nYour Name' },
+    { type: 'hotstring', trigger: '/addr', description: 'Address', output: '123 Main St, City, ST 12345' },
+  ];
+
+  function onTypeChange() {
+    const type = document.getElementById('itemType').value;
+    document.getElementById('hotkeyFields').style.display = type === 'hotkey' ? 'block' : 'none';
+    document.getElementById('hotstringFields').style.display = type === 'hotstring' ? 'block' : 'none';
+  }
+
+  function renderLibrary() {
+    const tbody = document.getElementById('libraryBody');
+    tbody.innerHTML = items.map((item, i) => {
+      const trigger = item.type === 'hotkey'
+        ? formatHotkeyTrigger(item)
+        : item.trigger;
+      const preview = (item.output || '').substring(0, 40);
+      return `<tr class="${i === selectedIndex ? 'selected' : ''}" onclick="selectItem(${i})">
+        <td>${item.type === 'hotkey' ? 'Hotkey' : 'Hotstring'}</td>
+        <td style="font-family:Consolas,monospace">${escHtml(trigger)}</td>
+        <td>${escHtml(item.description || '')}</td>
+        <td>${escHtml(preview)}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('statusBar').textContent = `Ready - ${items.length} items loaded`;
+  }
+
+  function formatHotkeyTrigger(item) {
+    let parts = [];
+    if (item.mods?.ctrl) parts.push('^');
+    if (item.mods?.alt) parts.push('!');
+    if (item.mods?.shift) parts.push('+');
+    if (item.mods?.win) parts.push('#');
+    parts.push(item.key || '');
+    return parts.join('');
+  }
+
+  function selectItem(index) {
+    selectedIndex = index;
+    const item = items[index];
+
+    document.getElementById('itemType').value = item.type;
+    onTypeChange();
+
+    if (item.type === 'hotkey') {
+      document.getElementById('modCtrl').checked = item.mods?.ctrl || false;
+      document.getElementById('modAlt').checked = item.mods?.alt || false;
+      document.getElementById('modShift').checked = item.mods?.shift || false;
+      document.getElementById('modWin').checked = item.mods?.win || false;
+      document.getElementById('hotkeyKey').value = item.key || '';
+      document.getElementById('hotkeyAction').value = item.action || 'send_text';
+    } else {
+      document.getElementById('hsTrigger').value = item.trigger || '';
+    }
+
+    document.getElementById('itemDesc').value = item.description || '';
+    document.getElementById('itemOutput').value = item.output || '';
+
+    renderLibrary();
+  }
+
+  function addOrSave() {
+    const type = document.getElementById('itemType').value;
+    const desc = document.getElementById('itemDesc').value;
+    const output = document.getElementById('itemOutput').value;
+
+    let newItem = { type, description: desc, output };
+
+    if (type === 'hotkey') {
+      newItem.mods = {
+        ctrl: document.getElementById('modCtrl').checked,
+        alt: document.getElementById('modAlt').checked,
+        shift: document.getElementById('modShift').checked,
+        win: document.getElementById('modWin').checked,
+      };
+      newItem.key = document.getElementById('hotkeyKey').value;
+      newItem.action = document.getElementById('hotkeyAction').value;
+      newItem.trigger = formatHotkeyTrigger(newItem);
+    } else {
+      newItem.trigger = document.getElementById('hsTrigger').value;
+    }
+
+    if (selectedIndex >= 0) {
+      items[selectedIndex] = newItem;
+      showToast('Updated!');
+    } else {
+      items.push(newItem);
+      showToast('Added!');
+    }
+
+    renderLibrary();
+    saveToAgent();
+  }
+
+  function deleteItem() {
+    if (selectedIndex >= 0) {
+      items.splice(selectedIndex, 1);
+      selectedIndex = -1;
+      clearEditor();
+      renderLibrary();
+      showToast('Deleted');
+      saveToAgent();
+    }
+  }
+
+  function testItem() {
+    const output = document.getElementById('itemOutput').value;
+    if (output) {
+      navigator.clipboard.writeText(output);
+      showToast('Copied to clipboard!');
+    }
+  }
+
+  function clearEditor() {
+    document.getElementById('itemDesc').value = '';
+    document.getElementById('itemOutput').value = '';
+    document.getElementById('hsTrigger').value = '';
+    document.getElementById('hotkeyKey').value = '';
+  }
+
+  function exportConfig() {
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'shortcuts.json';
+    a.click();
+    showToast('Exported!');
+  }
+
+  function saveToAgent() {
+    try {
+      window.chrome.webview.postMessage(JSON.stringify({
+        type: 'save_shortcuts',
+        items: items
+      }));
+    } catch(e) {
+      localStorage.setItem('clipsync-shortcuts', JSON.stringify(items));
+    }
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1200);
+  }
+
+  // Tab clicks (for now, just navigate to the other panels)
+  document.querySelectorAll('.tab-bar .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const name = tab.dataset.tab;
+      if (name === 'shortcuts') return; // Already here
+      // Send message to Rust agent to open that panel
+      try {
+        window.chrome.webview.postMessage(JSON.stringify({ type: 'open_panel', name }));
+      } catch(e) {
+        // Standalone — just highlight tab
+      }
+    });
+  });
+
+  // Init
+  renderLibrary();
+</script>
+</body>
+</html>

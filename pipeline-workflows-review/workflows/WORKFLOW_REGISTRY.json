@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "description": "Workflow Registry — all defined DAG workflows in the FORGE system",
+    "updated": "2026-06-10"
+  },
+  "workflows": {
+    "sandbox-file-intake": { "file": "workflows/sandbox-file-intake.json", "phase": 0, "status": "planned", "description": "Safety loop — must pass before anything else" },
+    "paper-analysis": { "file": "workflows/paper-analysis.json", "phase": 1, "status": "planned", "description": "Full NLP stack for any paper" },
+    "mda-publication": { "file": "workflows/mda-publication.json", "phase": 2, "status": "active", "description": "MDA series — 61 articles, 8 lanes" },
+    "gtq-publication": { "file": "workflows/gtq-publication.json", "phase": 2, "status": "active", "description": "Genesis to Quantum — 26 articles" },
+    "content-ingest": { "file": "workflows/content-ingest.json", "phase": 1, "status": "planned", "description": "New content intake and classification" },
+    "media-pipeline": { "file": "workflows/media-pipeline.json", "phase": 2, "status": "planned", "description": "YouTube/audio -> transcript -> classify -> vault" },
+    "knowledge-graph": { "file": "workflows/knowledge-graph.json", "phase": 2, "status": "planned", "description": "Claims -> vectors -> graph -> Postgres" },
+    "preference-learning": { "file": "workflows/preference-learning.json", "phase": 3, "status": "planned", "description": "Continuous preference feedback loop" },
+    "idle-processor": { "file": "workflows/idle-processor.json", "phase": 3, "status": "planned", "description": "Scheduled idle-time batch processing" }
+  }
+}

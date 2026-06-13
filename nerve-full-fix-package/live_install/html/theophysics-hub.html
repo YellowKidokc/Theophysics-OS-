@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Theophysics Hub · POF 2828</title>
+<style>
+:root{
+  --bg:#0B0C0F;--surface:#11131A;--surface2:#181B26;
+  --border:rgba(244,246,255,0.08);--border2:rgba(244,246,255,0.14);
+  --gold:#F2C94C;--gold-dim:rgba(242,201,76,0.10);
+  --text:#F4F6FF;--muted:#8A8F9E;--muted2:#5A5F6E;
+  --blue:#4F8EF7;--green:#4ECB71;--red:#E05C6E;--purple:#9B7FE8;--orange:#F6821F;
+  --blue-dim:rgba(79,142,247,0.10);--green-dim:rgba(78,203,113,0.10);
+  --purple-dim:rgba(155,127,232,0.10);--red-dim:rgba(224,92,110,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;}
+
+#topbar{height:52px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--surface);z-index:100;}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-logo{font-family:monospace;font-size:9px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;opacity:.7;}
+.tb-title{font-size:15px;font-weight:700;}
+.tb-title span{color:var(--gold);}
+.tb-nav{display:flex;gap:2px;}
+.tb-btn{padding:5px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--muted);transition:all .15s;}
+.tb-btn:hover{color:var(--text);background:var(--surface2);}
+.tb-btn.active{color:var(--gold);background:var(--gold-dim);border-color:rgba(242,201,76,.25);}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.tb-status{font-family:monospace;font-size:9px;color:var(--muted2);}
+.tb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block;margin-right:4px;}
+
+#main{flex:1;display:flex;overflow:hidden;}
+.view{display:none;flex:1;overflow:hidden;}
+.view.active{display:flex;}
+
+/* ── CLIPBOARD ── */
+#view-clipboard{flex-direction:row;}
+.clip-sidebar{width:190px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow-y:auto;}
+.cs-hd{padding:12px 14px;border-bottom:1px solid var(--border);}
+.cs-lbl{font-family:monospace;font-size:9px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:5px;}
+.cs-search{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 9px;color:var(--text);font-size:11px;outline:none;}
+.cs-search::placeholder{color:var(--muted2);}
+.cs-search:focus{border-color:rgba(242,201,76,.3);}
+.cs-gl{font-family:monospace;font-size:8px;letter-spacing:.12em;color:var(--muted2);text-transform:uppercase;padding:10px 14px 3px;}
+.cs-item{padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;border-right:2px solid transparent;transition:all .12s;user-select:none;}
+.cs-item:hover{background:var(--surface2);color:var(--text);}
+.cs-item.a-gold{background:var(--gold-dim);color:var(--gold);border-right-color:var(--gold);}
+.cs-item.a-blue{background:var(--blue-dim);color:var(--blue);border-right-color:var(--blue);}
+.cs-item.a-purple{background:var(--purple-dim);color:var(--purple);border-right-color:var(--purple);}
+.cs-item.a-green{background:var(--green-dim);color:var(--green);border-right-color:var(--green);}
+.cs-badge{margin-left:auto;font-family:monospace;font-size:9px;opacity:.5;}
+.cs-div{height:1px;background:var(--border);margin:5px 0;}
+
+.clip-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.cm-top{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;}
+.cm-title{font-size:14px;font-weight:600;}
+.cm-count{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px;font-family:monospace;}
+.cm-acts{display:flex;gap:7px;}
+.cm-add{font-size:11px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(242,201,76,.3);border-radius:6px;padding:4px 10px;cursor:pointer;font-weight:600;}
+.cm-add:hover{background:rgba(242,201,76,.2);}
+.cm-sort{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;}
+.cm-cards{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:7px;}
+.cm-cards::-webkit-scrollbar{width:3px;}
+.cm-cards::-webkit-scrollbar-thumb{background:var(--border2);}
+
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 13px;transition:border-color .15s,transform .1s;animation:fU .2s ease both;}
+@keyframes fU{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+.cc:hover{border-color:var(--border2);transform:translateY(-1px);}
+.cc.gold{border-color:rgba(242,201,76,.18);}
+.cc.blue{border-color:rgba(79,142,247,.18);}
+.cc.purple{border-color:rgba(155,127,232,.18);}
+.cc.green{border-color:rgba(78,203,113,.18);}
+.cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px;}
+.cc-title{font-size:12px;font-weight:600;flex:1;line-height:1.4;}
+.cc-title.gold{color:var(--gold);}.cc-title.blue{color:var(--blue);}.cc-title.purple{color:var(--purple);}.cc-title.green{color:var(--green);}
+.cc-tag{font-family:monospace;font-size:9px;padding:2px 6px;border-radius:8px;flex-shrink:0;border:1px solid;}
+.cc-tag.gold{background:var(--gold-dim);color:var(--gold);border-color:rgba(242,201,76,.22);}
+.cc-tag.blue{background:var(--blue-dim);color:var(--blue);border-color:rgba(79,142,247,.22);}
+.cc-tag.purple{background:var(--purple-dim);color:var(--purple);border-color:rgba(155,127,232,.22);}
+.cc-tag.green{background:var(--green-dim);color:var(--green);border-color:rgba(78,203,113,.22);}
+.cc-pre{font-size:11px;color:var(--muted);margin-bottom:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5;}
+.cc-foot{display:flex;align-items:center;justify-content:space-between;}
+.cc-btns{display:flex;gap:4px;}
+.cb{font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;}
+.cb:hover{color:var(--text);border-color:var(--border2);background:var(--surface2);}
+.cb.prim{background:var(--gold-dim);border-color:rgba(242,201,76,.3);color:var(--gold);}
+.cb.c-blue{color:var(--blue);border-color:rgba(79,142,247,.28);}
+.cb.c-purple{color:var(--purple);border-color:rgba(155,127,232,.28);}
+.cb.c-green{color:var(--green);border-color:rgba(78,203,113,.28);}
+.cc-meta{font-family:monospace;font-size:9px;color:var(--muted2);}
+
+.clip-detail{width:265px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.cd-hd{padding:12px 14px;border-bottom:1px solid var(--border);font-family:monospace;font-size:9px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;}
+.cd-body{padding:12px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:11px;}
+.cd-body::-webkit-scrollbar{width:3px;}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.stat-chip{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;text-align:center;}
+.sc-val{font-size:19px;font-weight:700;color:var(--gold);line-height:1;}
+.sc-lbl{font-family:monospace;font-size:8px;color:var(--muted2);letter-spacing:.08em;text-transform:uppercase;margin-top:3px;}
+.ag-mini{background:var(--surface2);border:1px solid rgba(155,127,232,.22);border-radius:9px;padding:11px;}
+.ag-hd{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+.ag-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);}
+.ag-name{font-size:12px;font-weight:700;color:var(--purple);}
+.ag-st{font-family:monospace;font-size:9px;color:var(--muted2);margin-left:auto;}
+.ag-inp{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;color:var(--text);outline:none;resize:none;height:48px;font-family:inherit;}
+.ag-inp:focus{border-color:rgba(155,127,232,.4);}
+.ag-send{width:100%;margin-top:5px;padding:5px;border-radius:6px;background:var(--purple-dim);border:1px solid rgba(155,127,232,.28);color:var(--purple);font-size:11px;font-weight:600;cursor:pointer;}
+.ag-send:hover{background:rgba(155,127,232,.17);}
+.pin-item{display:flex;gap:7px;align-items:flex-start;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:border-color .12s;margin-bottom:5px;}
+.pin-item:hover{border-color:rgba(242,201,76,.22);}
+.pi-ico{font-size:13px;flex-shrink:0;margin-top:1px;}
+.pi-txt{font-size:11px;color:var(--text);line-height:1.4;}
+.pi-meta{font-family:monospace;font-size:9px;color:var(--muted2);}
+
+/* ── KNOWLEDGE ── */
+#view-knowledge{flex-direction:column;overflow-y:auto;}
+.kv-wrap{padding:18px 22px;}
+.kv-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:13px;}
+.kv-grid2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:13px;}
+.kv-gridFull{display:grid;grid-template-columns:1fr;gap:12px;}
+.kv-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.kvc-hd{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+.kvc-ico{font-size:16px;}
+.kvc-title{font-weight:600;font-size:13px;}
+.kvc-title.gold{color:var(--gold);}.kvc-title.blue{color:var(--blue);}.kvc-title.purple{color:var(--purple);}.kvc-title.green{color:var(--green);}.kvc-title.red{color:var(--red);}
+.kvc-body{padding:13px 15px;}
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:32px;margin-bottom:9px;}
+.spark-bar{flex:1;background:var(--gold-dim);border-radius:2px 2px 0 0;border:1px solid rgba(242,201,76,.12);min-height:3px;}
+.spark-bar.today{background:var(--gold);}
+.stat-big{font-size:24px;font-weight:700;color:var(--gold);line-height:1;}
+.stat-lbl{font-size:11px;color:var(--muted);margin-bottom:9px;}
+.kv-list{display:flex;flex-direction:column;gap:5px;}
+.kv-li{padding:6px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--muted);display:flex;gap:7px;align-items:center;}
+.kv-li-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.thread-item{padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:border-color .12s;margin-bottom:6px;}
+.thread-item:hover{border-color:rgba(155,127,232,.28);}
+.ti-title{font-size:12px;font-weight:600;color:var(--purple);margin-bottom:2px;}
+.ti-meta{font-size:10px;color:var(--muted2);font-family:monospace;}
+.ti-st{display:inline-block;font-size:9px;padding:1px 6px;border-radius:9px;margin-top:4px;}
+.ti-st.active{background:var(--green-dim);color:var(--green);border:1px solid rgba(78,203,113,.22);}
+.ti-st.paused{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(242,201,76,.22);}
+.ti-st.blocked{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,92,110,.22);}
+.pub-item{display:flex;align-items:center;gap:9px;padding:6px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:5px;cursor:pointer;transition:border-color .12s;}
+.pub-item:hover{border-color:rgba(242,201,76,.22);}
+.pub-num{font-family:monospace;font-size:10px;color:var(--muted2);width:20px;text-align:right;flex-shrink:0;}
+.pub-title{font-size:11px;flex:1;}
+.pub-st{font-family:monospace;font-size:9px;padding:1px 6px;border-radius:9px;border:1px solid;flex-shrink:0;}
+.pub-st.done{color:var(--green);border-color:rgba(78,203,113,.28);background:var(--green-dim);}
+.pub-st.inprog{color:var(--gold);border-color:rgba(242,201,76,.28);background:var(--gold-dim);}
+.pub-st.blocked{color:var(--red);border-color:rgba(224,92,110,.28);background:var(--red-dim);}
+.pub-st.queue{color:var(--muted2);border-color:var(--border);}
+.baes-row{display:flex;align-items:center;gap:7px;padding:6px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:5px;}
+.baes-ai{font-size:10px;font-weight:600;width:78px;flex-shrink:0;}
+.baes-bw{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.baes-bf{height:100%;border-radius:3px;}
+.baes-score{font-family:monospace;font-size:11px;font-weight:700;width:32px;text-align:right;}
+.conv-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:18px;font-size:10px;font-family:monospace;}
+.conv-y{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(242,201,76,.28);}
+.conv-r{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,92,110,.28);}
+.bk-item{padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid;border-radius:0 7px 7px 0;margin-bottom:6px;}
+.bk-hd{display:flex;align-items:center;gap:7px;margin-bottom:2px;}
+.bk-title{font-size:11px;font-weight:700;}
+.bk-date{font-family:monospace;font-size:9px;color:var(--muted2);margin-left:auto;}
+.bk-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+
+/* ── TIME ── */
+#view-time{flex-direction:column;overflow-y:auto;}
+.time-wrap{padding:18px 22px;}
+.time-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-bottom:13px;}
+.time-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:13px;}
+.tm-list{display:flex;flex-direction:column;gap:6px;}
+.tm-task{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .12s;}
+.tm-task:hover{border-color:rgba(242,201,76,.22);}
+.tm-check{width:16px;height:16px;border-radius:50%;border:1px solid var(--border2);margin-top:1px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--bg);}
+.tm-task.done .tm-check{background:var(--green);border-color:var(--green);}
+.tm-task.done .tm-name{text-decoration:line-through;color:var(--muted2);}
+.tm-copy{font-family:monospace;font-size:9px;color:var(--muted2);}
+.tm-name{font-size:12px;font-weight:600;}
+.tm-meta{font-size:10px;color:var(--muted);margin-top:2px;}
+.tm-tag{font-family:monospace;font-size:9px;padding:1px 6px;border-radius:999px;border:1px solid rgba(242,201,76,.22);background:var(--gold-dim);color:var(--gold);margin-left:auto;flex-shrink:0;}
+.tm-tools{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.tm-btn{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;transition:all .12s;}
+.tm-btn:hover{color:var(--text);border-color:var(--border2);}
+.tm-btn.gold{background:var(--gold-dim);border-color:rgba(242,201,76,.25);color:var(--gold);}
+.folder-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.folder-card{padding:10px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;border-left:3px solid var(--gold);}
+.folder-name{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:3px;}
+.folder-path{font-family:monospace;font-size:9px;color:var(--muted2);line-height:1.5;word-break:break-all;}
+.folder-desc{font-size:10px;color:var(--muted);line-height:1.5;margin-top:5px;}
+.folder-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.module-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.module-card{padding:11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .12s;}
+.module-card:hover{border-color:rgba(79,142,247,.24);}
+.module-name{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:2px;}
+.module-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+.module-path{font-family:monospace;font-size:9px;color:var(--muted2);margin-top:5px;line-height:1.5;word-break:break-all;}
+.day-strip{display:flex;flex-direction:column;gap:6px;}
+.day-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;}
+.day-date{width:88px;flex-shrink:0;font-size:11px;font-weight:600;}
+.day-desc{font-size:10px;color:var(--muted);flex:1;}
+.project-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;font-size:10px;margin:0 6px 6px 0;}
+
+/* ── FUNCTIONS ── */
+#view-functions{flex-direction:column;overflow-y:auto;}
+.fn-wrap{padding:18px 22px;}
+.fn-sect-title{font-size:13px;font-weight:600;margin-bottom:11px;display:flex;align-items:center;gap:9px;}
+.fn-sect-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.fn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+.fn-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.fnc-hd{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+.fnc-ico{font-size:16px;}
+.fnc-title{font-weight:600;font-size:13px;}
+.fnc-body{padding:13px 15px;}
+.dropzone{border:2px dashed rgba(242,201,76,.22);border-radius:9px;padding:22px;text-align:center;cursor:pointer;background:var(--gold-dim);transition:all .2s;}
+.dropzone:hover{border-color:rgba(242,201,76,.55);background:rgba(242,201,76,.13);}
+.dz-ico{font-size:24px;margin-bottom:6px;}
+.dz-txt{font-size:12px;color:var(--muted);}
+.dz-txt strong{color:var(--gold);}
+.dz-types{font-family:monospace;font-size:9px;color:var(--muted2);margin-top:4px;}
+.qi{display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:5px;}
+.qi-ico{font-size:14px;flex-shrink:0;}
+.qi-info{flex:1;min-width:0;}
+.qi-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qi-meta{font-size:9px;color:var(--muted2);font-family:monospace;margin-top:2px;}
+.qi-bar{height:3px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden;}
+.qi-fill{height:100%;border-radius:2px;background:var(--gold);}
+.qi-st{font-family:monospace;font-size:9px;padding:2px 6px;border-radius:9px;border:1px solid;flex-shrink:0;}
+.qi-st.done{color:var(--green);border-color:rgba(78,203,113,.28);background:var(--green-dim);}
+.qi-st.proc{color:var(--gold);border-color:rgba(242,201,76,.28);background:var(--gold-dim);}
+.qi-st.pend{color:var(--muted);border-color:var(--border);}
+.tiles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cf-tile{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px;cursor:pointer;text-align:center;transition:all .15s;}
+.cf-tile:hover{border-color:rgba(246,130,31,.38);background:rgba(246,130,31,.05);}
+.cft-ico{font-size:19px;margin-bottom:5px;}
+.cft-name{font-size:11px;font-weight:600;color:var(--orange);}
+.cft-url{font-size:9px;color:var(--muted2);font-family:monospace;margin-top:2px;}
+.cf-tile.add-tile{border-style:dashed;opacity:.5;}
+.cf-tile.add-tile:hover{opacity:1;}
+.infra-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.im-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.im-lbl{font-family:monospace;font-size:8px;color:var(--muted2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+.im-name{font-size:12px;font-weight:600;margin-bottom:2px;}
+.im-desc{font-size:10px;color:var(--muted);}
+.im-st{margin-top:5px;font-size:9px;}
+.social-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px;}
+.plat-chip{display:flex;align-items:center;gap:5px;padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:18px;font-size:11px;cursor:pointer;transition:all .15s;}
+.plat-chip:hover{border-color:rgba(242,201,76,.28);}
+.plat-chip.home{color:var(--gold);border-color:rgba(242,201,76,.28);}
+.p-dot{width:5px;height:5px;border-radius:50%;background:var(--green);}
+
+/* ── COMMS ── */
+#view-comms{flex-direction:column;overflow-y:auto;}
+.comms-wrap{padding:18px 22px;}
+.comms-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px;}
+.ch-row{padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:border-color .12s;}
+.ch-row:hover{border-color:rgba(242,201,76,.22);}
+.ch-name{font-size:12px;font-weight:600;flex:1;}
+.ch-meta{font-family:monospace;font-size:9px;color:var(--muted2);}
+.ch-badge{font-family:monospace;font-size:9px;padding:1px 6px;border-radius:9px;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,127,232,.22);}
+.log-entry{padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;}
+.le-date{font-family:monospace;font-size:9px;color:var(--gold);margin-bottom:3px;}
+.le-sum{font-size:11px;color:var(--muted);line-height:1.5;}
+.le-files{font-family:monospace;font-size:9px;color:var(--muted2);margin-top:3px;}
+
+/* ── MESSENGER ── */
+.msg-center{display:grid;grid-template-columns:200px 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;height:420px;margin-bottom:13px;}
+.msg-sidebar{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;background:var(--surface);}
+.msg-sb-hd{padding:10px 12px;border-bottom:1px solid var(--border);font-family:monospace;font-size:9px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;}
+.msg-ch{padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-left:3px solid transparent;transition:all .12s;font-size:12px;color:var(--muted);}
+.msg-ch:hover{background:var(--surface2);color:var(--text);}
+.msg-ch.active{background:var(--gold-dim);color:var(--gold);border-left-color:var(--gold);}
+.msg-ch.active.ch-purple{background:var(--purple-dim);color:var(--purple);border-left-color:var(--purple);}
+.msg-ch.active.ch-blue{background:var(--blue-dim);color:var(--blue);border-left-color:var(--blue);}
+.msg-ch.active.ch-green{background:var(--green-dim);color:var(--green);border-left-color:var(--green);}
+.msg-ch.active.ch-orange{background:rgba(246,130,31,.1);color:var(--orange);border-left-color:var(--orange);}
+.msg-ch-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.msg-ch-name{flex:1;font-weight:600;}
+.msg-ch-badge{font-family:monospace;font-size:9px;padding:1px 5px;border-radius:9px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(242,201,76,.22);}
+.msg-main{display:flex;flex-direction:column;overflow:hidden;}
+.msg-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:var(--surface);flex-shrink:0;}
+.msg-header-name{font-size:13px;font-weight:700;}
+.msg-header-tag{font-family:monospace;font-size:9px;padding:1px 6px;border-radius:9px;border:1px solid var(--border);color:var(--muted2);}
+.msg-feed{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+.msg-feed::-webkit-scrollbar{width:3px;}
+.msg-feed::-webkit-scrollbar-thumb{background:var(--border2);}
+.msg-bubble{max-width:85%;padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.5;animation:fU .2s ease both;}
+.msg-bubble.out{align-self:flex-end;background:var(--gold-dim);border:1px solid rgba(242,201,76,.22);color:var(--gold);}
+.msg-bubble.in{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);color:var(--text);}
+.msg-bubble-meta{font-family:monospace;font-size:9px;color:var(--muted2);margin-top:3px;}
+.msg-bubble-target{font-family:monospace;font-size:9px;color:var(--purple);margin-bottom:2px;}
+.msg-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted2);font-size:12px;font-style:italic;}
+.msg-compose{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:var(--surface);flex-shrink:0;}
+.msg-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-size:12px;font-family:inherit;resize:none;height:40px;max-height:100px;outline:none;}
+.msg-input:focus{border-color:rgba(242,201,76,.4);}
+.msg-send-btn{padding:8px 14px;border-radius:8px;border:1px solid rgba(242,201,76,.3);background:var(--gold-dim);color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .12s;}
+.msg-send-btn:hover{background:rgba(242,201,76,.2);}
+.msg-send-btn.broadcast{background:var(--purple-dim);border-color:rgba(155,127,232,.3);color:var(--purple);}
+.msg-send-btn.broadcast:hover{background:rgba(155,127,232,.2);}
+
+/* ── SWARM ── */
+#view-swarm{flex-direction:column;overflow-y:auto;}
+.swarm-wrap{padding:18px 22px;}
+.sw-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px;}
+
+/* ── SHARED ── */
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-shrink:0;}
+.sh-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;border:1px solid;flex-shrink:0;}
+.sh-ico.gold{background:var(--gold-dim);border-color:rgba(242,201,76,.28);}
+.sh-ico.blue{background:var(--blue-dim);border-color:rgba(79,142,247,.28);}
+.sh-ico.purple{background:var(--purple-dim);border-color:rgba(155,127,232,.28);}
+.sh-lbl{font-family:monospace;font-size:9px;letter-spacing:.14em;color:var(--muted2);text-transform:uppercase;margin-bottom:2px;}
+.sh-title{font-size:16px;font-weight:700;}
+.sh-title span{color:var(--gold);}
+
+#toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid rgba(242,201,76,.28);color:var(--gold);font-size:12px;padding:8px 14px;border-radius:7px;font-family:monospace;opacity:0;transform:translateY(7px);transition:all .22s;pointer-events:none;z-index:999;}
+#toast.show{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="tb-brand">
+    <span class="tb-logo">POF 2828</span>
+    <span class="tb-title">Theophysics <span>Hub</span></span>
+  </div>
+  <div class="tb-nav">
+    <button class="tb-btn" onclick="switchView('knowledge')">🔬 Knowledge</button>
+    <button class="tb-btn active" onclick="switchView('clipboard')">📋 Clipboard</button>
+    <button class="tb-btn" onclick="switchView('time')">⏱ Time</button>
+    <button class="tb-btn" onclick="switchView('functions')">⚙️ Functions</button>
+    <button class="tb-btn" onclick="switchView('comms')">⚡ Comms Hub</button>
+    <button class="tb-btn" onclick="switchView('swarm')">🐝 Swarm</button>
+  </div>
+  <div class="tb-right">
+    <span class="tb-status"><span class="tb-dot"></span>LOGOS AGENT</span>
+    <span class="tb-status" id="clock">--:--</span>
+  </div>
+</div>
+
+<div id="main">
+
+<!-- ═══ CLIPBOARD ═══ -->
+<div class="view active" id="view-clipboard">
+  <div class="clip-sidebar">
+    <div class="cs-hd">
+      <div class="cs-lbl">Clipboard Hub</div>
+      <input class="cs-search" placeholder="🔍  Search…" oninput="filterCards(this.value)">
+    </div>
+    <div class="cs-gl">Browse</div>
+    <div class="cs-item a-gold" onclick="filterType('all',this,'a-gold')">📋 All Items <span class="cs-badge">142</span></div>
+    <div class="cs-item" onclick="filterType('pinned',this,'a-gold')">📌 Pinned <span class="cs-badge">11</span></div>
+    <div class="cs-div"></div>
+    <div class="cs-gl">By Type</div>
+    <div class="cs-item" onclick="filterType('clipboard',this,'a-gold')">✂️ Clipboard <span class="cs-badge">31</span></div>
+    <div class="cs-item" onclick="filterType('snippet',this,'a-blue')">📄 Snippets <span class="cs-badge">47</span></div>
+    <div class="cs-item" onclick="filterType('prompt',this,'a-purple')">💬 Prompts <span class="cs-badge">28</span></div>
+    <div class="cs-item" onclick="filterType('bookmark',this,'a-green')">🔖 Bookmarks <span class="cs-badge">36</span></div>
+    <div class="cs-div"></div>
+    <div class="cs-item" style="color:var(--purple)" onclick="filterType('agent',this,'a-purple')">🤖 AI Agent</div>
+  </div>
+
+  <div class="clip-main">
+    <div class="cm-top">
+      <div class="cm-title" id="cm-title">All Items <span class="cm-count">#142</span></div>
+      <div class="cm-acts">
+        <div class="cm-sort">Sort: Recent ▾</div>
+        <div class="cm-add" onclick="toast('New item — Phase 2 with D1 backend')">+ New</div>
+      </div>
+    </div>
+    <div class="cm-cards" id="card-container"></div>
+  </div>
+
+  <div class="clip-detail">
+    <div class="cd-hd">Hub Status</div>
+    <div class="cd-body">
+      <div class="stat-row">
+        <div class="stat-chip"><div class="sc-val">142</div><div class="sc-lbl">Total Items</div></div>
+        <div class="stat-chip"><div class="sc-val">11</div><div class="sc-lbl">Pinned</div></div>
+        <div class="stat-chip"><div class="sc-val" style="color:var(--green)">Live</div><div class="sc-lbl">Clipboard</div></div>
+        <div class="stat-chip"><div class="sc-val" style="color:var(--purple)">∞</div><div class="sc-lbl">Memory</div></div>
+      </div>
+      <div class="ag-mini">
+        <div class="ag-hd"><div class="ag-dot"></div><div class="ag-name">Logos Agent</div><div class="ag-st">online</div></div>
+        <textarea class="ag-inp" placeholder="Ask about any item, synthesize, extract…" id="agent-input"></textarea>
+        <button class="ag-send" onclick="agentSend()">→ Send to Agent</button>
+      </div>
+      <div>
+        <div style="font-family:monospace;font-size:8px;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Pinned Quick Access</div>
+        <div class="pin-item" onclick="toast('Master Equation copied!')"><div class="pi-ico">📐</div><div><div class="pi-txt">χ = ∭(G·M·E·S·T·K·R·Q·F·C) dxdydt</div><div class="pi-meta">Master Equation</div></div></div>
+        <div class="pin-item" onclick="toast('Moral Conservation copied!')"><div class="pi-ico">⚖️</div><div><div class="pi-txt">dE/dt = -αD(t) + βC(Ψ,χ) · Papers 9–10</div><div class="pi-meta">Moral Conservation Eq.</div></div></div>
+        <div class="pin-item" onclick="toast('System prompt copied!')"><div class="pi-ico">💬</div><div><div class="pi-txt">Theophysics system prompt v4.1</div><div class="pi-meta">Snippet · pinned</div></div></div>
+        <div class="pin-item" onclick="toast('Thread opened!')"><div class="pi-ico">🔭</div><div><div class="pi-txt">Trinity isomorphism — Feb 14 floor</div><div class="pi-meta">Research thread</div></div></div>
+      </div>
+      <div>
+        <div style="font-family:monospace;font-size:8px;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Data Sources</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:10px;">
+          <div style="display:flex;align-items:center;gap:6px;color:var(--green)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>R2 bucket 10176 (daily log)</div>
+          <div style="display:flex;align-items:center;gap:6px;color:var(--green)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>D1 — Session memory</div>
+          <div style="display:flex;align-items:center;gap:6px;color:var(--green)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>Clipboard (live watch)</div>
+          <div style="display:flex;align-items:center;gap:6px;color:var(--gold)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>Obsidian O:\_Theophysics_v3</div>
+          <div style="display:flex;align-items:center;gap:6px;color:var(--blue)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>Notion — Opus Vault</div>
+          <div style="display:flex;align-items:center;gap:6px;color:var(--muted2)"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block"></span>Web search (on demand)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KNOWLEDGE ═══ -->
+<div class="view" id="view-knowledge">
+  <div class="kv-wrap">
+    <div class="sh"><div class="sh-ico blue">🔬</div><div><div class="sh-lbl">Section A</div><div class="sh-title">Knowledge <span>Surface</span></div></div></div>
+    <div class="kv-grid3">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">📊</div><div class="kvc-title gold">Daily Progress</div></div>
+        <div class="kvc-body">
+          <div class="sparkline" id="sparkline"></div>
+          <div class="stat-big">47</div>
+          <div class="stat-lbl">thesis units today</div>
+          <div class="kv-list">
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--gold)"></div>12 notes edited in Obsidian</div>
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--blue)"></div>8 new concept links formed</div>
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--green)"></div>3 papers ingested + summarized</div>
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--purple)"></div>2 agent synthesis reports</div>
+          </div>
+        </div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">🔭</div><div class="kvc-title purple">Research Threads</div></div>
+        <div class="kvc-body">
+          <div class="thread-item" onclick="toast('Opening Trinity thread…')"><div class="ti-title">Trinity Isomorphism Proof</div><div class="ti-meta">Feb 14 · THE FLOOR · 14 notes</div><div class="ti-st active">ACTIVE · Floor declared</div></div>
+          <div class="thread-item" onclick="toast('Opening P2…')"><div class="ti-title">P2 — Quantum Bridge (keystone)</div><div class="ti-meta">Feb 26 · Collapse mechanism · 31 notes</div><div class="ti-st blocked">BLOCKED · Publication gated here</div></div>
+          <div class="thread-item" onclick="toast('Opening Adversary Thread…')"><div class="ti-title">Adversary Thread — Constitutional Erosion</div><div class="ti-meta">Mar 8 · DONT_LOSE.md · 7 notes</div><div class="ti-st paused">PAUSED</div></div>
+          <button style="width:100%;padding:6px;background:var(--purple-dim);border:1px solid rgba(155,127,232,.28);border-radius:6px;color:var(--purple);font-size:11px;cursor:pointer;" onclick="toast('Agent surfacing hidden threads…')">🤖 Surface hidden threads</button>
+        </div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">🕸️</div><div class="kvc-title blue">Concept Link Graph</div></div>
+        <div class="kvc-body">
+          <canvas id="graphCanvas" width="200" height="125" style="width:100%;border-radius:5px;"></canvas>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;"><span style="color:var(--gold)">●</span> New today &nbsp;<span style="color:var(--blue)">●</span> Framework &nbsp;<span style="color:var(--muted2)">●</span> Existing</div>
+        </div>
+      </div>
+    </div>
+    <div class="kv-grid2">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">📰</div><div class="kvc-title gold">Logos Papers — Publication Status</div></div>
+        <div class="kvc-body" id="pub-tracker"></div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">⚖️</div><div class="kvc-title red">BAES Audit — Constitutional</div></div>
+        <div class="kvc-body">
+          <div style="font-family:monospace;font-size:9px;color:var(--muted2);margin-bottom:7px;">BINDING CONTRACT v3 · AUTHOR STANDARD</div>
+          <div id="baes-rows"></div>
+          <div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;">
+            <span class="conv-badge conv-y">🟡 YELLOW · author-std 2.4</span>
+            <span class="conv-badge conv-r">🔴 RED · all-eval 5.6</span>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:7px;">ChatGPT outlier: legal doctrine, not author intent. Operative finding: 1.0–3.4.</div>
+        </div>
+      </div>
+    </div>
+    <div class="kv-gridFull">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">⚡</div><div class="kvc-title gold">Recent Breakthroughs — 2026-03-07 Critical Edits (10/10 ✅)</div></div>
+        <div class="kvc-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="breakthroughs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FUNCTIONS ═══ -->
+<div class="view" id="view-time">
+  <div class="time-wrap">
+    <div class="sh"><div class="sh-ico gold">⏱</div><div><div class="sh-lbl">Command Layer</div><div class="sh-title">Time + <span>Physical Folders</span></div></div></div>
+    <div class="time-grid">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">✅</div><div class="kvc-title gold">Today Board</div></div>
+        <div class="kvc-body">
+          <div style="font-family:monospace;font-size:9px;color:var(--muted2);margin-bottom:8px;">Inbox drives capture. Today drives execution. Upcoming drives sequence.</div>
+          <div class="tm-list" id="time-task-list"></div>
+          <div class="tm-tools">
+            <button class="tm-btn gold" onclick="addQuickTask('TODAY')">+ Quick Task</button>
+            <button class="tm-btn" onclick="copyTodaySummary()">Copy Summary</button>
+            <button class="tm-btn" onclick="toast('Calendar bridge — Phase 2')">Connect Calendar</button>
+          </div>
+        </div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">📁</div><div class="kvc-title blue">Physical Folder Spine</div></div>
+        <div class="kvc-body">
+          <div style="font-family:monospace;font-size:9px;color:var(--muted2);margin-bottom:8px;">Desktop-rooted now. Move this `Data` folder into cloud sync later and the system becomes phone/desktop portable.</div>
+          <div class="folder-grid" id="folder-grid"></div>
+        </div>
+      </div>
+    </div>
+    <div class="time-grid-3">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">🧭</div><div class="kvc-title purple">Dashboard Modules</div></div>
+        <div class="kvc-body">
+          <div class="module-grid" id="module-grid"></div>
+        </div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">📅</div><div class="kvc-title green">Upcoming</div></div>
+        <div class="kvc-body">
+          <div class="day-strip" id="upcoming-strip"></div>
+        </div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">#</div><div class="kvc-title gold">Projects</div></div>
+        <div class="kvc-body">
+          <div style="margin-bottom:8px;">
+            <span class="project-chip"># TODAY</span>
+            <span class="project-chip"># Work</span>
+            <span class="project-chip"># Home</span>
+            <span class="project-chip"># YouTube</span>
+            <span class="project-chip"># LLL</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+            This is the operating layer for the rest of the stack: capture into folders, route to the right module, then publish or distribute from the same surface.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FUNCTIONS ═══ -->
+<div class="view" id="view-functions">
+  <div class="fn-wrap">
+    <div class="sh"><div class="sh-ico purple">⚙️</div><div><div class="sh-lbl">Section C</div><div class="sh-title">Functions <span>/ Ingest + Tools</span></div></div></div>
+    <div class="fn-sect-title" style="color:var(--gold)">Ingest Engine</div>
+    <div class="fn-grid">
+      <div class="fn-card">
+        <div class="fnc-hd"><div class="fnc-ico">📥</div><div class="fnc-title" style="color:var(--gold)">Upload</div></div>
+        <div class="fnc-body">
+          <div class="dropzone" onclick="toast('Drop files here — PDF, audio, video, DOCX, URLs')">
+            <div class="dz-ico">⬆️</div>
+            <div class="dz-txt"><strong>Drop files or click</strong><br>AI summarize · transcribe · extract · tag</div>
+            <div class="dz-types">PDF · MP3/MP4 · MD · HTML · DOCX · URL · TXT</div>
+          </div>
+        </div>
+      </div>
+      <div class="fn-card">
+        <div class="fnc-hd"><div class="fnc-ico">⚙️</div><div class="fnc-title" style="color:var(--blue)">Processing Queue</div></div>
+        <div class="fnc-body" id="queue-container"></div>
+      </div>
+    </div>
+    <div class="fn-sect-title" style="color:var(--green)">Social Media Protocol</div>
+    <div class="fn-card" style="margin-bottom:18px;">
+      <div class="fnc-hd"><div class="fnc-ico">📣</div><div class="fnc-title" style="color:var(--green)">Platform Status · Content Reservoir Phase</div></div>
+      <div class="fnc-body">
+        <div class="social-row" id="social-platforms"></div>
+        <div style="font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;line-height:1.6;"><span style="color:var(--gold);font-weight:600;">Protocol:</span> Light engagement (&lt;10 words) on David's logged-in accounts. No DMs. No debates. Log everything. Flag real convos for David. Claude manages email via Gmail MCP.</div>
+      </div>
+    </div>
+    <div class="fn-sect-title" style="color:var(--orange)">Cloudflare Pages Tiles</div>
+    <div class="fn-card" style="margin-bottom:18px;">
+      <div class="fnc-hd"><div class="fnc-ico">🌐</div><div class="fnc-title" style="color:var(--orange)">Quick Launch</div></div>
+      <div class="fnc-body"><div class="tiles-grid" id="tiles-grid"></div></div>
+    </div>
+    <div class="fn-sect-title" style="color:var(--green)">Infrastructure</div>
+    <div class="infra-grid" id="infra-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ COMMS HUB ═══ -->
+<div class="view" id="view-comms">
+  <div class="comms-wrap">
+    <div class="sh"><div class="sh-ico" style="background:rgba(246,130,31,.09);border-color:rgba(246,130,31,.28);">⚡</div><div><div class="sh-lbl">Cloudflare Worker</div><div class="sh-title" style="color:var(--orange)">AI Comms Hub</div></div></div>
+    <div class="comms-grid">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">📡</div><div class="kvc-title" style="color:var(--orange)">AI Channels</div></div>
+        <div class="kvc-body" id="channels-list"></div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">📋</div><div class="kvc-title gold">Daily Log · Mar 8–9 · 10 deliverables</div></div>
+        <div class="kvc-body">
+          <div class="log-entry">
+            <div class="le-date">2026-03-09</div>
+            <div class="le-sum">Constitutional Audit 4AI consolidated. Binding Contract v3 written. Adversary Thread captured. BAES v1.0 created. Recovery Validation Excel built. AI Comms Hub architecture designed.</div>
+            <div class="le-files">→ Constitutional_Audit_4AI.xlsx · Binding_Contract_v3.md · BAES_v1.0.md · The_Adversary_Thread_DONT_LOSE.md</div>
+          </div>
+          <div style="font-family:monospace;font-size:8px;color:var(--muted2);margin:8px 0 5px;letter-spacing:.1em;text-transform:uppercase;">Compression Protocol</div>
+          <div style="display:flex;gap:5px;">
+            <div style="flex:1;text-align:center;padding:6px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;"><div style="font-size:10px;font-weight:600;">Daily</div><div style="font-size:9px;color:var(--muted)">All → summary</div></div>
+            <div style="display:flex;align-items:center;color:var(--muted2);font-size:14px;">›</div>
+            <div style="flex:1;text-align:center;padding:6px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;"><div style="font-size:10px;font-weight:600;">Weekly</div><div style="font-size:9px;color:var(--muted)">7 days → digest</div></div>
+            <div style="display:flex;align-items:center;color:var(--muted2);font-size:14px;">›</div>
+            <div style="flex:1;text-align:center;padding:6px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;"><div style="font-size:10px;font-weight:600;">Monthly</div><div style="font-size:9px;color:var(--muted)">Archive</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ═══ MESSAGE CENTER ═══ -->
+    <div style="font-size:13px;font-weight:600;margin-bottom:11px;display:flex;align-items:center;gap:9px;color:var(--gold);">Message Center<span style="content:'';flex:1;height:1px;background:var(--border);display:block;flex:1;"></span></div>
+    <div class="msg-center">
+      <div class="msg-sidebar">
+        <div class="msg-sb-hd">Channels</div>
+        <div class="msg-ch active" onclick="switchMsgChannel('broadcast')" id="msg-ch-broadcast">
+          <div class="msg-ch-dot" style="background:var(--gold)"></div>
+          <div class="msg-ch-name">Broadcast</div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:2px 0;"></div>
+        <div class="msg-ch ch-purple" onclick="switchMsgChannel('opus')" id="msg-ch-opus">
+          <div class="msg-ch-dot" style="background:var(--purple)"></div>
+          <div class="msg-ch-name">Opus</div>
+        </div>
+        <div class="msg-ch ch-blue" onclick="switchMsgChannel('haiku')" id="msg-ch-haiku">
+          <div class="msg-ch-dot" style="background:var(--blue)"></div>
+          <div class="msg-ch-name">Haiku</div>
+        </div>
+        <div class="msg-ch ch-green" onclick="switchMsgChannel('gemini')" id="msg-ch-gemini">
+          <div class="msg-ch-dot" style="background:var(--green)"></div>
+          <div class="msg-ch-name">Gemini</div>
+        </div>
+        <div class="msg-ch ch-orange" onclick="switchMsgChannel('chatgpt')" id="msg-ch-chatgpt">
+          <div class="msg-ch-dot" style="background:var(--orange)"></div>
+          <div class="msg-ch-name">ChatGPT</div>
+        </div>
+        <div class="msg-ch ch-blue" onclick="switchMsgChannel('codex')" id="msg-ch-codex">
+          <div class="msg-ch-dot" style="background:var(--blue)"></div>
+          <div class="msg-ch-name">Codex</div>
+        </div>
+        <div class="msg-ch" onclick="switchMsgChannel('claude-code')" id="msg-ch-claude-code">
+          <div class="msg-ch-dot" style="background:var(--green)"></div>
+          <div class="msg-ch-name">Claude Code</div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:2px 0;"></div>
+        <div class="msg-ch" onclick="switchMsgChannel('inbox')" id="msg-ch-inbox">
+          <div class="msg-ch-dot" style="background:var(--text)"></div>
+          <div class="msg-ch-name">All Messages</div>
+          <div class="msg-ch-badge" id="msg-total-badge">0</div>
+        </div>
+      </div>
+      <div class="msg-main">
+        <div class="msg-header">
+          <div class="msg-header-name" id="msg-header-name">Broadcast</div>
+          <div class="msg-header-tag" id="msg-header-tag">all agents</div>
+        </div>
+        <div class="msg-feed" id="msg-feed"></div>
+        <div class="msg-compose" id="msg-compose">
+          <textarea class="msg-input" id="msg-input" placeholder="Type a message to all agents…" onkeydown="msgKeydown(event)"></textarea>
+          <button class="msg-send-btn broadcast" id="msg-send-btn" onclick="sendMsg()">Send All</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kv-card">
+      <div class="kvc-hd"><div class="kvc-ico">🧠</div><div class="kvc-title purple">Opus Vault — Notion (page: 3172dd4d)</div></div>
+      <div class="kvc-body" style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;text-align:center;"><div style="font-family:monospace;font-size:8px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px;">Active Threads</div><div style="font-size:19px;font-weight:700;color:var(--purple)">3</div><div style="font-size:9px;color:var(--muted)">Trinity · P2 · Social</div></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;text-align:center;"><div style="font-family:monospace;font-size:8px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px;">Framework Watch</div><div style="font-size:19px;font-weight:700;color:var(--red)">2</div><div style="font-size:9px;color:var(--muted)">Unsurfaced tensions</div></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;text-align:center;"><div style="font-family:monospace;font-size:8px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px;">Tested & Broken</div><div style="font-size:19px;font-weight:700;color:var(--blue)">∞</div><div style="font-size:9px;color:var(--muted)">Audit trail</div></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px;text-align:center;"><div style="font-family:monospace;font-size:8px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px;">R2 Daily Log</div><div style="font-size:19px;font-weight:700;color:var(--green)">Live</div><div style="font-size:9px;color:var(--muted)">Bucket 10176</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SWARM ═══ -->
+<div class="view" id="view-swarm">
+  <div class="swarm-wrap">
+    <div class="sh"><div class="sh-ico gold">🐝</div><div><div class="sh-lbl">AI Swarm Coordination</div><div class="sh-title">Multi-AI <span>Publication Pipeline</span></div></div></div>
+    <div class="kv-card" style="margin-bottom:13px;">
+      <div class="kvc-hd"><div class="kvc-ico">📡</div><div class="kvc-title gold">SHARED.md — Active Tasks</div><span style="margin-left:auto;font-family:monospace;font-size:9px;color:var(--muted2);">00_AI\AI_VAULT\SHARED.md</span></div>
+      <div class="kvc-body" id="swarm-tasks"></div>
+    </div>
+    <div class="kv-card" style="margin-bottom:13px;">
+      <div class="kvc-hd"><div class="kvc-ico">🏭</div><div class="kvc-title blue">Publication Pipeline — Stage Ownership</div></div>
+      <div class="kvc-body" id="pub-pipeline"></div>
+    </div>
+    <div class="sw-grid">
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">⚙️</div><div class="kvc-title purple">FORGE — Orchestration Shell</div></div>
+        <div class="kvc-body">
+          <div style="font-family:monospace;font-size:9px;color:var(--muted2);margin-bottom:7px;">O:\FORGE\_FORGE_SOURCE · Tauri + Vite + React</div>
+          <div class="kv-list">
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--purple)"></div>FORGE = shell, AI workspace, plugin platform</div>
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--blue)"></div>AI-HUB v2 = hotkey edge (AHK · B:\AI-HUB-v2)</div>
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--gold)"></div>ClipSync = shared sync plane (Cloudflare)</div>
+            <div class="kv-li"><div class="kv-li-dot" style="background:var(--green)"></div>Obsidian = knowledge source of truth</div>
+          </div>
+          <div style="margin-top:9px;font-family:monospace;font-size:8px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Anti-Conflict Rules</div>
+          <div style="font-size:10px;color:var(--muted);line-height:1.7;">AHK owns CapsLock + Ctrl+Numpad · FORGE owns app shell · One writer for notes (NoteGateway) · ClipSync is data plane only</div>
+        </div>
+      </div>
+      <div class="kv-card">
+        <div class="kvc-hd"><div class="kvc-ico">𝛘</div><div class="kvc-title gold">Symbol Quick Reference</div></div>
+        <div class="kvc-body" id="symbol-table"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div id="toast"></div>
+
+<script>
+var CARDS=[
+  {type:'clipboard',color:'gold',title:'χ = ∭(G·M·E·S·T·K·R·Q·F·C) dxdydt',preview:'Master Equation — integrates all ten domains across physical and spiritual reality.',meta:'2m ago',btns:[{l:'Copy',c:'prim'},{l:'Edit'},{l:'Tag'},{l:'🤖 Ask AI'}]},
+  {type:'snippet',color:'blue',title:'System prompt — Theophysics context v4.1',preview:'You are operating within the Theophysics framework. Physics and theology are dual projections of a single coherent reality. The Ten Laws are the constitutional axioms.',meta:'Yesterday',btns:[{l:'Copy',c:'c-blue'},{l:'Edit'},{l:'Pin'},{l:'Delete'}]},
+  {type:'prompt',color:'purple',title:'Deep Laws extraction prompt',preview:'Run /DEEPER then /INTEGRATE on this passage and identify if it maps to any of the Ten Laws. Return: law number, confidence, cross-domain implications.',meta:'Mar 9',btns:[{l:'Use Now',c:'c-purple'},{l:'Copy'},{l:'Edit'}]},
+  {type:'bookmark',color:'green',title:'PEAR Lab replication archive',preview:'pearlab.icrl.org — Mind-matter interaction studies. 2.5M trials, 6σ statistical significance.',meta:'Mar 8',btns:[{l:'Open',c:'c-green'},{l:'Copy URL'},{l:'🤖 Ingest'}]},
+  {type:'clipboard',color:'gold',title:'Nucleation Thesis v2 — draft para',preview:'The universe is not an accident of entropy but a nucleation event precipitated by a coherence field exceeding critical threshold Gc at t=0.',meta:'1h ago',btns:[{l:'Copy',c:'prim'},{l:'Edit'},{l:'Tag'},{l:'🤖 Ask AI'}]},
+  {type:'prompt',color:'purple',title:'/PROBE+/CHAIN — Trinity collapse mechanism',preview:'Father/Son/Spirit = Potential/Structure/Actualization. Run probe sequence on Trinity isomorphism and chain through to wavefunction collapse. Feb 26 session.',meta:'Mar 7',btns:[{l:'Use Now',c:'c-purple'},{l:'Copy'},{l:'Edit'}]},
+  {type:'snippet',color:'blue',title:'Moral Conservation Equation — Papers 9–10',preview:'dE/dt = -αD(t) + βC(Ψ,χ) — C = Christ alignment, β = grace. Christian solution to Moral Conservation.',meta:'Mar 6',btns:[{l:'Copy',c:'c-blue'},{l:'Edit'},{l:'Pin'}]},
+  {type:'bookmark',color:'green',title:'GCP — Global Consciousness Project',preview:'noosphere.princeton.edu — 325+ replicas, 6σ significance through 2010. 9/11 and disaster events show coherence spikes.',meta:'Mar 5',btns:[{l:'Open',c:'c-green'},{l:'🤖 Ingest'}]},
+  {type:'clipboard',color:'gold',title:'Adversary Thread — Ratchet Pattern',preview:'Century of Constitutional erosion maps onto domain attack sequence. Five crisis windows. Crisis > power > crisis passes > power remains. Both readings valid.',meta:'Mar 4',btns:[{l:'Copy',c:'prim'},{l:'Tag'},{l:'🤖 Ask AI'}]},
+  {type:'snippet',color:'blue',title:'BAES Intake Prompt — Academic Paper',preview:'You are evaluating a paper for structural quality, claim validity, and falsifiability. Score: are claims testable? Falsification criteria provided?',meta:'Mar 3',btns:[{l:'Copy',c:'c-blue'},{l:'Use Now'},{l:'Edit'}]}
+];
+
+var PUBLICATIONS=[
+  {num:'01',title:'Nucleation Thesis — The First Law',status:'inprog',label:'IN PROGRESS'},
+  {num:'02',title:'The Quantum Bridge (keystone)',status:'blocked',label:'BLOCKED'},
+  {num:'03',title:'Consciousness as Foundation',status:'queue',label:'QUEUED'},
+  {num:'04',title:'The Logos Field',status:'queue',label:'QUEUED'},
+  {num:'05',title:'Church as Quantum Error Correction',status:'queue',label:'QUEUED'},
+  {num:'06',title:'The Binding Contract',status:'done',label:'DONE v3'},
+  {num:'09',title:'Moral Conservation — The Problem',status:'queue',label:'QUEUED'},
+  {num:'10',title:'Moral Conservation — Christ Solution',status:'queue',label:'QUEUED'}
+];
+
+var BAES_SCORES=[
+  {ai:'ChatGPT',score:6.6,color:'var(--orange)'},
+  {ai:'Gemini (Full)',score:3.4,color:'var(--blue)'},
+  {ai:'Perplexity',score:2.6,color:'var(--purple)'},
+  {ai:'Gemini (P1)',score:1.0,color:'var(--red)'}
+];
+
+var BREAKTHROUGHS=[
+  {date:'2026-03-07',title:'189th Axiom — PERSONHOOD',desc:'New axiom (066b_PERSONHOOD_Axiom.md). Agency, intentionality, relational capacity. Closes the category error in jump from BC8 to "this is God."',color:'var(--gold)'},
+  {date:'2026-03-07',title:'D2.2 Chi Field — Empty Claim Filled',desc:'Chi defined as a real scalar field with informational content. Master Equation finally has a filled foundation. Was blocking 20+ downstream axioms.',color:'var(--blue)'},
+  {date:'2026-03-07',title:'P3.2 / T3.1 Contradiction Resolved',desc:'C_micro (conserved under unitary evolution) vs C_macro (cannot self-increase). Resolves internal contradiction cleanly.',color:'var(--green)'},
+  {date:'2026-03-07',title:'BC2 — Grace ≠ Thermodynamic Negentropy',desc:'Grace acts on the MORAL SIGN OPERATOR. Prevents naturalistic reduction of grace to energy transfer. Irreducibly theological.',color:'var(--purple)'}
+];
+
+var SWARM_TASKS=[
+  {ai:'Claudian',session:'2026-03-06',task:'NotebookLM pipeline — Genesis-to-Quantum Article 01 outputs',status:'active'},
+  {ai:'Claude Code CLI',session:'2026-03-07',task:'CRITICAL EDITS CHECKLIST — all 10 axiom edits COMPLETE',status:'done'},
+  {ai:'Codex',session:'2026-03-07',task:'Citation aggregation, YAML copilot, multi-pass extraction engine',status:'active'}
+];
+
+var PUB_PIPELINE=[
+  {stage:'1',label:'Content',owner:'Claude (Sonnet)',color:'var(--gold)',desc:'Writing, voice, structure'},
+  {stage:'2',label:'Vault QA',owner:'Claudian',color:'var(--blue)',desc:'Obsidian, MCP, cross-refs'},
+  {stage:'3',label:'Visual',owner:'Gemini',color:'var(--green)',desc:'Diagrams, images, chalkboard'},
+  {stage:'4',label:'Web Build',owner:'Codex',color:'var(--purple)',desc:'Templates, LaTeX, CF deploy'},
+  {stage:'5',label:'Distribution',owner:'Claudian + David',color:'var(--orange)',desc:'NotebookLM, Substack, social'}
+];
+
+var SYMBOLS=[
+  {sym:'χ (chi)',def:'Logos/Coherence Field — ground of reality'},
+  {sym:'Φ (Phi)',def:'Terminal Observer field'},
+  {sym:'Ψ_S',def:'Soul field — substrate-independent identity'},
+  {sym:'σ',def:'Sign operator (+1/-1, moral orientation)'},
+  {sym:'Ĝ',def:'Grace operator — external intervention'},
+  {sym:'Ω',def:'Adversary/Entropy field'},
+  {sym:'LLC',def:'Lowe Coherence Lagrangian'},
+  {sym:'Gc',def:'Critical coherence threshold (nucleation)'}
+];
+
+var CHANNELS=[
+  {name:'opus',dot:'var(--purple)',status:'active · this session',unread:3},
+  {name:'haiku',dot:'var(--blue)',status:'idle',unread:0},
+  {name:'gemini',dot:'var(--green)',status:'prompt sent · full audit pending',unread:1},
+  {name:'chatgpt',dot:'var(--orange)',status:'idle',unread:0},
+  {name:'broadcast',dot:'var(--gold)',status:'all channels',unread:0}
+];
+
+var QUEUE_ITEMS=[
+  {ico:'📄',name:'Architecture_of_Debt_v3.pdf',meta:'PDF · summarize',pct:100,st:'done'},
+  {ico:'📄',name:'Recovery_Validation_Victorian.pdf',meta:'PDF · extract + tag',pct:67,st:'proc'},
+  {ico:'🔗',name:'noosphere.princeton.edu',meta:'URL · scrape + summarize',pct:0,st:'pend'}
+];
+
+var TILES=[
+  {ico:'⚙️',name:'FORGE App',url:'O:\\FORGE'},
+  {ico:'🤖',name:'AI-HUB v2',url:'B:\\AI-HUB-v2'},
+  {ico:'⚡',name:'AI Comms Hub',url:'ai-comms-hub.workers.dev'},
+  {ico:'🌐',name:'theophysics.pro',url:'theophysics.pro'},
+  {ico:'✝️',name:'faiththruphysics',url:'faiththruphysics.com'},
+  {ico:'⚖️',name:'Coherence Factor',url:'in-dev'},
+  {ico:'📋',name:'ClipSync API',url:'clipsync.workers.dev'},
+  {ico:'📊',name:'Swarm Dashboard',url:'theophysics-dashboard.pages.dev'},
+  {ico:'➕',name:'Add Tile',url:''}
+];
+
+var INFRA=[
+  {lbl:'Edge Compute',name:'CF Workers',desc:'ai-comms-hub live',color:'var(--orange)',st:'online',sc:'var(--green)'},
+  {lbl:'Object Store',name:'R2 · Bucket 10176',desc:'1,300+ papers + daily logs',color:'var(--orange)',st:'connected',sc:'var(--green)'},
+  {lbl:'Relational',name:'PostgreSQL',desc:':177:2665 / axioms · 188 nodes',color:'var(--blue)',st:'connected',sc:'var(--green)'},
+  {lbl:'Workflow',name:'n8n · NAS :177',desc:'Obsidian sync · tasks',color:'var(--purple)',st:'syncing',sc:'var(--gold)'}
+];
+
+var SOCIAL_PLATFORMS=[
+  {name:'Substack',emoji:'📝',home:true},
+  {name:'LinkedIn',emoji:'💼',home:false},
+  {name:'X / Twitter',emoji:'🐦',home:false},
+  {name:'Facebook',emoji:'👥',home:false},
+  {name:'Gmail',emoji:'📧',home:false}
+];
+
+var FOLDER_SYSTEM=[
+  {name:'Clipboard',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Clipboard',desc:'Quick captures, snippets, mobile handoff pack.'},
+  {name:'Prompts',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Prompts',desc:'Prompt chains, command packs, reusable system prompts.'},
+  {name:'Research',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Research',desc:'Source bundles, bookmarks, forum targets, ingest staging.'},
+  {name:'Theophysics',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Theophysics',desc:'Master-equation artifacts, reports, canonical outputs.'},
+  {name:'Transfer',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Transfer',desc:'Phone/desktop/cloud shuttle lane.'},
+  {name:'Time',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Time',desc:'Task exports, schedules, daily operating state.'},
+  {name:'Publishing',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Publishing',desc:'Web pages, forum drafts, deploy-ready outputs.'}
+];
+
+var DASHBOARD_MODULES=[
+  {name:'Clipboard',file:'clipboard1.html',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\clipboard1.html',desc:'Capture, hotkeys, clip review.'},
+  {name:'Prompt Picker',file:'prompt_picker.html',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\prompt_picker.html',desc:'Command chains and reusable prompt logic.'},
+  {name:'Research Links',file:'research_links.html',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\research_links.html',desc:'Bookmark inbox and source routing.'},
+  {name:'Theophysics Hub',file:'theophysics-hub.html',path:'C:\\Users\\lowes\\Desktop\\Personal dashboard\\theophysics-hub.html',desc:'Main operating shell.'}
+];
+
+var UPCOMING_DAYS=[
+  {day:'Tonight',desc:'Wire dashboard surface before equation runs.'},
+  {day:'Tomorrow',desc:'Run first canonical payload through folder spine.'},
+  {day:'Friday',desc:'Bridge results into page-builder and question layer.'},
+  {day:'Weekend',desc:'Turn outputs into publishable forum/web packages.'}
+];
+
+var TIME_STORE='pof2828_time_board_v1';
+var TIME_TASKS=[
+  {id:'t1',project:'TODAY',name:'Dashboard layer before autoresearch',meta:'Hub first. Engine second.',done:false},
+  {id:'t2',project:'Work',name:'Physical folders + transfer lane',meta:'Desktop now, cloud next.',done:false},
+  {id:'t3',project:'TODAY',name:'Page-builder path for conclusions',meta:'No conclusion without a page.',done:false},
+  {id:'t4',project:'LLL',name:'Comms hooks for OpenClaw / posting',meta:'Distribution engine follows content engine.',done:false}
+];
+
+var activeFilter='all', searchQ='';
+
+function renderCards(){
+  var c=document.getElementById('card-container');
+  if(!c) return;
+  if(activeFilter==='agent'){
+    c.innerHTML='<div style="text-align:center;padding:38px 18px;"><div style="font-size:34px;margin-bottom:10px">🤖</div><div style="font-size:14px;font-weight:600;color:var(--purple);margin-bottom:7px">Logos Agent</div><div style="font-size:12px;color:var(--muted);margin-bottom:18px">Persistent AI collaborator. R2 retrieval · clipboard context · synthesis workflows.</div><div style="display:flex;flex-direction:column;gap:6px;max-width:320px;margin:0 auto;"><button class="cb" style="padding:9px;background:var(--purple-dim);border-color:rgba(155,127,232,.28);color:var(--purple);" onclick="toast(\'Starting clipboard synthesis…\')">🔬 Synthesize clipboard context</button><button class="cb" style="padding:9px;" onclick="toast(\'Querying R2 vault…\')">📚 Query vault (R2 · 1,300 papers)</button><button class="cb" style="padding:9px;" onclick="toast(\'Launching web research…\')">🌐 Agentic web research</button><button class="cb" style="padding:9px;" onclick="toast(\'Running contradiction scan…\')">⚡ Contradiction scan — Ten Laws</button><button class="cb" style="padding:9px;" onclick="toast(\'Running BAES evaluation…\')">⚖️ Run BAES evaluation</button></div></div>';
+    return;
+  }
+  var filtered=CARDS.filter(function(card){
+    var mt=activeFilter==='all'||activeFilter===card.type||activeFilter==='pinned';
+    var ms=!searchQ||card.title.toLowerCase().indexOf(searchQ.toLowerCase())>-1||card.preview.toLowerCase().indexOf(searchQ.toLowerCase())>-1;
+    return mt&&ms;
+  });
+  if(!filtered.length){c.innerHTML='<div style="text-align:center;padding:38px;color:var(--muted);font-size:13px">No items match.</div>';return;}
+  c.innerHTML=filtered.map(function(card,i){
+    return '<div class="cc '+card.color+'" style="animation-delay:'+i*30+'ms"><div class="cc-top"><div class="cc-title '+card.color+'">'+card.title+'</div><div class="cc-tag '+card.color+'">'+card.type+'</div></div><div class="cc-pre">'+card.preview+'</div><div class="cc-foot"><div class="cc-btns">'+card.btns.map(function(b){return '<button class="cb '+(b.c||'')+'" onclick="toast(\''+b.l+'\')">'+b.l+'</button>';}).join('')+'</div><div class="cc-meta">'+card.meta+'</div></div></div>';
+  }).join('');
+}
+
+function filterType(type,el,ac){
+  activeFilter=type;
+  var items=document.querySelectorAll('.cs-item');
+  for(var i=0;i<items.length;i++) items[i].className='cs-item';
+  el.className='cs-item '+(ac||'a-gold');
+  var titles={all:'All Items',pinned:'Pinned',clipboard:'Clipboard',snippet:'Snippets',prompt:'Prompts',bookmark:'Bookmarks',agent:'AI Agent'};
+  var ct=document.getElementById('cm-title');
+  if(ct) ct.innerHTML=(titles[type]||type)+' <span class="cm-count">#'+(type==='all'?142:CARDS.filter(function(c){return c.type===type;}).length)+'</span>';
+  renderCards();
+}
+
+function filterCards(q){searchQ=q;renderCards();}
+
+function renderPubs(){
+  var c=document.getElementById('pub-tracker');
+  if(!c) return;
+  c.innerHTML=PUBLICATIONS.map(function(p){
+    return '<div class="pub-item" onclick="toast(\''+p.title+'\')"><div class="pub-num">'+p.num+'</div><div class="pub-title">'+p.title+'</div><div class="pub-st '+p.status+'">'+p.label+'</div></div>';
+  }).join('');
+}
+
+function renderBAES(){
+  var c=document.getElementById('baes-rows');
+  if(!c) return;
+  c.innerHTML=BAES_SCORES.map(function(b){
+    return '<div class="baes-row"><div class="baes-ai" style="color:'+b.color+'">'+b.ai+'</div><div class="baes-bw"><div class="baes-bf" style="width:'+(b.score/10*100)+'%;background:'+b.color+'"></div></div><div class="baes-score" style="color:'+b.color+'">'+b.score+'</div></div>';
+  }).join('');
+}
+
+function renderBreakthroughs(){
+  var el=document.getElementById('breakthroughs');
+  if(!el) return;
+  el.innerHTML=BREAKTHROUGHS.map(function(b){
+    return '<div class="bk-item" style="border-left-color:'+b.color+'"><div class="bk-hd"><div class="bk-title" style="color:'+b.color+'">'+b.title+'</div><div class="bk-date">'+b.date+'</div></div><div class="bk-desc">'+b.desc+'</div></div>';
+  }).join('');
+}
+
+function renderQueue(){
+  var c=document.getElementById('queue-container');
+  if(!c) return;
+  c.innerHTML=QUEUE_ITEMS.map(function(q){
+    var stLabel=q.st==='done'?'DONE':q.st==='proc'?'PROC…':'QUEUE';
+    return '<div class="qi"><div class="qi-ico">'+q.ico+'</div><div class="qi-info"><div class="qi-name">'+q.name+'</div><div class="qi-meta">'+q.meta+'</div><div class="qi-bar"><div class="qi-fill" style="width:'+q.pct+'%"></div></div></div><div class="qi-st '+q.st+'">'+stLabel+'</div></div>';
+  }).join('');
+}
+
+function renderTiles(){
+  var c=document.getElementById('tiles-grid');
+  if(!c) return;
+  c.innerHTML=TILES.map(function(t){
+    var msg=t.url&&t.url!=='in-dev'&&t.url!==''?'Opening '+t.url:'Add tile dialog — Phase 2';
+    return '<div class="cf-tile'+(t.url?'':' add-tile')+'" onclick="toast(\''+msg+'\')"><div class="cft-ico">'+t.ico+'</div><div class="cft-name">'+t.name+'</div>'+(t.url?'<div class="cft-url">'+t.url+'</div>':'')+'</div>';
+  }).join('');
+}
+
+function renderInfra(){
+  var c=document.getElementById('infra-grid');
+  if(!c) return;
+  c.innerHTML=INFRA.map(function(i){
+    return '<div class="im-chip" style="border-color:'+i.color+'33"><div class="im-lbl">'+i.lbl+'</div><div class="im-name" style="color:'+i.color+'">'+i.name+'</div><div class="im-desc">'+i.desc+'</div><div class="im-st" style="color:'+i.sc+'">● '+i.st+'</div></div>';
+  }).join('');
+}
+
+function renderSocial(){
+  var c=document.getElementById('social-platforms');
+  if(!c) return;
+  c.innerHTML=SOCIAL_PLATFORMS.map(function(p){
+    return '<div class="plat-chip'+(p.home?' home':'')+'" onclick="toast(\''+p.name+' — protocol active\')"><span class="p-dot" style="'+(p.home?'background:var(--gold)':'')+'"></span>'+p.emoji+' '+p.name+(p.home?' · HOME':'')+'</div>';
+  }).join('');
+}
+
+function loadTimeTasks(){
+  try{
+    var raw=localStorage.getItem(TIME_STORE);
+    if(raw){
+      var parsed=JSON.parse(raw);
+      if(Array.isArray(parsed)&&parsed.length) TIME_TASKS=parsed;
+    }
+  }catch(e){}
+}
+
+function saveTimeTasks(){
+  localStorage.setItem(TIME_STORE,JSON.stringify(TIME_TASKS));
+}
+
+function renderTimeView(){
+  var list=document.getElementById('time-task-list');
+  if(list){
+    list.innerHTML=TIME_TASKS.map(function(task){
+      return '<div class="tm-task'+(task.done?' done':'')+'" onclick="toggleTask(\''+task.id+'\')"><div class="tm-check">'+(task.done?'✓':'')+'</div><div style="flex:1;"><div style="display:flex;gap:8px;align-items:center;"><div class="tm-name">'+task.name+'</div><div class="tm-tag">'+task.project+'</div></div><div class="tm-meta">'+task.meta+'</div></div></div>';
+    }).join('');
+  }
+  var folderGrid=document.getElementById('folder-grid');
+  if(folderGrid){
+    folderGrid.innerHTML=FOLDER_SYSTEM.map(function(folder){
+      return '<div class="folder-card"><div class="folder-name">'+folder.name+'</div><div class="folder-path">'+folder.path+'</div><div class="folder-desc">'+folder.desc+'</div><div class="folder-actions"><button class="tm-btn" onclick="copyText(\''+folder.path.replace(/\\/g,'\\\\')+'\');event.stopPropagation();">Copy Path</button><button class="tm-btn" onclick="toast(\''+folder.name+' ready for sync move\');event.stopPropagation();">Ready</button></div></div>';
+    }).join('');
+  }
+  var modules=document.getElementById('module-grid');
+  if(modules){
+    modules.innerHTML=DASHBOARD_MODULES.map(function(module){
+      return '<div class="module-card" onclick="openModule(\''+module.file+'\')"><div class="module-name">'+module.name+'</div><div class="module-desc">'+module.desc+'</div><div class="module-path">'+module.path+'</div></div>';
+    }).join('');
+  }
+  var upcoming=document.getElementById('upcoming-strip');
+  if(upcoming){
+    upcoming.innerHTML=UPCOMING_DAYS.map(function(item){
+      return '<div class="day-row"><div class="day-date">'+item.day+'</div><div class="day-desc">'+item.desc+'</div></div>';
+    }).join('');
+  }
+}
+
+function toggleTask(id){
+  TIME_TASKS=TIME_TASKS.map(function(task){
+    if(task.id===id) task.done=!task.done;
+    return task;
+  });
+  saveTimeTasks();
+  renderTimeView();
+}
+
+function addQuickTask(project){
+  var name=prompt('Quick task');
+  if(!name) return;
+  TIME_TASKS.unshift({
+    id:'t'+Date.now().toString(36),
+    project:project||'TODAY',
+    name:name.trim(),
+    meta:'Added from hub',
+    done:false
+  });
+  saveTimeTasks();
+  renderTimeView();
+  toast('Task added');
+}
+
+function openModule(file){
+  window.location.href=file;
+}
+
+function copyText(text){
+  navigator.clipboard.writeText(text).then(function(){toast('Copied');}).catch(function(){toast('Copy failed');});
+}
+
+function copyTodaySummary(){
+  var lines=TIME_TASKS.map(function(task){
+    return (task.done?'[x] ':'[ ] ')+task.project+' - '+task.name;
+  }).join('\n');
+  copyText(lines);
+}
+
+function renderChannels(){
+  var c=document.getElementById('channels-list');
+  if(!c) return;
+  c.innerHTML=CHANNELS.map(function(ch){
+    return '<div class="ch-row" onclick="toast(\'Opening /'+ch.name+' channel…\')"><div style="width:6px;height:6px;border-radius:50%;background:'+ch.dot+';flex-shrink:0;"></div><div class="ch-name">/'+ch.name+'</div><div class="ch-meta">'+ch.status+'</div>'+(ch.unread?'<div class="ch-badge">'+ch.unread+' unread</div>':'')+'</div>';
+  }).join('');
+}
+
+function renderSwarm(){
+  var t=document.getElementById('swarm-tasks');
+  if(t){
+    t.innerHTML=SWARM_TASKS.map(function(s){
+      var dot=s.status==='done'?'var(--green)':'var(--gold)';
+      return '<div style="display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;"><div style="width:6px;height:6px;border-radius:50%;background:'+dot+';box-shadow:0 0 5px '+dot+';flex-shrink:0;"></div><div style="font-size:11px;font-weight:600;width:115px;flex-shrink:0;">'+s.ai+'</div><div style="flex:1;font-size:11px;color:var(--muted);">'+s.task+'</div><div style="font-family:monospace;font-size:9px;padding:1px 6px;border-radius:9px;border:1px solid;'+(s.status==='done'?'color:var(--green);border-color:rgba(78,203,113,.28);background:var(--green-dim)':'color:var(--gold);border-color:rgba(242,201,76,.28);background:var(--gold-dim)')+'">'+s.status.toUpperCase()+'</div></div>';
+    }).join('');
+  }
+  var p=document.getElementById('pub-pipeline');
+  if(p){
+    var html='<div style="display:flex;align-items:stretch;gap:0;overflow-x:auto;">';
+    for(var i=0;i<PUB_PIPELINE.length;i++){
+      var s=PUB_PIPELINE[i];
+      var br=(i===0?'8px 0 0 8px':i===PUB_PIPELINE.length-1?'0 8px 8px 0':'0');
+      var bl=(i>0?'none':'1px solid var(--border)');
+      html+='<div style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:'+br+';border-left:'+bl+';padding:11px 12px;text-align:center;"><div style="font-family:monospace;font-size:9px;color:var(--muted2);margin-bottom:3px;">STAGE '+s.stage+'</div><div style="font-size:12px;font-weight:700;color:'+s.color+';margin-bottom:2px;">'+s.label+'</div><div style="font-size:11px;font-weight:600;margin-bottom:3px;">'+s.owner+'</div><div style="font-size:10px;color:var(--muted)">'+s.desc+'</div></div>';
+      if(i<PUB_PIPELINE.length-1) html+='<div style="display:flex;align-items:center;color:var(--muted2);font-size:16px;padding:0 2px;">›</div>';
+    }
+    html+='</div>';
+    p.innerHTML=html;
+  }
+  var sym=document.getElementById('symbol-table');
+  if(sym){
+    sym.innerHTML=SYMBOLS.map(function(s){
+      return '<div style="display:flex;gap:9px;padding:5px 7px;border-bottom:1px solid var(--border);align-items:baseline;"><div style="font-family:monospace;font-size:12px;color:var(--gold);font-weight:700;width:58px;flex-shrink:0;">'+s.sym+'</div><div style="font-size:11px;color:var(--muted);">'+s.def+'</div></div>';
+    }).join('');
+  }
+}
+
+function renderSparkline(){
+  var vals=[12,18,9,22,15,31,28,19,24,38,29,33,41,47];
+  var max=Math.max.apply(null,vals);
+  var s=document.getElementById('sparkline');
+  if(!s) return;
+  s.innerHTML=vals.map(function(v,i){
+    return '<div class="spark-bar'+(i===vals.length-1?' today':'')+'" style="height:'+(v/max*100)+'%"></div>';
+  }).join('');
+}
+
+function renderGraph(){
+  var canvas=document.getElementById('graphCanvas');
+  if(!canvas) return;
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var nodes=[
+    {x:100,y:62,r:9,color:'#F2C94C',label:'χ',isnew:true},
+    {x:50,y:33,r:6,color:'#4F8EF7',label:'G'},
+    {x:150,y:33,r:6,color:'#4F8EF7',label:'M'},
+    {x:27,y:76,r:6,color:'#9B7FE8',label:'Ψ'},
+    {x:173,y:76,r:6,color:'#9B7FE8',label:'Λ'},
+    {x:50,y:105,r:5,color:'#5A5F6E',label:'Q'},
+    {x:150,y:105,r:5,color:'#5A5F6E',label:'C'},
+    {x:100,y:108,r:7,color:'#4ECB71',label:'LLC',isnew:true},
+    {x:76,y:56,r:4,color:'#5A5F6E',label:'E'},
+    {x:124,y:56,r:4,color:'#5A5F6E',label:'T'}
+  ];
+  var edges=[[0,1],[0,2],[0,3],[0,4],[0,7],[0,8],[0,9],[1,8],[2,9],[3,5],[4,6],[7,5],[7,6],[1,3],[2,4]];
+  for(var e=0;e<edges.length;e++){
+    var na=nodes[edges[e][0]],nb=nodes[edges[e][1]];
+    ctx.beginPath();ctx.moveTo(na.x,na.y);ctx.lineTo(nb.x,nb.y);
+    ctx.strokeStyle='rgba(244,246,255,0.07)';ctx.lineWidth=1;ctx.stroke();
+  }
+  var glow=[[0,1],[0,2],[0,3],[0,4],[0,7]];
+  for(var g=0;g<glow.length;g++){
+    var na=nodes[glow[g][0]],nb=nodes[glow[g][1]];
+    ctx.beginPath();ctx.moveTo(na.x,na.y);ctx.lineTo(nb.x,nb.y);
+    ctx.strokeStyle='rgba(242,201,76,0.14)';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  for(var n=0;n<nodes.length;n++){
+    var nd=nodes[n];
+    if(nd.isnew){ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r+4,0,Math.PI*2);ctx.fillStyle='rgba(242,201,76,0.07)';ctx.fill();}
+    ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,Math.PI*2);ctx.fillStyle=nd.color;ctx.fill();
+    ctx.font='bold '+(nd.r+3)+'px monospace';
+    ctx.fillStyle=nd.isnew?'#0B0C0F':'rgba(244,246,255,0.45)';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(nd.label,nd.x,nd.y);
+  }
+}
+
+function switchView(v){
+  var views=document.querySelectorAll('.view');
+  for(var i=0;i<views.length;i++) views[i].classList.remove('active');
+  document.getElementById('view-'+v).classList.add('active');
+  var btns=document.querySelectorAll('.tb-btn');
+  var labels={knowledge:'🔬 Knowledge',clipboard:'📋 Clipboard',time:'⏱ Time',functions:'⚙️ Functions',comms:'⚡ Comms Hub',swarm:'🐝 Swarm'};
+  for(var b=0;b<btns.length;b++){
+    btns[b].classList.remove('active');
+    if(btns[b].textContent.trim()===labels[v]) btns[b].classList.add('active');
+  }
+  if(v==='knowledge'){renderSparkline();setTimeout(renderGraph,50);renderBreakthroughs();}
+  if(v==='time') renderTimeView();
+  if(v==='swarm') renderSwarm();
+}
+
+function agentSend(){
+  var inp=document.getElementById('agent-input');
+  if(!inp.value.trim()){toast('Type something first…');return;}
+  toast('Sent to Logos Agent · routing via comms hub…');
+  inp.value='';
+}
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(window._tt);
+  window._tt=setTimeout(function(){t.classList.remove('show');},2200);
+}
+
+function updateClock(){
+  var now=new Date();
+  var el=document.getElementById('clock');
+  if(el) el.textContent=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+
+/* ── MESSAGE CENTER ── */
+var MSG_STORE='pof2828_messages_v1';
+var MSG_CHANNEL='broadcast';
+var MSG_AGENTS={
+  broadcast:{label:'Broadcast',tag:'all agents',color:'var(--gold)',btnClass:'broadcast'},
+  opus:{label:'Opus',tag:'direct message',color:'var(--purple)',btnClass:''},
+  haiku:{label:'Haiku',tag:'direct message',color:'var(--blue)',btnClass:''},
+  gemini:{label:'Gemini',tag:'direct message',color:'var(--green)',btnClass:''},
+  chatgpt:{label:'ChatGPT',tag:'direct message',color:'var(--orange)',btnClass:''},
+  codex:{label:'Codex',tag:'direct message',color:'var(--blue)',btnClass:''},
+  'claude-code':{label:'Claude Code',tag:'direct message',color:'var(--green)',btnClass:''},
+  inbox:{label:'All Messages',tag:'unified feed',color:'var(--text)',btnClass:''}
+};
+
+function loadMessages(){
+  try{
+    var raw=localStorage.getItem(MSG_STORE);
+    return raw?JSON.parse(raw):[];
+  }catch(e){return [];}
+}
+
+function saveMessages(msgs){
+  localStorage.setItem(MSG_STORE,JSON.stringify(msgs));
+}
+
+function switchMsgChannel(ch){
+  MSG_CHANNEL=ch;
+  var allCh=document.querySelectorAll('.msg-ch');
+  for(var i=0;i<allCh.length;i++) allCh[i].classList.remove('active');
+  var el=document.getElementById('msg-ch-'+ch);
+  if(el) el.classList.add('active');
+  var info=MSG_AGENTS[ch]||{label:ch,tag:'',color:'var(--text)',btnClass:''};
+  document.getElementById('msg-header-name').textContent=info.label;
+  document.getElementById('msg-header-tag').textContent=info.tag;
+  var inp=document.getElementById('msg-input');
+  var btn=document.getElementById('msg-send-btn');
+  var compose=document.getElementById('msg-compose');
+  if(ch==='inbox'){
+    compose.style.display='none';
+  }else{
+    compose.style.display='flex';
+    inp.placeholder=ch==='broadcast'?'Type a message to all agents…':'Message '+info.label+'…';
+    btn.textContent=ch==='broadcast'?'Send All':'Send';
+    btn.className='msg-send-btn'+(info.btnClass?' '+info.btnClass:'');
+  }
+  renderMessages();
+}
+
+function renderMessages(){
+  var msgs=loadMessages();
+  var feed=document.getElementById('msg-feed');
+  if(!feed) return;
+  var filtered;
+  if(MSG_CHANNEL==='inbox'){
+    filtered=msgs;
+  }else{
+    filtered=msgs.filter(function(m){
+      return m.channel===MSG_CHANNEL||
+        (m.channel==='broadcast'&&MSG_CHANNEL!=='inbox');
+    });
+    if(MSG_CHANNEL!=='broadcast'){
+      filtered=msgs.filter(function(m){
+        return m.channel===MSG_CHANNEL||m.channel==='broadcast';
+      });
+    }
+  }
+  if(!filtered.length){
+    feed.innerHTML='<div class="msg-empty">No messages yet. Start the conversation.</div>';
+  }else{
+    feed.innerHTML=filtered.map(function(m){
+      var isBroadcast=m.channel==='broadcast';
+      var targetLine='';
+      if(MSG_CHANNEL==='inbox'){
+        var info=MSG_AGENTS[m.channel]||{label:m.channel};
+        targetLine='<div class="msg-bubble-target">→ '+info.label+'</div>';
+      }else if(isBroadcast&&MSG_CHANNEL!=='broadcast'){
+        targetLine='<div class="msg-bubble-target">→ broadcast</div>';
+      }
+      var dir=m.from==='david'?'out':'in';
+      return '<div class="msg-bubble '+dir+'">'+targetLine+
+        '<div>'+escapeHtml(m.text)+'</div>'+
+        '<div class="msg-bubble-meta">'+(m.from==='david'?'David':''+m.from)+' · '+formatMsgTime(m.ts)+'</div></div>';
+    }).join('');
+    feed.scrollTop=feed.scrollHeight;
+  }
+  // update total badge
+  var badge=document.getElementById('msg-total-badge');
+  if(badge) badge.textContent=msgs.length;
+}
+
+function sendMsg(){
+  var inp=document.getElementById('msg-input');
+  var text=inp.value.trim();
+  if(!text) return;
+  if(MSG_CHANNEL==='inbox') return;
+  var msgs=loadMessages();
+  var msg={
+    id:'m'+Date.now().toString(36),
+    channel:MSG_CHANNEL,
+    from:'david',
+    text:text,
+    ts:Date.now()
+  };
+  msgs.push(msg);
+  saveMessages(msgs);
+  inp.value='';
+  inp.style.height='40px';
+  renderMessages();
+  var chInfo=MSG_AGENTS[MSG_CHANNEL]||{label:MSG_CHANNEL};
+  toast('Sent to '+chInfo.label);
+}
+
+function msgKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){
+    e.preventDefault();
+    sendMsg();
+  }
+  // auto-resize
+  var el=e.target;
+  setTimeout(function(){
+    el.style.height='40px';
+    el.style.height=Math.min(el.scrollHeight,100)+'px';
+  },0);
+}
+
+function escapeHtml(s){
+  var d=document.createElement('div');
+  d.appendChild(document.createTextNode(s));
+  return d.innerHTML;
+}
+
+function formatMsgTime(ts){
+  var d=new Date(ts);
+  var now=new Date();
+  var diff=now-d;
+  if(diff<60000) return 'just now';
+  if(diff<3600000) return Math.floor(diff/60000)+'m ago';
+  if(diff<86400000) return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+
+renderMessages();
+
+loadTimeTasks();
+renderCards();
+renderPubs();
+renderBAES();
+renderTimeView();
+renderQueue();
+renderTiles();
+renderInfra();
+renderSocial();
+renderChannels();
+renderSwarm();
+setInterval(updateClock,1000);
+updateClock();
+</script>
+</body>
+</html>

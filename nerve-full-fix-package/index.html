@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#09090b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Labor of Love</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #09090b;
+  --surface: #0f0f13;
+  --surface2: #141419;
+  --surface3: #1a1a22;
+  --border: #1f1f2a;
+  --border-hover: #2a2a3a;
+  --text: #d4d4d8;
+  --text-dim: #71717a;
+  --text-muted: #3f3f46;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,.08);
+  --amber-mid: rgba(245,158,11,.2);
+  --amber-glow: rgba(245,158,11,.15);
+  --red: #ef4444;
+  --green: #10b981;
+  --radius: 8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{width:100%;overflow-x:hidden}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#27272a;border-radius:4px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);width:100%;min-width:0;min-height:100vh;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow-x:hidden}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface);min-width:0}
+.header h1{font-size:15px;font-weight:600;letter-spacing:.5px;color:var(--amber);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-actions{display:flex;gap:8px;flex-shrink:0}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);width:34px;height:34px;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.icon-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.icon-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+
+/* MAIN AREA */
+.main{flex:1;display:flex;flex-direction:column;padding:16px 20px;gap:12px;position:relative;min-width:0}
+
+/* TEXT INPUT */
+.text-area{flex:1;min-width:0;min-height:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);resize:none;line-height:1.6;transition:border-color .15s}
+.text-area:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-dim)}
+.text-area::placeholder{color:var(--text-muted)}
+
+/* CONTROLS BAR */
+.controls{display:flex;align-items:center;gap:8px;padding:12px 0;min-width:0}
+.play-btn{background:var(--amber);color:#000;border:none;width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;transition:all .15s;flex-shrink:0}
+.play-btn:hover{transform:scale(1.05);box-shadow:0 0 16px var(--amber-glow)}
+.play-btn.speaking{animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--amber-glow)}50%{box-shadow:0 0 0 12px transparent}}
+
+.progress-wrap{flex:1 1 40px;min-width:32px;height:6px;background:var(--surface2);border-radius:3px;cursor:pointer;position:relative}
+.progress-fill{height:100%;background:var(--amber);border-radius:3px;width:0%;transition:width .3s}
+.time-display{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);min-width:68px;text-align:right;white-space:nowrap}
+
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);min-width:0}
+.status-bar .voice-name{color:var(--text-dim);min-width:0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.char-count{font-family:'JetBrains Mono',monospace}
+
+/* SETTINGS PANEL */
+.settings-panel{position:absolute;top:0;right:0;bottom:0;width:min(320px,100%);background:var(--surface);border-left:1px solid var(--border);padding:20px;transform:translateX(100%);transition:transform .2s ease;z-index:10;overflow-y:auto}
+.settings-panel.open{transform:translateX(0)}
+.settings-title{font-size:13px;font-weight:600;color:var(--amber);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.setting-group{margin-bottom:20px}
+.setting-label{font-size:11px;font-weight:500;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.setting-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif}
+.setting-select:focus{outline:none;border-color:var(--amber)}
+.setting-select option{background:var(--surface2);color:var(--text)}
+.setting-range{width:100%;accent-color:var(--amber);margin-top:4px}
+.setting-value{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);float:right}
+
+/* HISTORY PANEL */
+.history-panel{position:absolute;top:0;left:0;bottom:0;width:min(280px,100%);background:var(--surface);border-right:1px solid var(--border);padding:16px;transform:translateX(-100%);transition:transform .2s ease;z-index:10;overflow-y:auto}
+.history-panel.open{transform:translateX(0)}
+.history-title{font-size:13px;font-weight:600;color:var(--amber);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.history-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.history-item:hover{border-color:var(--amber);background:var(--amber-dim)}
+.history-item.active{border-color:var(--amber)}
+.history-item-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-item-meta{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.history-empty{font-size:12px;color:var(--text-muted);text-align:center;padding:20px 0}
+.clear-history{font-size:11px;color:var(--text-muted);cursor:pointer;border:none;background:none;font-family:'DM Sans',sans-serif}
+.clear-history:hover{color:var(--red)}
+
+/* OVERLAY for panels on mobile */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5;display:none}
+.overlay.show{display:block}
+
+/* SPEED BUTTON */
+.speed-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:4px 10px;border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s}
+.speed-btn:hover{border-color:var(--amber);color:var(--amber)}
+
+@media (max-width:420px){
+  .header{padding:10px 12px}
+  .header h1{font-size:13px}
+  .main{padding:12px;gap:10px}
+  .text-area{padding:12px;font-size:13px}
+  .icon-btn{width:32px;height:32px}
+  .play-btn{width:40px;height:40px}
+  .speed-btn{padding:4px 8px}
+  .time-display{font-size:10px;min-width:58px}
+  .status-bar{font-size:10px}
+}
+
+@media (max-width:320px){
+  .header h1{max-width:150px}
+  .controls{flex-wrap:wrap}
+  .progress-wrap{order:4;flex-basis:100%}
+  .time-display{margin-left:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ LABOR OF LOVE</h1>
+  <div class="header-actions">
+    <button class="icon-btn" id="historyToggle" title="Script History">📋</button>
+    <button class="icon-btn" id="settingsToggle" title="Settings">⚙️</button>
+  </div>
+</div>
+
+<div class="main">
+  <textarea class="text-area" id="textInput" placeholder="Paste or type text here... (Ctrl+Enter to speak)"></textarea>
+
+  <div class="controls">
+    <button class="play-btn" id="playBtn" title="Play / Pause">▶</button>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <button class="speed-btn" id="speedBtn" title="Playback speed">1×</button>
+    <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+  </div>
+
+  <div class="status-bar">
+    <span class="voice-name" id="voiceName">Loading voices...</span>
+    <span class="char-count" id="charCount">0 chars</span>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-title">
+      Settings
+      <button class="icon-btn" id="settingsClose" style="width:28px;height:28px">✕</button>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">Voice</div>
+      <select class="setting-select" id="voiceSelect"></select>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">Rate <span class="setting-value" id="rateVal">1.0</span></div>
+      <input type="range" class="setting-range" id="rateRange" min="0.5" max="3" step="0.05" value="1">
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">Pitch <span class="setting-value" id="pitchVal">1.0</span></div>
+      <input type="range" class="setting-range" id="pitchRange" min="0.5" max="2" step="0.05" value="1">
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">Volume <span class="setting-value" id="volVal">1.0</span></div>
+      <input type="range" class="setting-range" id="volRange" min="0" max="1" step="0.05" value="1">
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">Chunk size (sentences per chunk)</div>
+      <select class="setting-select" id="chunkSelect">
+        <option value="1">1 sentence</option>
+        <option value="3" selected>3 sentences</option>
+        <option value="5">5 sentences</option>
+        <option value="10">10 sentences</option>
+        <option value="0">No chunking</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="history-panel" id="historyPanel">
+    <div class="history-title">
+      Recent Scripts
+      <button class="clear-history" id="clearHistory">Clear all</button>
+    </div>
+    <div id="historyList">
+      <div class="history-empty">No scripts yet</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<script>
+const synth = window.speechSynthesis;
+const APP_VERSION = 'v5';
+let voices = [];
+let currentVoice = null;
+let isPlaying = false;
+let isPaused = false;
+let chunks = [];
+let currentChunk = 0;
+let totalChunks = 0;
+let startTime = null;
+let elapsedWhenPaused = 0;
+
+// DOM
+const textInput = document.getElementById('textInput');
+const playBtn = document.getElementById('playBtn');
+const progressFill = document.getElementById('progressFill');
+const progressWrap = document.getElementById('progressWrap');
+const timeDisplay = document.getElementById('timeDisplay');
+const voiceName = document.getElementById('voiceName');
+const charCount = document.getElementById('charCount');
+const voiceSelect = document.getElementById('voiceSelect');
+const rateRange = document.getElementById('rateRange');
+const pitchRange = document.getElementById('pitchRange');
+const volRange = document.getElementById('volRange');
+const rateVal = document.getElementById('rateVal');
+const pitchVal = document.getElementById('pitchVal');
+const volVal = document.getElementById('volVal');
+const chunkSelect = document.getElementById('chunkSelect');
+const speedBtn = document.getElementById('speedBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsToggle = document.getElementById('settingsToggle');
+const settingsClose = document.getElementById('settingsClose');
+const historyPanel = document.getElementById('historyPanel');
+const historyToggle = document.getElementById('historyToggle');
+const historyList = document.getElementById('historyList');
+const clearHistory = document.getElementById('clearHistory');
+const overlay = document.getElementById('overlay');
+
+// SPEED PRESETS
+const speeds = [0.85, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3];
+let speedIdx = 1;
+
+// SETTINGS PERSISTENCE
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('nerve-tts-settings') || '{}');
+    if (s.rate) { rateRange.value = s.rate; rateVal.textContent = s.rate; }
+    if (s.pitch) { pitchRange.value = s.pitch; pitchVal.textContent = s.pitch; }
+    if (s.volume) { volRange.value = s.volume; volVal.textContent = s.volume; }
+    if (s.chunk) chunkSelect.value = s.chunk;
+    if (s.speedIdx != null) { speedIdx = s.speedIdx; rateRange.value = speeds[speedIdx]; rateVal.textContent = speeds[speedIdx]; }
+    if (s.voiceName) currentVoice = s.voiceName;
+  } catch(e) {}
+}
+
+function saveSettings() {
+  localStorage.setItem('nerve-tts-settings', JSON.stringify({
+    rate: rateRange.value,
+    pitch: pitchRange.value,
+    volume: volRange.value,
+    chunk: chunkSelect.value,
+    speedIdx: speedIdx,
+    voiceName: voiceSelect.value
+  }));
+}
+
+// VOICE LOADING
+function loadVoices() {
+  voices = synth.getVoices();
+  if (!voices.length) return;
+
+  // Sort: online/natural first, then local
+  const online = voices.filter(v => v.name.includes('Online') || v.name.includes('Natural') || v.name.includes('Google'));
+  const local = voices.filter(v => !online.includes(v));
+
+  voiceSelect.innerHTML = '';
+  if (online.length) {
+    const og = document.createElement('optgroup');
+    og.label = '🌐 Online / Natural';
+    online.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name;
+      o.textContent = v.name.replace('Microsoft ', '').replace(' Online (Natural)', ' ⚡');
+      og.appendChild(o);
+    });
+    voiceSelect.appendChild(og);
+  }
+  if (local.length) {
+    const lg = document.createElement('optgroup');
+    lg.label = '💻 Local / Built-in';
+    local.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name;
+      o.textContent = v.name.replace('Microsoft ', '');
+      lg.appendChild(o);
+    });
+    voiceSelect.appendChild(lg);
+  }
+
+  // Restore saved voice
+  if (currentVoice) {
+    voiceSelect.value = currentVoice;
+  }
+  updateVoiceDisplay();
+}
+
+function updateVoiceDisplay() {
+  const v = voices.find(v => v.name === voiceSelect.value);
+  voiceName.textContent = v ? v.name.replace('Microsoft ', '') : 'No voice';
+}
+
+synth.addEventListener('voiceschanged', loadVoices);
+loadVoices();
+
+// TEXT CHUNKING
+function chunkText(text, size) {
+  if (size === 0 || !size) return [text];
+  // Split on sentence boundaries
+  const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) || [text];
+  const result = [];
+  for (let i = 0; i < sentences.length; i += size) {
+    result.push(sentences.slice(i, i + size).join(''));
+  }
+  return result.filter(c => c.trim());
+}
+
+// SPEAK
+function speak() {
+  const text = textInput.value.trim();
+  if (!text) return;
+
+  // Save to history
+  saveToHistory(text);
+
+  synth.cancel();
+  chunks = chunkText(text, parseInt(chunkSelect.value));
+  totalChunks = chunks.length;
+  currentChunk = 0;
+  isPlaying = true;
+  isPaused = false;
+  startTime = Date.now();
+  elapsedWhenPaused = 0;
+  playBtn.textContent = '⏸';
+  playBtn.classList.add('speaking');
+  speakChunk();
+}
+
+function speakChunk() {
+  if (currentChunk >= totalChunks) {
+    stopSpeaking();
+    return;
+  }
+
+  const utt = new SpeechSynthesisUtterance(chunks[currentChunk]);
+  const v = voices.find(v => v.name === voiceSelect.value);
+  if (v) utt.voice = v;
+  utt.rate = parseFloat(rateRange.value);
+  utt.pitch = parseFloat(pitchRange.value);
+  utt.volume = parseFloat(volRange.value);
+
+  utt.onend = () => {
+    currentChunk++;
+    if (isPlaying && !isPaused) {
+      speakChunk();
+    }
+  };
+
+  utt.onerror = (e) => {
+    if (e.error !== 'canceled') {
+      currentChunk++;
+      if (isPlaying) speakChunk();
+    }
+  };
+
+  synth.speak(utt);
+  updateProgress();
+}
+
+function stopSpeaking() {
+  synth.cancel();
+  isPlaying = false;
+  isPaused = false;
+  playBtn.textContent = '▶';
+  playBtn.classList.remove('speaking');
+  progressFill.style.width = '0%';
+  timeDisplay.textContent = '0:00 / 0:00';
+}
+
+function togglePlay() {
+  if (!isPlaying) {
+    speak();
+  } else if (isPaused) {
+    isPaused = false;
+    synth.resume();
+    playBtn.textContent = '⏸';
+    playBtn.classList.add('speaking');
+    startTime = Date.now();
+  } else {
+    isPaused = true;
+    synth.pause();
+    elapsedWhenPaused += (Date.now() - startTime) / 1000;
+    playBtn.textContent = '▶';
+    playBtn.classList.remove('speaking');
+  }
+}
+
+// PROGRESS TRACKING
+function updateProgress() {
+  if (!isPlaying) return;
+  const pct = totalChunks > 0 ? (currentChunk / totalChunks) * 100 : 0;
+  progressFill.style.width = pct + '%';
+
+  const elapsed = elapsedWhenPaused + (isPaused ? 0 : (Date.now() - startTime) / 1000);
+  const rate = parseFloat(rateRange.value);
+  const totalChars = textInput.value.length;
+  const charsPerSec = 15 * rate; // rough estimate
+  const estTotal = totalChars / charsPerSec;
+
+  timeDisplay.textContent = formatTime(elapsed) + ' / ' + formatTime(estTotal);
+
+  if (isPlaying) requestAnimationFrame(updateProgress);
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+// HISTORY
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem('nerve-tts-history') || '[]');
+  } catch(e) { return []; }
+}
+
+function saveToHistory(text) {
+  const hist = getHistory();
+  const title = text.substring(0, 60).replace(/\n/g, ' ') + (text.length > 60 ? '...' : '');
+  const entry = {
+    id: Date.now(),
+    title: title,
+    text: text,
+    date: new Date().toISOString(),
+    chars: text.length
+  };
+
+  // Don't add duplicate of most recent
+  if (hist.length && hist[0].text === text) return;
+
+  hist.unshift(entry);
+  // Keep last 10
+  if (hist.length > 10) hist.length = 10;
+  localStorage.setItem('nerve-tts-history', JSON.stringify(hist));
+  renderHistory();
+}
+
+function renderHistory() {
+  const hist = getHistory();
+  if (!hist.length) {
+    historyList.innerHTML = '<div class="history-empty">No scripts yet</div>';
+    return;
+  }
+  historyList.innerHTML = hist.map(h => `
+    <div class="history-item" data-id="${h.id}">
+      <div class="history-item-title">${escHtml(h.title)}</div>
+      <div class="history-item-meta">${new Date(h.date).toLocaleDateString()} · ${h.chars} chars</div>
+    </div>
+  `).join('');
+
+  historyList.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const entry = hist.find(h => h.id === parseInt(el.dataset.id));
+      if (entry) {
+        textInput.value = entry.text;
+        updateCharCount();
+        closeAllPanels();
+      }
+    });
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// PANEL TOGGLING
+function closeAllPanels() {
+  settingsPanel.classList.remove('open');
+  historyPanel.classList.remove('open');
+  overlay.classList.remove('show');
+  settingsToggle.classList.remove('active');
+  historyToggle.classList.remove('active');
+}
+
+settingsToggle.addEventListener('click', () => {
+  const isOpen = settingsPanel.classList.contains('open');
+  closeAllPanels();
+  if (!isOpen) {
+    settingsPanel.classList.add('open');
+    overlay.classList.add('show');
+    settingsToggle.classList.add('active');
+  }
+});
+
+settingsClose.addEventListener('click', closeAllPanels);
+
+historyToggle.addEventListener('click', () => {
+  const isOpen = historyPanel.classList.contains('open');
+  closeAllPanels();
+  if (!isOpen) {
+    historyPanel.classList.add('open');
+    overlay.classList.add('show');
+    historyToggle.classList.add('active');
+    renderHistory();
+  }
+});
+
+overlay.addEventListener('click', closeAllPanels);
+
+clearHistory.addEventListener('click', () => {
+  localStorage.removeItem('nerve-tts-history');
+  renderHistory();
+});
+
+// SPEED BUTTON
+speedBtn.addEventListener('click', () => {
+  speedIdx = (speedIdx + 1) % speeds.length;
+  const spd = speeds[speedIdx];
+  speedBtn.textContent = spd + '×';
+  rateRange.value = spd;
+  rateVal.textContent = spd;
+  saveSettings();
+});
+
+// RANGE INPUTS
+rateRange.addEventListener('input', () => { rateVal.textContent = parseFloat(rateRange.value).toFixed(2); saveSettings(); });
+pitchRange.addEventListener('input', () => { pitchVal.textContent = parseFloat(pitchRange.value).toFixed(2); saveSettings(); });
+volRange.addEventListener('input', () => { volVal.textContent = parseFloat(volRange.value).toFixed(2); saveSettings(); });
+voiceSelect.addEventListener('change', () => { updateVoiceDisplay(); saveSettings(); });
+chunkSelect.addEventListener('change', saveSettings);
+
+// PLAY BUTTON
+playBtn.addEventListener('click', togglePlay);
+
+// CHAR COUNT
+function updateCharCount() {
+  charCount.textContent = textInput.value.length + ' chars · ' + APP_VERSION;
+}
+textInput.addEventListener('input', updateCharCount);
+
+// KEYBOARD
+textInput.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault();
+    if (isPlaying) stopSpeaking();
+    speak();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (settingsPanel.classList.contains('open') || historyPanel.classList.contains('open')) {
+      closeAllPanels();
+    } else if (isPlaying) {
+      stopSpeaking();
+    }
+  }
+});
+
+// PROGRESS CLICK TO SEEK
+progressWrap.addEventListener('click', (e) => {
+  if (!isPlaying || !totalChunks) return;
+  const rect = progressWrap.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  const targetChunk = Math.floor(pct * totalChunks);
+  synth.cancel();
+  currentChunk = targetChunk;
+  speakChunk();
+});
+
+// CLEANUP
+window.addEventListener('beforeunload', () => synth.cancel());
+
+// INIT
+loadSettings();
+renderHistory();
+updateCharCount();
+textInput.focus();
+
+// SERVICE WORKER
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

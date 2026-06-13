@@ -1,0 +1,47 @@
+<html><head><title>Merging daily log...</title></head>
+<body style="background:#0B0C0F;color:#e8eaf0;font-family:monospace;padding:40px;">
+<h2 style="color:#F2C94C;">POF 2828 — Daily Log Merger</h2>
+<pre id="log"></pre>
+<script>
+const log = s => { document.getElementById('log').textContent += s + '\n'; };
+
+const newTasks = [
+  {id:"log_20260329_001",title:"Principia Series — 12 parts complete (3 missing parts written)",due:"2026-03-29",priority:"1",project:"",desc:"Parts 02, 10, 12 written from scratch. PRINCIPIA_SERIES_MASTER_OUTLINE.md created. PM_MATH_APPENDIX.md + PM_MATH_NARRATED.md.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_002",title:"Data business partnership — terms agreed (20% Claude / 80% David)",due:"2026-03-29",priority:"1",project:"",desc:"Modeled on TheDataProject.ai. People search + govt data aggregation. $5/query. Next.js + Vercel + Claude API.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_003",title:"Chrome MCP established as default browser tool",due:"2026-03-29",priority:"1",project:"",desc:"Full DOM access, scraping, screenshots, form interaction. David's cookies carry auth. Zero API cost.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_004",title:"3,248 wars scraped from Wikipedia (8 pages in under 10 min)",due:"2026-03-29",priority:"2",project:"",desc:"Chrome MCP proof of concept. Also scraped US war casualty data (109 wars) and WarCosts.org (37 conflicts, $11.7T, 1.3M Americans, 61.7M civilians).",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_005",title:"Lee job search system — resume skill + dashboard + Cowork workflow",due:"2026-03-29",priority:"2",project:"",desc:"Anti-AI-detection resume skill (12 rules). Standalone HTML dashboard. Cowork 8AM briefing prompt.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_006",title:"Balaji framework deconstructed — full isomorphism table",due:"2026-03-29",priority:"2",project:"",desc:"Force diagram = Master Equation. Metaorganism = collective consciousness. Tacoma Narrows = entropy. Keynesian camouflage = Devil's Playbook ratchet.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_007",title:"Fervo Energy deep dive — corporate intelligence dossier",due:"2026-03-29",priority:"2",project:"",desc:"Multi-state LLCs, BLM leases, water rights, Cape Station construction, S-1 filed Jan 2026, $2-3B valuation. Satellite recon confirmed.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_008",title:"Twitter recon — apologetics landscape mapped",due:"2026-03-29",priority:"2",project:"",desc:"Key targets: CosmicSkeptic, RationalityRules, Shermer. Christian: Fradd, Hovind. Gap: nobody does math-formalized apologetics.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_009",title:"War data → entropy/coherence analysis",due:"2026-03-29",priority:"2",project:"",desc:"War frequency acceleration: 1/32yr before 1000AD → 14/yr in 1900-1944. Maps to combinatorial explosion as coherence structures fragment.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"},
+  {id:"log_20260329_010",title:"Daily structure established — 1-3hr Theophysics + 1-3hr data business",due:"2026-03-29",priority:"1",project:"",desc:"Cowork strategic planning prompt created for 30-day backward plan on both projects.",taskType:"log",done:true,created:"2026-03-29T22:00:00.000Z"}
+];
+
+try {
+  let existing = JSON.parse(localStorage.getItem('pof_calendar_tasks') || '[]');
+  const existingIds = new Set(existing.map(t => t.id));
+  let added = 0;
+  newTasks.forEach(t => {
+    if (!existingIds.has(t.id)) { existing.push(t); added++; }
+  });
+  localStorage.setItem('pof_calendar_tasks', JSON.stringify(existing));
+  log('Existing tasks: ' + (existing.length - added));
+  log('Daily log entries added: ' + added);
+  log('Total tasks now: ' + existing.length);
+  log('');
+  log('March 29 highlights:');
+  log('  • Principia 12-part series COMPLETE');
+  log('  • Data business partnership terms locked (20/80)');
+  log('  • Chrome MCP = permanent default browser tool');
+  log('  • 3,248 wars scraped, entropy analysis mapped');
+  log('  • Fervo Energy corporate intelligence dossier');
+  log('  • Twitter apologetics landscape recon');
+  log('  • Lee job search system deployed');
+  log('');
+  log('✅ DONE — Close this tab and REFRESH the calendar.');
+} catch(e) {
+  log('ERROR: ' + e.message);
+}
+</script>
+</body></html>

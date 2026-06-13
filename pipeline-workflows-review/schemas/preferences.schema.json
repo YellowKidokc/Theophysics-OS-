@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pipeline Preferences",
+  "type": "object",
+  "required": ["profile"],
+  "properties": {
+    "profile": { "type": "string" },
+    "inherits": { "type": "string" },
+    "model_lanes": { "type": "object" },
+    "text_cleanup": { "type": "object" },
+    "run_behavior": { "type": "object" },
+    "output_style": { "type": "object" },
+    "routing": { "type": "object" },
+    "security": { "type": "object" }
+  },
+  "additionalProperties": true
+}

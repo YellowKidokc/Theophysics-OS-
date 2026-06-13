@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Nexus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#08080c;--surface:#0e0e14;--surface2:#151520;
+  --card:#13131b;--card-hover:#1a1a24;--card-sel:#161625;
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
+  --text:#b8bcc6;--dim:#6a6a80;--bright:#dde0e8;--ghost:rgba(255,255,255,.12);
+  --gold:#e8a912;--gold-dim:rgba(232,169,18,.10);
+  --green:#2ecc8e;--green-dim:rgba(46,204,142,.10);
+  --red:#d44;--red-dim:rgba(221,68,68,.08);
+  --blue:#4F8EF7;--blue-dim:rgba(79,142,247,.10);
+  --purple:#9B7FE8;--purple-dim:rgba(155,127,232,.10);
+  --cyan:#4ac4d4;--cyan-dim:rgba(74,196,212,.08);
+  --orange:#F6821F;--orange-dim:rgba(246,130,31,.10);
+  /* Section accent colors */
+  --c-knowledge:#6e8efb;--c-knowledge-dim:rgba(110,142,251,.10);
+  --c-goals:#f7b955;--c-goals-dim:rgba(247,185,85,.10);
+  --c-input:#5de8b5;--c-input-dim:rgba(93,232,181,.10);
+  --c-synth:#c084fc;--c-synth-dim:rgba(192,132,252,.10);
+  --c-output:#f87171;--c-output-dim:rgba(248,113,113,.10);
+
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --radius:6px;--radius-lg:10px;
+  --sidebar-w:220px;--sidebar-collapsed:52px;
+  --topbar-h:44px;
+}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#222230;border-radius:3px;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* ═══════ TOPBAR ═══════ */
+.topbar{
+  height:var(--topbar-h);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;background:var(--surface);
+  border-bottom:1px solid var(--border);z-index:50;
+}
+.tb-left{display:flex;align-items:center;gap:10px;}
+.tb-toggle{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;padding:4px 6px;border-radius:4px;transition:all .12s;}
+.tb-toggle:hover{color:var(--bright);background:var(--surface2);}
+.tb-brand{display:flex;align-items:center;gap:8px;}
+.tb-logo{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--c-knowledge),var(--c-synth));display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:700;font-size:11px;color:#fff;}
+.tb-name{font-weight:600;font-size:14px;color:var(--bright);}
+.tb-right{display:flex;align-items:center;gap:12px;}
+.tb-status{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--dim);}
+.tb-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+.tb-time{font-family:var(--mono);font-size:11px;color:var(--dim);}
+
+/* ═══════ MAIN LAYOUT ═══════ */
+.main{flex:1;display:flex;overflow:hidden;}
+
+/* ═══════ SIDEBAR ═══════ */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:width .2s ease;
+}
+body.collapsed .sidebar{width:var(--sidebar-collapsed);}
+
+.sb-section{padding:6px 8px 2px;}
+.sb-label{
+  font-family:var(--mono);font-size:9px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--dim);padding:6px 8px 4px;
+  white-space:nowrap;overflow:hidden;
+}
+body.collapsed .sb-label{opacity:0;height:0;padding:0;margin:0;}
+
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:var(--radius);
+  cursor:pointer;transition:all .12s;color:var(--dim);
+  white-space:nowrap;overflow:hidden;position:relative;
+  border-left:3px solid transparent;margin:1px 4px;
+}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{color:var(--bright);background:var(--surface2);}
+.sb-item .sb-icon{
+  width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.sb-item .sb-text{font-size:12px;font-weight:500;}
+body.collapsed .sb-text{opacity:0;width:0;}
+body.collapsed .sb-item{justify-content:center;padding:10px 0;margin:1px 6px;}
+
+/* Active indicator per section */
+.sb-item[data-view="knowledge"].active{border-left-color:var(--c-knowledge);color:var(--c-knowledge);}
+.sb-item[data-view="goals"].active{border-left-color:var(--c-goals);color:var(--c-goals);}
+.sb-item[data-view="input"].active{border-left-color:var(--c-input);color:var(--c-input);}
+.sb-item[data-view="synthesize"].active{border-left-color:var(--c-synth);color:var(--c-synth);}
+.sb-item[data-view="output"].active{border-left-color:var(--c-output);color:var(--c-output);}
+.sb-item[data-view="clipboard"].active{border-left-color:var(--gold);color:var(--gold);}
+.sb-item[data-view="files"].active{border-left-color:var(--cyan);color:var(--cyan);}
+.sb-item[data-view="calendar"].active{border-left-color:var(--orange);color:var(--orange);}
+.sb-item[data-view="settings"].active{border-left-color:var(--dim);color:var(--text);}
+
+.sb-divider{height:1px;background:var(--border);margin:6px 12px;}
+body.collapsed .sb-divider{margin:6px 8px;}
+
+.sb-footer{
+  margin-top:auto;padding:10px 12px;
+  border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:9px;color:var(--ghost);
+  white-space:nowrap;overflow:hidden;
+}
+body.collapsed .sb-footer{text-align:center;padding:10px 4px;}
+body.collapsed .sb-footer span{display:none;}
+
+/* ═══════ CONTENT AREA ═══════ */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;background:var(--bg);}
+.view{display:none;}
+.view.active{display:block;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* ═══════ VIEW HEADER ═══════ */
+.view-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.view-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.view-title{font-size:18px;font-weight:700;color:var(--bright);}
+.view-desc{font-size:12px;color:var(--dim);margin-top:2px;}
+
+/* ═══════ CARDS / PANELS ═══════ */
+.grid{display:grid;gap:14px;}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:1fr 1fr 1fr;}
+.grid-2-1{grid-template-columns:2fr 1fr;}
+.grid-1-2{grid-template-columns:1fr 2fr;}
+@media(max-width:900px){.grid-2,.grid-3,.grid-2-1,.grid-1-2{grid-template-columns:1fr;}}
+
+.panel{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.panel:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.25);}
+.panel-header{display:flex;align-items:center;justify-content:space-between;}
+.panel-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1.2px;}
+.panel-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--dim);}
+
+/* ═══════ METRIC ROW ═══════ */
+.metrics{display:flex;gap:8px;}
+.metric{flex:1;background:var(--surface2);border-radius:var(--radius);padding:10px;}
+.metric-val{font-weight:700;font-size:18px;}
+.metric-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-top:2px;}
+
+/* ═══════ ITEM ROWS ═══════ */
+.items{display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;}
+.item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:var(--radius);
+  background:rgba(255,255,255,.01);border:1px solid transparent;
+  cursor:pointer;transition:all .12s;
+}
+.item:hover{background:rgba(255,255,255,.025);border-color:var(--border);}
+.item-bar{width:3px;height:20px;border-radius:2px;flex-shrink:0;opacity:.5;}
+.item-body{flex:1;min-width:0;}
+.item-title{font-size:12px;font-weight:500;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-meta{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:1px;}
+.item-badge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;flex-shrink:0;}
+
+/* Badge colors */
+.bg-green{background:var(--green-dim);color:var(--green);}
+.bg-gold{background:var(--gold-dim);color:var(--gold);}
+.bg-blue{background:var(--blue-dim);color:var(--blue);}
+.bg-purple{background:var(--purple-dim);color:var(--purple);}
+.bg-red{background:var(--red-dim);color:var(--red);}
+.bg-cyan{background:var(--cyan-dim);color:var(--cyan);}
+
+/* Section-colored metric values */
+.knowledge .metric-val{color:var(--c-knowledge);}
+.goals .metric-val{color:var(--c-goals);}
+.input .metric-val{color:var(--c-input);}
+.synth .metric-val{color:var(--c-synth);}
+.output .metric-val{color:var(--c-output);}
+
+/* ═══════ PLACEHOLDER ═══════ */
+.placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:400px;text-align:center;color:var(--ghost);
+}
+.placeholder-icon{font-size:36px;margin-bottom:12px;opacity:.3;}
+.placeholder-title{font-size:16px;font-weight:600;color:var(--dim);margin-bottom:6px;}
+.placeholder-desc{font-size:12px;color:var(--ghost);max-width:360px;line-height:1.6;}
+
+/* ═══════ PROGRESS BARS ═══════ */
+.progress{width:100%;height:3px;background:var(--surface2);border-radius:2px;margin-top:4px;}
+.progress-fill{height:100%;border-radius:2px;}
+
+/* ═══════ UNIVERSAL CARD (TypingMind pattern) ═══════ */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+@media(max-width:700px){.card-grid{grid-template-columns:1fr;}}
+
+.ucard{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:16px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:8px;
+}
+.ucard:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.25);transform:translateY(-1px);}
+.ucard-title{font-size:14px;font-weight:600;color:var(--bright);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ucard-desc{font-size:11px;color:var(--dim);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ucard-tags{display:flex;gap:4px;flex-wrap:wrap;}
+.ucard-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;letter-spacing:.3px;}
+.ucard-actions{
+  display:flex;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border);
+  align-items:center;
+}
+.ucard-btn{
+  width:36px;height:36px;border-radius:var(--radius);border:1px solid var(--border);
+  background:transparent;color:var(--dim);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+  flex-shrink:0;
+}
+.ucard-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface2);}
+.ucard-btn:active{transform:scale(.92);}
+.ucard-btn.starred{color:var(--gold);border-color:rgba(232,169,18,.25);}
+.ucard-btn.primary{
+  flex:1;max-width:none;width:auto;font-size:11px;font-family:var(--mono);font-weight:500;
+  background:var(--green-dim);border-color:rgba(46,204,142,.2);color:var(--green);
+  letter-spacing:.5px;
+}
+.ucard-btn.primary:hover{background:rgba(46,204,142,.15);}
+.ucard-btn.danger:hover{color:var(--red);border-color:rgba(221,68,68,.3);background:var(--red-dim);}
+
+/* ═══════ MOBILE: full-screen views ═══════ */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:var(--topbar-h);bottom:0;z-index:40;width:var(--sidebar-w);transform:translateX(-100%);transition:transform .25s ease;}
+  body.sb-open .sidebar{transform:translateX(0);}
+  body.collapsed .sidebar{transform:translateX(-100%);}
+  .sb-overlay{display:none;position:fixed;inset:0;top:var(--topbar-h);background:rgba(0,0,0,.5);z-index:35;}
+  body.sb-open .sb-overlay{display:block;}
+  .content{padding:14px;}
+  .ucard-btn{width:44px;height:44px;font-size:18px;}
+  .ucard-btn.primary{height:44px;}
+}
+</style>
+</head>
+<body>
+<div class="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- ═══════ TOPBAR ═══════ -->
+<div class="topbar">
+  <div class="tb-left">
+    <button class="tb-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+    <div class="tb-brand">
+      <div class="tb-logo">N</div>
+      <span class="tb-name">Nexus</span>
+    </div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-status"><div class="tb-dot"></div><span>Engine Active</span></div>
+    <span class="tb-time" id="clock"></span>
+  </div>
+</div>
+
+<!-- ═══════ MAIN LAYOUT ═══════ -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Cognitive</div>
+      <div class="sb-item active" data-view="knowledge" onclick="go('knowledge')">
+        <span class="sb-icon">◈</span><span class="sb-text">Knowledge</span>
+      </div>
+      <div class="sb-item" data-view="goals" onclick="go('goals')">
+        <span class="sb-icon">◎</span><span class="sb-text">Goals</span>
+      </div>
+      <div class="sb-item" data-view="input" onclick="go('input')">
+        <span class="sb-icon">▹</span><span class="sb-text">Input</span>
+      </div>
+      <div class="sb-item" data-view="synthesize" onclick="go('synthesize')">
+        <span class="sb-icon">⬡</span><span class="sb-text">Synthesize</span>
+      </div>
+      <div class="sb-item" data-view="output" onclick="go('output')">
+        <span class="sb-icon">◇</span><span class="sb-text">Output</span>
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-label">Tools</div>
+      <div class="sb-item" data-view="clipboard" onclick="go('clipboard')">
+        <span class="sb-icon">📎</span><span class="sb-text">Clipboard</span>
+      </div>
+      <div class="sb-item" data-view="files" onclick="go('files')">
+        <span class="sb-icon">📁</span><span class="sb-text">Files</span>
+      </div>
+      <div class="sb-item" data-view="calendar" onclick="go('calendar')">
+        <span class="sb-icon">📅</span><span class="sb-text">Calendar</span>
+      </div>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-section">
+      <div class="sb-item" data-view="settings" onclick="go('settings')">
+        <span class="sb-icon">⚙</span><span class="sb-text">Settings</span>
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <span>v0.2.0 · Cloudflare</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT AREA -->
+  <div class="content">
+
+    <!-- ═══════ KNOWLEDGE VIEW ═══════ -->
+    <div class="view active" id="v-knowledge">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--c-knowledge-dim);color:var(--c-knowledge);">◈</div>
+        <div><div class="view-title">Knowledge Surface</div>
+        <div class="view-desc">What changed, what arrived, what emerged</div></div>
+      </div>
+
+      <div class="grid grid-2 knowledge" style="margin-bottom:14px;">
+        <!-- DELTA -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label" style="color:var(--c-knowledge);">What Changed Today</span>
+            <span class="panel-badge">Mar 13</span>
+          </div>
+          <div class="metrics">
+            <div class="metric"><div class="metric-val">12</div><div class="metric-lbl">Edited</div></div>
+            <div class="metric"><div class="metric-val">8</div><div class="metric-lbl">Links</div></div>
+            <div class="metric"><div class="metric-val">3</div><div class="metric-lbl">New</div></div>
+            <div class="metric"><div class="metric-val">2</div><div class="metric-lbl">Refined</div></div>
+          </div>
+          <div class="items">
+            <div class="item"><div class="item-bar" style="background:var(--c-knowledge)"></div><div class="item-body"><div class="item-title">Symmetry Pair Analysis (Laws 1↔8)</div><div class="item-meta">Added entropy-grace coupling cross-ref · 2h ago</div></div><span class="item-badge bg-blue">edit</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-input)"></div><div class="item-body"><div class="item-title">189th Axiom — PERSONHOOD</div><div class="item-meta">Agency, intentionality, relational capacity · 4h ago</div></div><span class="item-badge bg-green">new</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-synth)"></div><div class="item-body"><div class="item-title">D2.2 Chi Field → Master Equation</div><div class="item-meta">Unblocking 20+ downstream axioms · 5h ago</div></div><span class="item-badge bg-purple">link</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-knowledge)"></div><div class="item-body"><div class="item-title">Constitutional Binding Contract v3</div><div class="item-meta">All 10 axiom edits complete · 8h ago</div></div><span class="item-badge bg-blue">edit</span></div>
+          </div>
+        </div>
+
+        <!-- INGESTED -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label" style="color:var(--c-input);">Recently Ingested</span>
+            <span class="panel-badge">5 today</span>
+          </div>
+          <div class="items">
+            <div class="item"><div class="item-bar" style="background:var(--c-input)"></div><div class="item-body"><div class="item-title">Architecture of Debt v3.pdf</div><div class="item-meta">PDF · Summarized + tagged</div></div><span class="item-badge bg-blue">indexed</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-input)"></div><div class="item-body"><div class="item-title">Recovery Validation Victorian.pdf</div><div class="item-meta">PDF · Extracting claims</div></div><span class="item-badge bg-gold">processing</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-input)"></div><div class="item-body"><div class="item-title">Voice memo: Entropy-will coupling (3:42)</div><div class="item-meta">Whisper transcription · 5h ago</div></div><span class="item-badge bg-green">new</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-input)"></div><div class="item-body"><div class="item-title">4 new PEAR-adjacent citations</div><div class="item-meta">n8n digest · Auto-tagged</div></div><span class="item-badge bg-blue">indexed</span></div>
+            <div class="item"><div class="item-bar" style="background:var(--c-input)"></div><div class="item-body"><div class="item-title">noosphere.princeton.edu</div><div class="item-meta">Saved link · Relevance: HIGH</div></div><span class="item-badge bg-gold">queued</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENGINE DISCOVERIES -->
+      <div class="grid grid-2-1">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label" style="color:var(--c-synth);">Engine Discoveries</span>
+            <span class="panel-badge">3 this week</span>
+          </div>
+          <div class="items">
+            <div class="item" style="border-left:2px solid var(--c-synth);padding-left:12px;">
+              <div class="item-body">
+                <div class="item-title">Fractal coherence metric converges at scale 10⁻³</div>
+                <div class="item-meta">Three independent derivation paths confirm · HIGH · Survived /EAST · 4h ago</div>
+              </div><span class="item-badge bg-green">high</span>
+            </div>
+            <div class="item" style="border-left:2px solid var(--c-synth);padding-left:12px;">
+              <div class="item-body">
+                <div class="item-title">GCP event correlation strengthens with LLC normalization</div>
+                <div class="item-meta">Sigma value may shift when normalized · MED · Needs /VERIFY · 1d ago</div>
+              </div><span class="item-badge bg-gold">med</span>
+            </div>
+
+            <div class="item" style="border-left:2px solid var(--c-synth);padding-left:12px;">
+              <div class="item-body">
+                <div class="item-title">Will-entropy coupling may explain PROP-COSMOS outlier</div>
+                <div class="item-meta">Speculative · LOW · /PROBE pending · 2d ago</div>
+              </div><span class="item-badge bg-red">low</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONCEPT MAP placeholder -->
+        <div class="panel" style="min-height:250px;">
+          <div class="panel-header">
+            <span class="panel-label" style="color:var(--c-knowledge);">Concept Map</span>
+            <span class="panel-badge">24 clusters</span>
+          </div>
+          <canvas id="conceptGraph" style="flex:1;width:100%;border-radius:var(--radius);"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ GOALS VIEW ═══════ -->
+    <div class="view" id="v-goals">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--c-goals-dim);color:var(--c-goals);">◎</div>
+        <div><div class="view-title">Goals</div>
+        <div class="view-desc">Strategic → Tactical → Daily</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">◎</div><div class="placeholder-title">Goals Surface</div><div class="placeholder-desc">Hierarchical goal tracker with progress. Calendar and Kanban views. Filters what the other four sections prioritize.</div></div>
+    </div>
+
+    <!-- ═══════ INPUT VIEW ═══════ -->
+    <div class="view" id="v-input">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--c-input-dim);color:var(--c-input);">▹</div>
+        <div><div class="view-title">Input</div>
+        <div class="view-desc">Raw signal queue — RSS, email digests, voice memos, saved links</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">▹</div><div class="placeholder-title">Input Queue</div><div class="placeholder-desc">Everything before it becomes knowledge. Processing pipeline with auto-tagging via n8n.</div></div>
+    </div>
+
+    <!-- ═══════ SYNTHESIZE VIEW ═══════ -->
+    <div class="view" id="v-synthesize">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--c-synth-dim);color:var(--c-synth);">⬡</div>
+        <div><div class="view-title">Synthesize</div>
+        <div class="view-desc">Theorist / Critic engine — where input meets knowledge under goal-pressure</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">⬡</div><div class="placeholder-title">Cognitive Engine</div><div class="placeholder-desc">Generate → Debate → Evolve. Hypothesis testing, cross-domain pattern detection, autonomous knowledge synthesis.</div></div>
+    </div>
+
+    <!-- ═══════ OUTPUT VIEW ═══════ -->
+    <div class="view" id="v-output">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--c-output-dim);color:var(--c-output);">◇</div>
+        <div><div class="view-title">Output</div>
+        <div class="view-desc">What you've shipped — publications, code, decisions, artifacts</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">◇</div><div class="placeholder-title">Output Record</div><div class="placeholder-desc">Publication pipeline, shipped artifacts, feedback loop to Goals and Knowledge.</div></div>
+    </div>
+
+    <!-- ═══════ CLIPBOARD VIEW (card pattern demo) ═══════ -->
+    <div class="view" id="v-clipboard">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--gold-dim);color:var(--gold);">📎</div>
+        <div><div class="view-title">Clipboard</div>
+        <div class="view-desc">Cross-session clipboard with fast slots, pins, and tags</div></div>
+      </div>
+      <div class="card-grid">
+        <div class="ucard">
+          <div class="ucard-title">WORKING MODE: STRUCTURAL COLL...</div>
+          <div class="ucard-desc">Working mode configuration for the structural collaboration framework with multi-agent orchestration</div>
+          <div class="ucard-tags"><span class="ucard-tag bg-gold">pinned</span><span class="ucard-tag bg-purple">slot #1</span></div>
+          <div class="ucard-actions">
+            <button class="ucard-btn starred" title="Pinned">★</button>
+            <button class="ucard-btn" title="Copy">📋</button>
+            <button class="ucard-btn" title="Edit">✎</button>
+            <button class="ucard-btn" title="Share">↗</button>
+            <button class="ucard-btn danger" title="Delete">✕</button>
+            <button class="ucard-btn primary">Use</button>
+          </div>
+        </div>
+        <div class="ucard">
+          <div class="ucard-title">claude --dangerously-skip-permissions</div>
+          <div class="ucard-desc">Claude Code CLI launch command with permissions bypass flag</div>
+          <div class="ucard-tags"><span class="ucard-tag bg-cyan">code</span></div>
+          <div class="ucard-actions">
+            <button class="ucard-btn" title="Pin">☆</button>
+            <button class="ucard-btn" title="Copy">📋</button>
+            <button class="ucard-btn" title="Edit">✎</button>
+            <button class="ucard-btn" title="Share">↗</button>
+            <button class="ucard-btn danger" title="Delete">✕</button>
+            <button class="ucard-btn primary">Use</button>
+          </div>
+        </div>
+        <div class="ucard">
+          <div class="ucard-title">C:\Users\lowes\AppData\Roaming\Mic...</div>
+          <div class="ucard-desc">File path to AI-HUB startup shortcut in Windows Startup folder</div>
+          <div class="ucard-tags"><span class="ucard-tag bg-blue">path</span></div>
+          <div class="ucard-actions">
+            <button class="ucard-btn" title="Pin">☆</button>
+            <button class="ucard-btn" title="Copy">📋</button>
+            <button class="ucard-btn" title="Edit">✎</button>
+            <button class="ucard-btn" title="Share">↗</button>
+            <button class="ucard-btn danger" title="Delete">✕</button>
+            <button class="ucard-btn primary">Use</button>
+          </div>
+        </div>
+        <div class="ucard">
+          <div class="ucard-title">Master Equation Derivation Notes</div>
+          <div class="ucard-desc">χ=∭(G·M·E·S·T·K·R·Q·F·C)dxdydt with LLC normalization applied to ten-law symmetry framework</div>
+          <div class="ucard-tags"><span class="ucard-tag bg-gold">pinned</span><span class="ucard-tag bg-purple">slot #3</span><span class="ucard-tag bg-cyan">framework</span></div>
+          <div class="ucard-actions">
+            <button class="ucard-btn starred" title="Pinned">★</button>
+            <button class="ucard-btn" title="Copy">📋</button>
+            <button class="ucard-btn" title="Edit">✎</button>
+            <button class="ucard-btn" title="Share">↗</button>
+            <button class="ucard-btn danger" title="Delete">✕</button>
+            <button class="ucard-btn primary">Use</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ FILES VIEW ═══════ -->
+    <div class="view" id="v-files">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--cyan-dim);color:var(--cyan);">📁</div>
+        <div><div class="view-title">Files</div>
+        <div class="view-desc">Documents, pictures, audio, video — synced to R2</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">📁</div><div class="placeholder-title">Files</div><div class="placeholder-desc">3-layer drill-down. Local-first, R2 sync in background. Phase 3 in roadmap.</div></div>
+    </div>
+
+    <!-- ═══════ CALENDAR VIEW ═══════ -->
+    <div class="view" id="v-calendar">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--orange-dim);color:var(--orange);">📅</div>
+        <div><div class="view-title">Calendar</div>
+        <div class="view-desc">Month view, list view, kanban — tasks from all sources</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">📅</div><div class="placeholder-title">Calendar</div><div class="placeholder-desc">Month grid + Todoist-style list + Kanban board. Phase 4 in roadmap.</div></div>
+    </div>
+
+    <!-- ═══════ SETTINGS VIEW ═══════ -->
+    <div class="view" id="v-settings">
+      <div class="view-header">
+        <div class="view-icon" style="background:var(--surface2);color:var(--dim);">⚙</div>
+        <div><div class="view-title">Settings</div>
+        <div class="view-desc">Theme, connections, sync status, API keys</div></div>
+      </div>
+      <div class="placeholder"><div class="placeholder-icon">⚙</div><div class="placeholder-title">Settings</div><div class="placeholder-desc">Configuration panel. Bridge status, Cloudflare sync, Postgres/Obsidian/n8n connections.</div></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ═══════ NAVIGATION ═══════
+function go(view) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.querySelector(`.sb-item[data-view="${view}"]`).classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('v-' + view).classList.add('active');
+  localStorage.setItem('nexus-view', view);
+}
+
+// Restore last view
+const saved = localStorage.getItem('nexus-view');
+if (saved) { try { go(saved); } catch(e) {} }
+
+// ═══════ SIDEBAR TOGGLE ═══════
+function toggleSidebar() {
+  if (window.innerWidth <= 768) {
+    document.body.classList.toggle('sb-open');
+  } else {
+    document.body.classList.toggle('collapsed');
+    localStorage.setItem('nexus-collapsed', document.body.classList.contains('collapsed'));
+  }
+}
+function closeSidebar() { document.body.classList.remove('sb-open'); }
+// Restore collapsed state (desktop only)
+if (localStorage.getItem('nexus-collapsed') === 'true' && window.innerWidth > 768) document.body.classList.add('collapsed');
+
+// Close sidebar on mobile after navigating
+const origGo = go;
+function go(v) {
+  origGo(v);
+  if (window.innerWidth <= 768) closeSidebar();
+}
+
+// ═══════ CLOCK ═══════
+function tick() {
+  const d = new Date();
+  const t = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  document.getElementById('clock').textContent = t;
+}
+setInterval(tick, 1000); tick();
+
+// ═══════ CONCEPT GRAPH (mini) ═══════
+(function(){
+  const c = document.getElementById('conceptGraph');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const nodes = [
+    {l:'χ',x:.5,y:.4,s:16,c:'110,142,251'},{l:'LLC',x:.5,y:.75,s:12,c:'93,232,181'},
+    {l:'G',x:.2,y:.25,s:8,c:'110,142,251'},{l:'M',x:.35,y:.18,s:7,c:'192,132,252'},
+    {l:'E',x:.65,y:.18,s:7,c:'192,132,252'},{l:'S',x:.8,y:.25,s:7,c:'247,185,85'},
+    {l:'ψ',x:.3,y:.6,s:9,c:'192,132,252'},{l:'Ω',x:.7,y:.6,s:9,c:'248,113,113'},
+    {l:'ε',x:.15,y:.45,s:6,c:'93,232,181'},{l:'ζ',x:.85,y:.45,s:6,c:'93,232,181'},
+    {l:'Gc',x:.5,y:.92,s:7,c:'248,113,113'},
+  ];
+  const edges=[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[1,6],[1,7],[1,10],[2,8],[5,9],[3,4],[6,8],[7,9]];
+  let w,h;
+  function resize(){const r=c.parentElement.getBoundingClientRect();w=c.width=r.width;h=c.height=r.height-30;}
+  function draw(){
+    ctx.clearRect(0,0,w,h);const t=Date.now()/1000;
+    edges.forEach(([a,b])=>{
+      const na=nodes[a],nb=nodes[b];
+      ctx.strokeStyle=`rgba(${na.c},.1)`;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(na.x*w,na.y*h);ctx.lineTo(nb.x*w,nb.y*h);ctx.stroke();
+    });
+    nodes.forEach(n=>{
+      const x=n.x*w+Math.sin(t*.5+n.x*10)*1.5,y=n.y*h+Math.cos(t*.4+n.y*10)*1.5;
+      ctx.beginPath();ctx.arc(x,y,n.s+6,0,Math.PI*2);ctx.fillStyle=`rgba(${n.c},.04)`;ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,n.s,0,Math.PI*2);ctx.fillStyle=`rgba(${n.c},.15)`;ctx.fill();
+      ctx.strokeStyle=`rgba(${n.c},.3)`;ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle=`rgba(${n.c},.8)`;ctx.font=`600 ${Math.max(9,n.s*.7)}px 'DM Sans'`;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(n.l,x,y);
+    });
+    requestAnimationFrame(draw);
+  }
+  new ResizeObserver(resize).observe(c.parentElement);
+  resize();draw();
+})();
+</script>
+</body>
+</html>

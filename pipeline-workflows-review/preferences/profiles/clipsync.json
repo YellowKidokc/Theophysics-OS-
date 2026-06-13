@@ -1,0 +1,19 @@
+{
+  "profile": "clipsync",
+  "inherits": "default",
+  "output_style": {
+    "summary": "short_restore_ready",
+    "format": "html_and_markdown",
+    "links": "relative_only",
+    "tts_friendly": false
+  },
+  "run_behavior": {
+    "dry_run": true,
+    "preserve_originals": true,
+    "stop_for_review_on_quality_fail": true,
+    "continue_to_route_on_ready": true
+  },
+  "routing": {
+    "default_destination": "clipboard_vault"
+  }
+}

@@ -1,0 +1,33 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# WebView2 cache and lock files
+*.WebView2/
+*.WebView2.lock
+
+# Visual Studio / Rider / VSCode
+.vs/
+.vscode/
+*.user
+*.suo
+*.pdb
+*.idb
+
+# Runtime state — never commit
+voice_cache.json
+clips.db
+config.json
+
+# OS junk
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Editor backups
+*.swp
+*.swo
+*~
+
+# Logs
+*.log

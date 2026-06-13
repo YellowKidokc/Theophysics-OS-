@@ -1,0 +1,14 @@
+{
+  "name": "Labor of Love",
+  "short_name": "Labor",
+  "description": "Text-to-Speech engine for scripts, notes, and spoken drafts",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "any",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

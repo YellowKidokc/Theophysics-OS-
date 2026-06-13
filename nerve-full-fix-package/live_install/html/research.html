@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Prophecy Research</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#090b10;
+    --surface:#11151d;
+    --surface-2:#171d28;
+    --line:#232c3b;
+    --text:#e8edf7;
+    --muted:#93a0b8;
+    --blue:#6ea8fe;
+    --cyan:#4fd1c5;
+    --gold:#f6c453;
+    --red:#ff7a7a;
+    --green:#5bd59c;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:'IBM Plex Sans',sans-serif;
+    background:radial-gradient(circle at top right,#172033 0%,#090b10 45%);
+    color:var(--text);
+    height:100vh;
+    overflow:hidden;
+  }
+  .app{
+    display:flex;
+    flex-direction:column;
+    height:100%;
+  }
+  .header{
+    padding:14px 16px 12px;
+    border-bottom:1px solid var(--line);
+    background:rgba(9,11,16,.92);
+    backdrop-filter:blur(10px);
+  }
+  .eyebrow{
+    font:600 10px 'IBM Plex Mono',monospace;
+    letter-spacing:2px;
+    color:var(--gold);
+    text-transform:uppercase;
+  }
+  .title-row{
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-top:4px;
+  }
+  h1{
+    margin:0;
+    font-size:20px;
+    line-height:1.1;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:12px;
+    margin-top:3px;
+  }
+  .meta{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .pill{
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.03);
+    color:var(--muted);
+    border-radius:999px;
+    padding:5px 9px;
+    font:500 10px 'IBM Plex Mono',monospace;
+    letter-spacing:.6px;
+  }
+  .controls{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .search{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:10px;
+    padding:10px 12px;
+    outline:none;
+    font-size:13px;
+  }
+  .tabs{
+    display:flex;
+    gap:6px;
+    padding:10px 16px 0;
+    overflow:auto;
+  }
+  .tab{
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--muted);
+    border-radius:10px;
+    padding:8px 10px;
+    font:600 10px 'IBM Plex Mono',monospace;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .tab.active{
+    color:var(--text);
+    border-color:#34507b;
+    background:linear-gradient(180deg,#1a2435 0%,#11151d 100%);
+  }
+  .content{
+    flex:1;
+    overflow:auto;
+    padding:12px 16px 16px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px;
+  }
+  .card{
+    background:linear-gradient(180deg,rgba(23,29,40,.96),rgba(17,21,29,.96));
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    min-height:120px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    box-shadow:0 10px 24px rgba(0,0,0,.18);
+  }
+  .card-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .card h2{
+    margin:0;
+    font-size:14px;
+    line-height:1.25;
+  }
+  .score{
+    flex-shrink:0;
+    min-width:42px;
+    text-align:center;
+    padding:6px 8px;
+    border-radius:10px;
+    background:rgba(110,168,254,.12);
+    border:1px solid rgba(110,168,254,.24);
+    color:var(--blue);
+    font:700 13px 'IBM Plex Mono',monospace;
+  }
+  .desc{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.4;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    min-height:34px;
+  }
+  .tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-top:auto;
+  }
+  .tag{
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:#0d1118;
+    color:var(--muted);
+    font:500 9px 'IBM Plex Mono',monospace;
+    letter-spacing:.4px;
+  }
+  .actions{
+    display:flex;
+    gap:6px;
+  }
+  .btn{
+    flex:1;
+    border:1px solid var(--line);
+    background:#0d1118;
+    color:var(--text);
+    border-radius:9px;
+    padding:8px 10px;
+    cursor:pointer;
+    font:600 10px 'IBM Plex Mono',monospace;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+  }
+  .btn:hover{border-color:#34507b}
+  .section-note{
+    color:var(--muted);
+    font-size:12px;
+    margin:0 0 10px;
+  }
+  .terms{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+  }
+  .term{
+    padding:7px 10px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:999px;
+    color:#c6d3eb;
+    font-size:12px;
+  }
+  .empty{
+    border:1px dashed var(--line);
+    border-radius:14px;
+    padding:24px;
+    color:var(--muted);
+    text-align:center;
+  }
+  @media (max-width:520px){
+    .title-row{flex-direction:column;align-items:flex-start}
+    .meta{justify-content:flex-start}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="eyebrow">Prophecy Intel</div>
+    <div class="title-row">
+      <div>
+        <h1>Watchlist And RSS</h1>
+        <div class="subtitle">Workbook-wired research panel for fast scanning, terms, and triggers.</div>
+      </div>
+      <div class="meta" id="metaStats"></div>
+    </div>
+    <div class="controls">
+      <input class="search" id="searchInput" type="text" placeholder="Search names, verses, terms, or feeds..." autocomplete="off" />
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="content">
+    <div id="view"></div>
+  </div>
+</div>
+
+<script src="./data/prophecy_watchlist_data.js"></script>
+<script>
+const DATA = window.PROPHECY_WATCHLIST_DATA || {
+  meta: {},
+  rss_feeds: [],
+  watchlist: [],
+  key_bible_verses: [],
+  key_terms: [],
+};
+
+const tabs = [
+  { id: 'watchlist', label: 'Watchlist' },
+  { id: 'rss', label: 'RSS Feeds' },
+  { id: 'verses', label: 'Bible Verses' },
+  { id: 'terms', label: 'Key Terms' },
+];
+
+let activeTab = 'watchlist';
+let query = '';
+
+function esc(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
+}
+
+function scoreColor(score) {
+  const n = Number(score) || 0;
+  if (n >= 22) return 'var(--red)';
+  if (n >= 18) return 'var(--gold)';
+  return 'var(--blue)';
+}
+
+function renderMeta() {
+  const meta = document.getElementById('metaStats');
+  meta.innerHTML = [
+    ['Watchlist', DATA.meta.watchlist_count || 0],
+    ['RSS', DATA.meta.rss_count || 0],
+    ['Verses', DATA.meta.verses_count || 0],
+    ['Terms', DATA.meta.terms_count || 0],
+  ].map(([label, count]) => `<span class="pill">${label}: ${count}</span>`).join('');
+}
+
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = tabs.map(tab =>
+    `<button class="tab${tab.id === activeTab ? ' active' : ''}" onclick="switchTab('${tab.id}')">${tab.label}</button>`
+  ).join('');
+}
+
+function switchTab(id) {
+  activeTab = id;
+  renderTabs();
+  renderView();
+}
+
+function filteredWatchlist() {
+  const q = query.toLowerCase();
+  return DATA.watchlist.filter(item => {
+    if (!q) return true;
+    return [
+      item.name,
+      item.position,
+      item.total_score,
+      ...(item.tags || []),
+    ].join(' ').toLowerCase().includes(q);
+  });
+}
+
+function filteredRss() {
+  const q = query.toLowerCase();
+  return DATA.rss_feeds.filter(item =>
+    !q || [item.title, item.url, ...(item.tags || [])].join(' ').toLowerCase().includes(q)
+  );
+}
+
+function filteredVerses() {
+  const q = query.toLowerCase();
+  return DATA.key_bible_verses.filter(item =>
+    !q || [item.reference, item.label, item.trigger, item.category].join(' ').toLowerCase().includes(q)
+  );
+}
+
+function filteredTerms() {
+  const q = query.toLowerCase();
+  return DATA.key_terms.filter(term => !q || term.toLowerCase().includes(q));
+}
+
+function openUrl(url) {
+  window.open(url, '_blank');
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_) {}
+}
+
+function watchlistView(items) {
+  if (!items.length) return `<div class="empty">No watchlist matches for this search.</div>`;
+  return `
+    <p class="section-note">Ranked from the workbook by total score, with position and quick tags surfaced for one-pass review.</p>
+    <div class="grid">
+      ${items.map(item => `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h2>${esc(item.name)}</h2>
+              <div class="desc">${esc(item.position || 'No position noted')}</div>
+            </div>
+            <div class="score" style="color:${scoreColor(item.total_score)};border-color:${scoreColor(item.total_score)}33;background:${scoreColor(item.total_score)}14">${esc(item.total_score)}</div>
+          </div>
+          <div class="tags">
+            ${(item.tags || []).slice(0, 4).map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function rssView(items) {
+  if (!items.length) return `<div class="empty">No RSS feed matches for this search.</div>`;
+  return `
+    <p class="section-note">Google Alerts and feed targets from the workbook, cleaned into compact link cards.</p>
+    <div class="grid">
+      ${items.map(item => `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h2>${esc(item.title)}</h2>
+              <div class="desc">${esc(item.url)}</div>
+            </div>
+          </div>
+          <div class="tags">
+            ${(item.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}
+          </div>
+          <div class="actions">
+            <button class="btn" onclick="openUrl('${esc(item.url)}')">Open</button>
+            <button class="btn" onclick="copyText('${esc(item.url)}')">Copy</button>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function versesView(items) {
+  if (!items.length) return `<div class="empty">No verse matches for this search.</div>`;
+  return `
+    <p class="section-note">Verse labels and trigger summaries from the workbook with category tags kept visible.</p>
+    <div class="grid">
+      ${items.map(item => `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h2>${esc(item.label || item.reference || 'Verse')}</h2>
+              <div class="desc">${esc(item.trigger || item.reference || '')}</div>
+            </div>
+          </div>
+          <div class="tags">
+            ${item.reference ? `<span class="tag">${esc(item.reference)}</span>` : ''}
+            ${item.category ? `<span class="tag">${esc(item.category)}</span>` : ''}
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function termsView(items) {
+  if (!items.length) return `<div class="empty">No terms match for this search.</div>`;
+  return `
+    <p class="section-note">Search phrases and trigger terms surfaced as compact chips for scanning and copy-forward work.</p>
+    <div class="terms">
+      ${items.map(term => `<span class="term">${esc(term)}</span>`).join('')}
+    </div>
+  `;
+}
+
+function renderView() {
+  const view = document.getElementById('view');
+  if (activeTab === 'watchlist') view.innerHTML = watchlistView(filteredWatchlist());
+  if (activeTab === 'rss') view.innerHTML = rssView(filteredRss());
+  if (activeTab === 'verses') view.innerHTML = versesView(filteredVerses());
+  if (activeTab === 'terms') view.innerHTML = termsView(filteredTerms());
+}
+
+document.getElementById('searchInput').addEventListener('input', (event) => {
+  query = event.target.value.trim();
+  renderView();
+});
+
+renderMeta();
+renderTabs();
+renderView();
+</script>
+</body>
+</html>

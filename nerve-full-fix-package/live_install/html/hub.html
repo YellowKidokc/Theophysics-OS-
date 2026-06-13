@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nerve Hub</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:#0a0a0f}
+  ::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:3px}
+  body{font-family:'IBM Plex Mono',monospace;background:#0a0a0f;color:#c8ccd4;height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+  /* INPUT BAR */
+  .input-bar{padding:12px 14px 8px;background:#0d0d14;border-bottom:1px solid #1e1e2e;flex-shrink:0}
+  .input-row{display:flex;align-items:center;gap:8px}
+  .slash{color:#f59e0b;font-size:18px;font-weight:700;line-height:1}
+  #cmdInput{flex:1;background:transparent;border:none;outline:none;color:#c8ccd4;font-size:14px;font-family:inherit;caret-color:#f59e0b}
+  #cmdInput::placeholder{color:#2a2a3a}
+</style>
+</head>
+<body>
+<div class="input-bar">
+  <div class="input-row">
+    <span class="slash">/</span>
+    <input id="cmdInput" type="text" placeholder="command, space for files..." autofocus spellcheck="false" autocomplete="off">
+  </div>
+</div>
+<style>
+  /* MODE INDICATOR */
+  .mode-bar{display:flex;gap:0;background:#0a0a0f;border-bottom:1px solid #1e1e2e;flex-shrink:0}
+  .mode-tab{flex:1;padding:5px 0;text-align:center;font-size:8px;letter-spacing:2px;font-weight:700;color:#2a2a3a;cursor:pointer;border-bottom:2px solid transparent;transition:all .1s}
+  .mode-tab:hover{color:#444}
+  .mode-tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+
+  /* RESULTS LIST */
+  .results{flex:1;overflow-y:auto;padding:4px 0}
+  .result-item{display:flex;align-items:center;padding:6px 14px;gap:10px;cursor:pointer;border-left:2px solid transparent;transition:all .08s}
+  .result-item:hover{background:rgba(245,158,11,.04)}
+  .result-item.selected{background:rgba(245,158,11,.08);border-left-color:#f59e0b}
+  .result-item.marked{background:rgba(16,185,129,.06);border-left-color:#10b981}
+  .result-item.marked.selected{background:rgba(16,185,129,.12)}
+  .r-icon{font-size:13px;width:20px;text-align:center;flex-shrink:0;opacity:.6}
+  .r-body{flex:1;min-width:0}
+  .r-name{font-size:11px;color:#c8ccd4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r-path{font-size:8px;color:#2a2a3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .r-meta{font-size:8px;color:#3a3a4a;white-space:nowrap;flex-shrink:0}
+  .r-tag{font-size:7px;padding:1px 5px;border-radius:2px;font-weight:600;letter-spacing:1px}
+  .r-tag.cmd{background:rgba(245,158,11,.1);color:#f59e0b}
+  .r-tag.file{background:rgba(59,130,246,.1);color:#3b82f6}
+  .r-tag.folder{background:rgba(168,85,247,.1);color:#a855f7}
+  .r-tag.clip{background:rgba(16,185,129,.1);color:#10b981}
+
+  /* STATUS BAR */
+  .status-bar{padding:4px 14px;border-top:1px solid #1e1e2e;background:#0d0d14;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+  .status-left{font-size:8px;color:#2a2a3a;letter-spacing:1px}
+  .status-right{font-size:8px;color:#2a2a3a;display:flex;gap:12px}
+  .status-right span{letter-spacing:.5px}
+  .key{color:#3a3a4a;font-weight:600}
+
+  /* TOAST */
+  .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#10b981;color:#000;padding:8px 20px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:2px;z-index:999;pointer-events:none;animation:tp .25s ease}
+  @keyframes tp{0%{opacity:0;transform:translate(-50%,-50%) scale(.85)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+</style>
+
+<div class="mode-bar">
+  <div class="mode-tab active" data-mode="cmd">COMMANDS</div>
+  <div class="mode-tab" data-mode="files">RECENT FILES</div>
+  <div class="mode-tab" data-mode="folders">FOLDERS</div>
+  <div class="mode-tab" data-mode="scripts">SCRIPTS</div>
+  <div class="mode-tab" data-mode="search">SEARCH</div>
+</div>
+
+<div class="results" id="results"></div>
+
+<div class="status-bar">
+  <div class="status-left" id="statusLeft">READY</div>
+  <div class="status-right">
+    <span><span class="key">↑↓</span> nav</span>
+    <span><span class="key">⏎</span> run</span>
+    <span><span class="key">␣</span> copy path</span>
+    <span><span class="key">⇧⏎</span> mark</span>
+    <span><span class="key">^⏎</span> peek</span>
+    <span><span class="key">esc</span> close</span>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// NERVE HUB — Command Palette + File Launcher
+// POF 2828 | April 2026
+// ═══════════════════════════════════════════════════════
+
+var MODE = 'cmd';
+var selectedIdx = 0;
+var items = [];
+var markedSet = new Set();
+var spaceCount = 0;
+var lastKeyTime = 0;
+
+// ─── SLASH COMMANDS ───
+var COMMANDS = [
+  { name: '/probe', desc: 'Find the exact hold or break point. Name the failure mode.', expansion: '/PROBE — Find the exact hold or break point. Name the failure mode precisely. If it holds, explain what should break it but doesn\'t.' },
+  { name: '/deeper', desc: 'Three layers: observation → pattern → LAW.', expansion: '/DEEPER — Three layers minimum: observation → pattern → LAW. Most AI stops at layer two. The value is layer three.' },
+  { name: '/connect', desc: 'Bridge things that shouldn\'t relate.', expansion: '/CONNECT — Bridge things that shouldn\'t relate. The value is the bridge, not the domains. If it survives /PROBE, it\'s real.' },
+  { name: '/east', desc: 'Steelman the strongest objection.', expansion: '/EAST — Steelman the strongest objection. The version that makes a serious physicist or theologian actually pause.' },
+  { name: '/north', desc: 'Return to bedrock. What do we KNOW?', expansion: '/NORTH — Return to bedrock. Anchors: grace, entropy, curvature, will, Logos, Master Equation.' },
+  { name: '/chain', desc: 'Walk the logic chain, find weakest link.', expansion: '/CHAIN — Walk the full logic chain and identify the single weakest link. Explain what breaks downstream if that link fails.' },
+  { name: '/blindspot', desc: 'What am I not seeing?', expansion: '/BLINDSPOT — What am I not seeing? What\'s unquestioned? What assumption hasn\'t been examined? If this produces comfort, it\'s not working.' },
+  { name: '/integrate', desc: 'Find structural isomorphism.', expansion: '/INTEGRATE — Don\'t list parallels. Find structural isomorphism — shared logical architecture, not metaphorical similarity.' },
+  { name: '/sig', desc: 'Signature block', expansion: 'Best regards,\nDavid Lowe\nTheophysics Project' },
+  { name: '/tp', desc: 'Theophysics elevator pitch', expansion: 'Theophysics: the mathematical unification of physics, theology, consciousness, and information theory.' },
+];
+
+// ─── DEMO DATA (replaced by IPC from Nerve in production) ───
+var DEMO_FILES = [
+  { name: 'NERVE_V2_BUILD_SPEC.md', path: 'C:\\FORGE_BUILD\\docs\\NERVE_V2_BUILD_SPEC.md', modified: '2 min ago', size: '12 KB' },
+  { name: 'SESSION_LOG_2026-04-02.md', path: 'C:\\FORGE_BUILD\\docs\\SESSION_LOG_2026-04-02.md', modified: '5 min ago', size: '8 KB' },
+  { name: 'solve_master_equation.py', path: 'C:\\Users\\lowes\\Desktop\\Folders\\Files\\solve_master_equation.py', modified: '1 hr ago', size: '18 KB' },
+  { name: 'LLC_FORMAL_TEST_RESULTS.md', path: 'C:\\FORGE_BUILD\\docs\\LLC_FORMAL_TEST_RESULTS_2026-04-02.md', modified: '3 hr ago', size: '6 KB' },
+  { name: 'FORGE_TASK_CARDS_v1.md', path: 'C:\\FORGE_BUILD\\docs\\FORGE_TASK_CARDS_v1.md', modified: '5 hr ago', size: '4 KB' },
+  { name: 'theophysics_normalizer.py', path: 'C:\\...\\BetterTTS\\normalizer\\theophysics_normalizer.py', modified: 'yesterday', size: '42 KB' },
+  { name: 'settings.html', path: 'C:\\...\\nerve-main\\html\\settings.html', modified: 'yesterday', size: '9 KB' },
+  { name: 'config.rs', path: 'C:\\...\\nerve-main\\src\\config.rs', modified: '2 days', size: '11 KB' },
+];
+
+var DEMO_FOLDERS = [
+  { name: 'FORGE_BUILD', path: 'C:\\FORGE_BUILD', accessed: '2 min ago' },
+  { name: 'nerve-main', path: 'C:\\Users\\lowes\\Downloads\\nerve-main\\nerve-main', accessed: '10 min ago' },
+  { name: 'AI-HUB-v2', path: 'C:\\...\\Startup\\AI-HUB-v2', accessed: '30 min ago' },
+  { name: '_Theophysics_v4', path: 'O:\\_Theophysics_v4', accessed: '1 hr ago' },
+  { name: 'normalizer', path: 'C:\\...\\BetterTTS\\normalizer', accessed: '2 hr ago' },
+  { name: 'docs', path: 'C:\\FORGE_BUILD\\docs', accessed: '2 hr ago' },
+  { name: 'Desktop', path: 'C:\\Users\\lowes\\Desktop', accessed: '3 hr ago' },
+];
+
+var DEMO_SCRIPTS = [
+  { name: 'LAUNCH.bat', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\LAUNCH.bat', type: 'bat', desc: 'Main Engine launcher' },
+  { name: 'unified_gui.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\00_MASTER_GUI\\unified_gui.py', type: 'py', desc: 'Master GUI' },
+  { name: 'RUN_FULL.bat', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\RUN_FULL.bat', type: 'bat', desc: 'Full engine run' },
+  { name: 'MASTER_MENU.ps1', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\scripts\\MASTER_MENU.ps1', type: 'ps1', desc: 'PowerShell master menu' },
+  { name: 'VaultTools.ps1', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\scripts\\VaultTools.ps1', type: 'ps1', desc: 'Vault toolkit' },
+  { name: 'vault_health.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\scripts\\vault_health.py', type: 'py', desc: 'Vault health check' },
+  { name: 'truth_coherence_gui.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\03_TRUTH_COHERENCE\\truth_coherence_gui.py', type: 'py', desc: 'Truth coherence scorer' },
+  { name: 'seven_q_gui.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\02_7Q_SCORE\\seven_q_gui.py', type: 'py', desc: '7Q scoring engine' },
+  { name: 'evidence_gui.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\03_EVIDENCE_PROTOCOL\\evidence_gui.py', type: 'py', desc: 'Evidence protocol GUI' },
+  { name: 'unified_pipeline.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\09_OPERATOR\\unified_pipeline.py', type: 'py', desc: 'Unified scoring pipeline' },
+  { name: 'call_openai.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\80_OPENAI\\CALL\\call_openai.py', type: 'py', desc: 'OpenAI API caller' },
+  { name: 'MENU.ps1', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\80_OPENAI\\MENU.ps1', type: 'ps1', desc: 'OpenAI tools menu' },
+  { name: 'build_tie_graph.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\10_TIE_GRAPH\\scripts\\build_tie_graph.py', type: 'py', desc: 'TIE graph builder' },
+  { name: 'LAUNCH_TTS.bat', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\TTS_Pipeline\\LAUNCH_TTS.bat', type: 'bat', desc: 'TTS pipeline launcher' },
+  { name: 'theophysics_normalizer.py', path: 'C:\\...\\BetterTTS\\normalizer\\theophysics_normalizer.py', type: 'py', desc: 'TTS math normalizer' },
+  { name: 'normalize_bridge.py', path: 'C:\\...\\BetterTTS\\normalizer\\normalize_bridge.py', type: 'py', desc: 'TTS normalizer bridge' },
+  { name: 'solve_master_equation.py', path: 'C:\\Users\\lowes\\Desktop\\Folders\\Files\\solve_master_equation.py', type: 'py', desc: 'LLC JAX solver (467 lines)' },
+  { name: 'run_all.py', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\09_OPERATOR\\run_all.py', type: 'py', desc: 'Operator pipeline' },
+  { name: 'daily_update.bat', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\scripts\\daily_update.bat', type: 'bat', desc: 'Daily vault update' },
+  { name: 'BACKUP_TO_SYNOLOGY.bat', path: 'O:\\_Theophysics_v4\\00_SYSTEM\\01_ENGINE\\01_ENGINE\\launchers\\BACKUP_TO_SYNOLOGY.bat', type: 'bat', desc: 'NAS backup' },
+];
+
+// ─── IPC ───
+function ipc(msg) {
+  try { window.chrome.webview.postMessage(JSON.stringify(msg)); return true; }
+  catch(e) { return false; }
+}
+
+// ─── MODE SWITCHING ───
+function setMode(m) {
+  MODE = m;
+  selectedIdx = 0;
+  markedSet.clear();
+  document.querySelectorAll('.mode-tab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.mode === m);
+  });
+  var input = document.getElementById('cmdInput');
+  if (m === 'cmd') input.placeholder = 'command...';
+  else if (m === 'files') input.placeholder = 'filter recent files...';
+  else if (m === 'folders') input.placeholder = 'filter folders...';
+  else if (m === 'scripts') input.placeholder = 'filter scripts (py, bat, ps1, sh)...';
+  else if (m === 'search') input.placeholder = 'search everything...';
+  render();
+}
+
+// Click mode tabs
+document.querySelectorAll('.mode-tab').forEach(function(t) {
+  t.addEventListener('click', function() { setMode(t.dataset.mode); document.getElementById('cmdInput').focus(); });
+});
+
+// ─── GET ITEMS FOR CURRENT MODE ───
+function getItems(query) {
+  var q = (query || '').toLowerCase().trim();
+  if (MODE === 'cmd') {
+    return COMMANDS.filter(function(c) {
+      return !q || c.name.toLowerCase().indexOf(q) !== -1 || c.desc.toLowerCase().indexOf(q) !== -1;
+    }).map(function(c) {
+      return { type: 'cmd', name: c.name, desc: c.desc, expansion: c.expansion };
+    });
+  }
+  if (MODE === 'files') {
+    return DEMO_FILES.filter(function(f) {
+      return !q || f.name.toLowerCase().indexOf(q) !== -1 || f.path.toLowerCase().indexOf(q) !== -1;
+    }).map(function(f) {
+      return { type: 'file', name: f.name, path: f.path, meta: f.modified + ' · ' + f.size };
+    });
+  }
+  if (MODE === 'folders') {
+    return DEMO_FOLDERS.filter(function(f) {
+      return !q || f.name.toLowerCase().indexOf(q) !== -1 || f.path.toLowerCase().indexOf(q) !== -1;
+    }).map(function(f) {
+      return { type: 'folder', name: f.name, path: f.path, meta: f.accessed };
+    });
+  }
+  if (MODE === 'scripts') {
+    return DEMO_SCRIPTS.filter(function(s) {
+      return !q || s.name.toLowerCase().indexOf(q) !== -1 || s.desc.toLowerCase().indexOf(q) !== -1 || s.type.toLowerCase().indexOf(q) !== -1;
+    }).map(function(s) {
+      return { type: 'script', name: s.name, path: s.path, desc: s.desc, meta: s.type.toUpperCase() };
+    });
+  }
+  if (MODE === 'search') {
+    if (!q) return [{ type: 'info', name: 'Type to search...', path: '', meta: '' }];
+    // In production: IPC to Nerve → es.exe or PowerShell
+    // For now, search across all demo data
+    var all = DEMO_FILES.concat(DEMO_FOLDERS);
+    return all.filter(function(f) {
+      return f.name.toLowerCase().indexOf(q) !== -1 || f.path.toLowerCase().indexOf(q) !== -1;
+    }).map(function(f) {
+      return { type: f.accessed ? 'folder' : 'file', name: f.name, path: f.path, meta: f.modified || f.accessed || '' };
+    });
+  }
+  return [];
+}
+
+// ─── RENDER ───
+function render() {
+  var query = document.getElementById('cmdInput').value;
+  items = getItems(query);
+  if (selectedIdx >= items.length) selectedIdx = Math.max(0, items.length - 1);
+
+  var html = '';
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var cls = 'result-item';
+    if (i === selectedIdx) cls += ' selected';
+    if (markedSet.has(i)) cls += ' marked';
+
+    var icon = '⚡';
+    var tagCls = 'cmd';
+    if (it.type === 'file') { icon = '📄'; tagCls = 'file'; }
+    else if (it.type === 'folder') { icon = '📁'; tagCls = 'folder'; }
+    else if (it.type === 'clip') { icon = '📋'; tagCls = 'clip'; }
+    else if (it.type === 'script') { icon = '⚙️'; tagCls = 'cmd'; }
+    else if (it.type === 'info') { icon = '🔍'; tagCls = 'file'; }
+
+    html += '<div class="' + cls + '" data-idx="' + i + '">'
+      + '<span class="r-icon">' + icon + '</span>'
+      + '<div class="r-body">'
+      + '<div class="r-name">' + esc(it.name) + '</div>';
+    if (it.path || it.desc) {
+      html += '<div class="r-path">' + esc(it.path || it.desc || '') + '</div>';
+    }
+    html += '</div>';
+    if (it.meta) html += '<span class="r-meta">' + esc(it.meta) + '</span>';
+    html += '</div>';
+  }
+
+  document.getElementById('results').innerHTML = html;
+  updateStatus();
+  scrollToSelected();
+}
+
+function scrollToSelected() {
+  var el = document.querySelector('.result-item.selected');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+function updateStatus() {
+  var left = items.length + ' items';
+  if (markedSet.size > 0) left = markedSet.size + ' marked · ' + items.length + ' items';
+  document.getElementById('statusLeft').textContent = left;
+}
+
+function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toast(msg) {
+  var t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { t.remove(); }, 500);
+}
+
+// ─── ACTIONS ───
+function doAction(idx) {
+  var it = items[idx];
+  if (!it) return;
+  if (it.type === 'cmd') {
+    // Copy expansion to clipboard, then close
+    copyText(it.expansion);
+    toast('COPIED');
+    setTimeout(function() { ipc({ type: 'close_hub' }); }, 300);
+  } else if (it.type === 'file' || it.type === 'folder') {
+    // Enter = open the file/folder
+    ipc({ type: 'open_path', path: it.path });
+    toast('OPENING');
+  }
+}
+
+function doCopyPath(idx) {
+  var it = items[idx];
+  if (!it || !it.path) return;
+  copyText(it.path);
+  toast('PATH COPIED');
+}
+
+function doMark(idx) {
+  if (markedSet.has(idx)) markedSet.delete(idx);
+  else markedSet.add(idx);
+  render();
+}
+
+function doPeek(idx) {
+  var it = items[idx];
+  if (!it || !it.path) return;
+  // Ask Nerve to read file contents and display in a popup
+  ipc({ type: 'peek_file', path: it.path });
+  toast('PEEKING');
+}
+
+function copyText(text) {
+  // Try IPC first (Nerve can set system clipboard)
+  if (ipc({ type: 'copy_to_clipboard', text: text })) return;
+  // Fallback: browser clipboard API
+  try { navigator.clipboard.writeText(text); }
+  catch(e) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-999px';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+}
+
+// ─── CLICK HANDLING ───
+document.getElementById('results').addEventListener('click', function(e) {
+  var row = e.target.closest('.result-item');
+  if (!row) return;
+  var idx = parseInt(row.dataset.idx);
+  selectedIdx = idx;
+  render();
+  doAction(idx);
+});
+
+// ─── KEYBOARD ───
+document.getElementById('cmdInput').addEventListener('keydown', function(e) {
+  var key = e.key;
+
+  // Arrow navigation
+  if (key === 'ArrowDown') {
+    e.preventDefault();
+    if (selectedIdx < items.length - 1) selectedIdx++;
+    render();
+    return;
+  }
+  if (key === 'ArrowUp') {
+    e.preventDefault();
+    if (selectedIdx > 0) selectedIdx--;
+    render();
+    return;
+  }
+
+  // Escape = close
+  if (key === 'Escape') {
+    ipc({ type: 'close_hub' });
+    return;
+  }
+
+  // Enter variants
+  if (key === 'Enter') {
+    e.preventDefault();
+    if (e.shiftKey) {
+      // Shift+Enter = mark/unmark
+      doMark(selectedIdx);
+    } else if (e.ctrlKey) {
+      // Ctrl+Enter = peek
+      doPeek(selectedIdx);
+    } else {
+      // Plain Enter = run action
+      if (markedSet.size > 0) {
+        // If items are marked, act on all marked
+        markedSet.forEach(function(idx) { doAction(idx); });
+      } else {
+        doAction(selectedIdx);
+      }
+    }
+    return;
+  }
+
+  // Space = copy path (in files/folders mode, when input matches a mode switch or item is selected)
+  // Smart space: in cmd mode, spaces cycle modes. In file/folder mode, space copies path.
+  if (key === ' ' && MODE !== 'cmd' && this.value.trim() === '') {
+    // Empty input + space in files/folders = copy selected path
+    e.preventDefault();
+    doCopyPath(selectedIdx);
+    return;
+  }
+
+  // Tab = cycle modes
+  if (key === 'Tab') {
+    e.preventDefault();
+    var modes = ['cmd', 'files', 'folders', 'scripts', 'search'];
+    var next = (modes.indexOf(MODE) + (e.shiftKey ? -1 : 1) + modes.length) % modes.length;
+    this.value = '';
+    setMode(modes[next]);
+    return;
+  }
+});
+
+// ─── SPACE-CYCLING IN COMMAND MODE ───
+// In cmd mode: typing spaces at start cycles through modes
+document.getElementById('cmdInput').addEventListener('input', function(e) {
+  var val = this.value;
+
+  // Check for space-only prefix to switch modes
+  if (/^ +$/.test(val)) {
+    var count = val.length;
+    this.value = '';
+    if (count === 1) setMode('files');
+    else if (count === 2) setMode('folders');
+    else if (count === 3) setMode('scripts');
+    else if (count >= 4) setMode('search');
+    return;
+  }
+
+  // If starts with / and we're not in cmd mode, switch to cmd
+  if (val.startsWith('/') && MODE !== 'cmd') {
+    setMode('cmd');
+  }
+
+  selectedIdx = 0;
+  render();
+});
+
+// ─── IPC FROM NERVE (receive real data) ───
+// Nerve sends messages via evaluate_script calling these functions
+function loadRecentFiles(fileList) {
+  // fileList: [{ name, path, modified, size }, ...]
+  DEMO_FILES = fileList;
+  if (MODE === 'files') render();
+}
+function loadRecentFolders(folderList) {
+  DEMO_FOLDERS = folderList;
+  if (MODE === 'folders') render();
+}
+function loadSearchResults(resultList) {
+  // Replace search results dynamically
+  if (MODE === 'search') {
+    items = resultList.map(function(r) {
+      return { type: r.isDir ? 'folder' : 'file', name: r.name, path: r.path, meta: r.meta || '' };
+    });
+    selectedIdx = 0;
+    renderFromItems();
+  }
+}
+function renderFromItems() {
+  // Direct render without re-filtering (for streamed results)
+  var html = '';
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var cls = 'result-item' + (i === selectedIdx ? ' selected' : '') + (markedSet.has(i) ? ' marked' : '');
+    var icon = it.type === 'folder' ? '📁' : it.type === 'cmd' ? '⚡' : '📄';
+    html += '<div class="' + cls + '" data-idx="' + i + '">'
+      + '<span class="r-icon">' + icon + '</span>'
+      + '<div class="r-body"><div class="r-name">' + esc(it.name) + '</div>'
+      + (it.path ? '<div class="r-path">' + esc(it.path) + '</div>' : '')
+      + '</div>'
+      + (it.meta ? '<span class="r-meta">' + esc(it.meta) + '</span>' : '')
+      + '</div>';
+  }
+  document.getElementById('results').innerHTML = html;
+  updateStatus();
+}
+
+// ─── INIT ───
+render();
+document.getElementById('cmdInput').focus();
+
+// Request real data from Nerve on load
+ipc({ type: 'hub_ready' });
+ipc({ type: 'get_recent_files' });
+ipc({ type: 'get_recent_folders' });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "model_lane": "fast",
+  "llm_backend": "ollama",
+  "stop_for_review": false,
+  "output_destinations": ["knowledge_graph", "vectorized"],
+  "authority_threshold": 0.3,
+  "crawl_profiles": ["academic", "apologetics", "contrarian"]
+}

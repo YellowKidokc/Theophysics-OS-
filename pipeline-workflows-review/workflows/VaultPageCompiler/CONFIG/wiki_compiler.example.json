@@ -1,0 +1,12 @@
+{
+  "workspace": "D:\\FAP\\wiki-compiler",
+  "raw_dir": "D:\\FAP\\wiki-compiler\\raw",
+  "wiki_dir": "D:\\FAP\\wiki-compiler\\wiki",
+  "command": "olw",
+  "mode": "run",
+  "fast_model": "qwen2.5:3b",
+  "heavy_model": "phi4",
+  "ollama_url": "http://localhost:11434",
+  "preserve_sources": true,
+  "write_logs": true
+}

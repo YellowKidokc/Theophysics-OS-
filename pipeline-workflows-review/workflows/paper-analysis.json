@@ -1,0 +1,30 @@
+{
+  "name": "paper-analysis",
+  "description": "Full NLP analysis pipeline for any paper or article",
+  "version": "1.0",
+  "stages": [
+    { "name": "intake", "station": "conversion-station", "description": "Normalize to canonical markdown", "on_error": "stop", "depends_on": [] },
+    { "name": "vectorize", "station": "sbert-embedder", "description": "Generate semantic embeddings", "on_error": "skip", "depends_on": ["intake"] },
+    { "name": "cluster", "station": "hdbscan-cluster", "description": "Semantic clustering", "on_error": "skip", "depends_on": ["vectorize"] },
+    { "name": "classify", "station": "classify-documents", "description": "Document classification", "on_error": "skip", "depends_on": ["cluster"] },
+    { "name": "extract-claims", "station": "claim-extractor", "description": "Pull all claims", "on_error": "continue", "depends_on": ["classify"] },
+    { "name": "fact-check", "station": "deberta-runner", "description": "NLI scoring on extracted claims", "on_error": "continue", "depends_on": ["extract-claims"] },
+    { "name": "7q-classify", "station": "7q-classifier", "description": "7Q Scientific Method classification", "on_error": "continue", "depends_on": ["extract-claims"] },
+    { "name": "grade", "station": "paper-proof-grader", "description": "Rigor scoring", "on_error": "continue", "depends_on": ["fact-check", "7q-classify"] },
+    { "name": "truth-machine", "station": "theophysics-classifier", "description": "Truth Machine: rules, dependencies, contradictions, kill chain, truth pressure", "on_error": "continue", "depends_on": ["grade"] },
+    {
+      "name": "framework-check", "parallel": true,
+      "stations": ["fruits-spirit-canon", "master-equation-canon", "trinity-canon"],
+      "station": "fruits-spirit-canon",
+      "description": "Theophysics framework validation (parallel)", "on_error": "continue", "depends_on": ["truth-machine"],
+      "llm_gate": { "enabled": true, "engine": "ollama:phi4", "prompt": "Did this document pass framework validation?" }
+    },
+    {
+      "name": "route", "station": "postgres-sync",
+      "description": "Write results to Postgres + vault", "on_error": "stop", "depends_on": ["truth-machine", "framework-check"],
+      "targets": { "vault": "O:\\_Theophysics_v4\\", "postgres": "192.168.1.97:5432", "r2": "theophysics-media" }
+    }
+  ],
+  "preference_profile": "paper_grading.json",
+  "signals": ["quality", "gap", "ready"]
+}

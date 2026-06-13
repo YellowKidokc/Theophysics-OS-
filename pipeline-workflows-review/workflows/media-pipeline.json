@@ -1,0 +1,19 @@
+{
+  "name": "media-pipeline",
+  "description": "YouTube/audio -> transcript -> classify -> vault",
+  "version": "1.0",
+  "stages": [
+    { "name": "fetch", "station": "youtube-fetch", "on_error": "stop", "depends_on": [] },
+    { "name": "transcribe", "station": "whisper-transcribe", "on_error": "stop", "depends_on": ["fetch"] },
+    { "name": "classify-transcript", "station": "transcribe-and-classify", "on_error": "continue", "depends_on": ["transcribe"] },
+    { "name": "split-sections", "station": "section-splitter", "on_error": "skip", "depends_on": ["classify-transcript"] },
+    { "name": "summarize", "station": "summarizer", "on_error": "skip", "depends_on": ["split-sections"] },
+    { "name": "vectorize", "station": "sbert-embedder", "on_error": "skip", "depends_on": ["summarize"] },
+    {
+      "name": "route", "station": "postgres-sync", "on_error": "stop", "depends_on": ["vectorize"],
+      "targets": { "vault": "O:\\_Theophysics_v4\\", "postgres": "192.168.1.97:5432" }
+    }
+  ],
+  "preference_profile": "defaults.json",
+  "signals": ["quality", "ready"]
+}

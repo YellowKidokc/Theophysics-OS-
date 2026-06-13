@@ -1,0 +1,146 @@
+/* 
+Math Translation Callout Styles
+================================
+CSS for styling mathematical equations in callout boxes
+Compatible with Obsidian and standard markdown viewers
+*/
+
+/* Math Callout Container */
+.callout[data-callout="math"] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-left: 4px solid #00d9ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Callout Title */
+.callout[data-callout="math"] .callout-title {
+  color: #00d9ff;
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.callout[data-callout="math"] .callout-title::before {
+  content: "📐";
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+/* Visual Equation Section */
+.callout[data-callout="math"] .math-visual {
+  background-color: #0f3460;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  font-family: "Courier New", monospace;
+  text-align: center;
+  border: 1px solid #1f4068;
+}
+
+.callout[data-callout="math"] .math-visual strong {
+  color: #00d9ff;
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Spoken Translation Section */
+.callout[data-callout="math"] .math-spoken {
+  background-color: rgba(0, 217, 255, 0.1);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  border-left: 3px solid #00d9ff;
+}
+
+.callout[data-callout="math"] .math-spoken strong {
+  color: #00d9ff;
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.callout[data-callout="math"] .math-spoken p {
+  color: #eaeaea;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Inline Math Translation */
+.math-inline {
+  background-color: rgba(0, 217, 255, 0.15);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin: 0 4px;
+  font-family: "Courier New", monospace;
+  font-size: 0.95em;
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  white-space: nowrap;
+}
+
+/* Hover Effects */
+.callout[data-callout="math"]:hover {
+  box-shadow: 0 6px 12px rgba(0, 217, 255, 0.2);
+  border-left-color: #00b8d4;
+}
+
+/* Dark Mode Adjustments */
+@media (prefers-color-scheme: dark) {
+  .callout[data-callout="math"] {
+    background: linear-gradient(135deg, #0a0a15 0%, #0f1520 100%);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .callout[data-callout="math"] {
+    border: 2px solid #333;
+    background: white;
+    color: black;
+    page-break-inside: avoid;
+  }
+
+  .callout[data-callout="math"] .math-visual,
+  .callout[data-callout="math"] .math-spoken {
+    background: #f5f5f5;
+    border-color: #333;
+  }
+}
+
+/* Accessibility */
+.callout[data-callout="math"] .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Animation for new callouts */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.callout[data-callout="math"] {
+  animation: slideIn 0.3s ease-out;
+}

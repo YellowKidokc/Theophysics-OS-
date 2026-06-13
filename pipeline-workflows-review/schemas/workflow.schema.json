@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkflowDAG",
+  "description": "DAG-based workflow definition. The orchestrator reads these to run station sequences.",
+  "type": "object",
+  "required": ["name", "version", "stages"],
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "version": { "type": "string", "default": "1.0" },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "station", "on_error"],
+        "properties": {
+          "name": { "type": "string", "description": "Human-readable stage name" },
+          "station": { "type": "string", "description": "Station name from STATION_REGISTRY" },
+          "description": { "type": "string" },
+          "on_error": { "enum": ["stop", "skip", "continue"], "default": "stop" },
+          "depends_on": { "type": "array", "items": { "type": "string" }, "default": [] },
+          "parallel": { "type": "boolean", "default": false },
+          "stations": { "type": "array", "items": { "type": "string" }, "description": "For parallel stages: list of stations to run concurrently" },
+          "llm_gate": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean", "default": false },
+              "engine": { "type": "string" },
+              "prompt": { "type": "string" }
+            }
+          },
+          "targets": {
+            "type": "object",
+            "description": "Route targets for final stages",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    "preference_profile": { "type": "string", "description": "Filename in preferences/profiles/" },
+    "signals": { "type": "array", "items": { "type": "string" } }
+  }
+}

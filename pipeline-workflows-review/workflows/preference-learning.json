@@ -1,0 +1,14 @@
+{
+  "name": "preference-learning",
+  "description": "Preference feedback loop — every correction makes the system smarter",
+  "version": "1.0",
+  "stages": [
+    { "name": "event-capture", "station": "file-intelligence", "description": "Capture browser/clipboard/file events", "on_error": "skip", "depends_on": [] },
+    { "name": "river-learn", "station": "preference-engine", "description": "River (model 18) online learning at port 8420", "on_error": "skip", "depends_on": ["event-capture"] },
+    { "name": "ppk-update", "station": "preference-engine", "description": "PPK (model 17) portable weights update", "on_error": "skip", "depends_on": ["river-learn"] },
+    { "name": "implicit-recalc", "station": "preference-engine", "description": "Implicit (model 13) collaborative filtering recalc", "on_error": "skip", "depends_on": ["ppk-update"] }
+  ],
+  "preference_profile": "defaults.json",
+  "signals": ["ready"],
+  "notes": "This workflow is continuous — not packet-based. Runs as observation layer across all other workflows."
+}

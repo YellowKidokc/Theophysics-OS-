@@ -1,0 +1,76 @@
+<html><head><title>Merging daily log...</title></head>
+<body style="background:#0B0C0F;color:#e8eaf0;font-family:monospace;padding:40px;">
+<h2 style="color:#F2C94C;">POF 2828 — Daily Log Merger</h2>
+<pre id="log"></pre>
+<script>
+const log = s => { document.getElementById('log').textContent += s + '\n'; };
+
+const newTasks = [
+  {id:"log_20260330_001",title:"Convergence Article 1 — The Photographer Who Never Drank Again",due:"2026-03-30",priority:"1",project:"",desc:"Q0/posture article. Judgment vs discernment. Three costumes (Democrat/atheist/conservative = same code). Corrie ten Boom. $5M question.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_002",title:"Convergence Article 2 — What Separates Us",due:"2026-03-30",priority:"1",project:"",desc:"Six divides → same architecture → entropy → good vs evil. Doesn't say 'good and evil' until reader already knows it.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_003",title:"Convergence Article 3 — The Same Equation",due:"2026-03-30",priority:"1",project:"",desc:"Entropy=sin, coherence=grace. Both directions proven. First equation: dχ/dt ∝ -S + G. Closed system theorem = can't self-redeem.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_004",title:"Convergence Article 4 — The Convergence",due:"2026-03-30",priority:"1",project:"",desc:"Five cross-domain hits: entropy/sin, closed systems/self-redemption, Born Rule/Trinity, QEC/church, Gödel/revelation. All → the cross.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_005",title:"3 tangent deep-dives for Article 2 + unification data",due:"2026-03-30",priority:"1",project:"",desc:"Architecture of Polarization (all narratives + data), Force Diagram of Disunion (geopolitical), Third Vector (67% majority, 82% consensus, 3-4% vs 50% misperception).",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_006",title:"GovLens prototype — working React app with Claude API",due:"2026-03-30",priority:"1",project:"",desc:"Dark UI, investigation narration, $5/query model. Proves client-side Claude API query model works.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_007",title:"Twitter thread — Inverse Solver (7 tweets ready to post)",due:"2026-03-30",priority:"2",project:"",desc:"Runs evolution backward. 9.8x mutation ceiling. Coupled variables. Ecosystem simultaneity. Tags CosmicSkeptic + RationalityRules.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_008",title:"Evidence Ledger Excel workbook — schema + 12 sample rows",due:"2026-03-30",priority:"2",project:"",desc:"Parameters, Lists, Evidence sheets. Validation rules, computed fields, conditional formatting. Pew + Hidden Tribes data.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_009",title:"Website Architecture v3 LOCKED — LLM-dominant center",due:"2026-03-30",priority:"1",project:"",desc:"6 zones: Shelf, Bridge, Compass, Story, Proof, Map. LLM at center. BYOK model. Conversation drives navigation. Export/import.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_010",title:"Content Blocks Spec — maps axiom architecture to articles",due:"2026-03-30",priority:"1",project:"",desc:"15 Bridge blocks, 7 Compass constants, Panel A/B block types (light/medium/heavy). David's 15 Big Things listed.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_011",title:"18 website locations inventoried → D:\\WEBSITES_MASTER",due:"2026-03-30",priority:"2",project:"",desc:"theophysics-engine (main), Forge-v1-Claude, Forge-v1-Codex, theophysics-web, 3 Kimi deployments, backends, exports.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_012",title:"GPT research prompt — Fracture Point + Bernays addendum",due:"2026-03-30",priority:"2",project:"",desc:"5-part deep research: fracture timeline, before/after tables, properties list, shared values, issue flips. Bernays + casting director mechanisms.",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_013",title:"Evolution work — Inverse Solver + Ecosystem Simultaneity discussed",due:"2026-03-30",priority:"2",project:"",desc:"Monte Carlo: 2-level chain = 1/100K viability. 3 levels = computational zero. Ecosystem simultaneity = new paper (SP17).",taskType:"log",done:true,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_014",title:"BYOK API key model designed — user keys never touch server",due:"2026-03-30",priority:"1",project:"",desc:"5-10 free queries on David's key. Then BYOK. Key lives in browser JS variable only. Dies on tab close. Direct fetch to Anthropic API.",taskType:"log",done:false,created:"2026-03-30T12:00:00.000Z"},
+  {id:"log_20260330_015",title:"15 Relationship Cards designed — all visually unique, preview HTML on Desktop",due:"2026-03-30",priority:"1",project:"convergence",desc:"Identity, Formal Statement, Plain English, Depends On, Enables, Collapse Radius, Defeat Conditions, Strongest Objection, Scripture Anchor, Cross-Domain Bridge, Law Connection, χ Variables, Prosecution Record, Empirical Anchor, Domain Tags. All data from YAML. RELATIONSHIP_CARDS_PREVIEW.html.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_016",title:"D9.1 Grace Operator Article — Tier 1 template filled, compact no-scroll",due:"2026-03-30",priority:"1",project:"convergence",desc:"Hero grid + Chain Vitals + Formal Statement. 3 sections: Operator properties, Cross-Domain Bridge table, Defeat Conditions + prosecution. D9.1_Grace_Operator_Article.html on Desktop.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_017",title:"Three-Tier Content Architecture — Article / Primer / Deep Dive",due:"2026-03-30",priority:"1",project:"convergence",desc:"Tier 1 Article (no scroll, magazine) DONE. Tier 2 Primer (bridges) NEXT. Tier 3 Deep Dive (accordion, full reference) NEXT.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_018",title:"AxiomArticle.tsx rewritten — Fracture Point style renderer",due:"2026-03-30",priority:"2",project:"convergence",desc:"Hero grid 2fr/1fr, section-aware rendering per type (Identity→cards, Formal→insight highlights, Theology→grid). Inline wiki-links gold, styled tables.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_019",title:"Convergence Shell layout locked + GlanceBar wired to real data",due:"2026-03-30",priority:"2",project:"convergence",desc:"LeftShelf w-56, Article+LLM center (flex-1 + 460px), RightMap w-80. GlanceBar: 7Q, Bridges, Status, Kills, Position, Domain, Theory, Crit.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_020",title:"KnowledgeGraph.tsx rewritten — custom canvas tier layout",due:"2026-03-30",priority:"2",project:"convergence",desc:"Replaced react-force-graph-2d. Custom canvas: deps top row, current gold glow center, enables bottom. Clickable nodes, hover, breadcrumb.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_021",title:"Vault markdown API endpoint — /api/axioms/:nodeId/markdown",due:"2026-03-30",priority:"2",project:"convergence",desc:"Reads files from O: drive SEQUENTIAL_001-190 folder. Matches nodeId in filename. Returns raw markdown + filename.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"},
+  {id:"log_20260330_022",title:"Full session handoff — SESSION_HANDOFF_2026-03-30.md for next AI",due:"2026-03-30",priority:"1",project:"convergence",desc:"Postgres connection, file locations, 15-card spec table, shell layout diagram, vault structure, design decisions locked, priority order. In Axiom LLM Desgin folder.",taskType:"log",done:true,created:"2026-03-30T22:00:00.000Z"}
+];
+
+try {
+  let existing = JSON.parse(localStorage.getItem('pof_calendar_tasks') || '[]');
+  const existingIds = new Set(existing.map(t => t.id));
+  let added = 0;
+  newTasks.forEach(t => {
+    if (!existingIds.has(t.id)) { existing.push(t); added++; }
+  });
+  localStorage.setItem('pof_calendar_tasks', JSON.stringify(existing));
+  log('Existing tasks: ' + (existing.length - added));
+  log('Daily log entries added: ' + added);
+  log('Total tasks now: ' + existing.length);
+  log('');
+  log('March 30 highlights:');
+  log('  SESSION 1 (Opus):');
+  log('  • 4 CONVERGENCE ARTICLES WRITTEN (full series)');
+  log('  • Website Architecture v3 LOCKED (LLM center, BYOK, 6 zones)');
+  log('  • GovLens prototype proves Claude API client-side model');
+  log('  • Evidence Ledger Excel workbook built');
+  log('  • Content Blocks Spec maps axiom → article architecture');
+  log('  • 18 website locations inventoried for consolidation');
+  log('  • Twitter thread ready to deploy');
+  log('  • GPT research prompt with Bernays addendum sent');
+  log('');
+  log('  SESSION 2 (Claude Code):');
+  log('  • 15 RELATIONSHIP CARDS — all visually unique (the breakthrough)');
+  log('  • D9.1 Grace Operator Article — Tier 1 template filled');
+  log('  • Three-Tier Architecture defined (Article/Primer/Deep Dive)');
+  log('  • AxiomArticle.tsx rewritten (Fracture Point style)');
+  log('  • KnowledgeGraph.tsx rewritten (custom canvas)');
+  log('  • Shell layout locked + GlanceBar wired to real data');
+  log('  • Vault markdown API endpoint working');
+  log('  • Full session handoff for next AI');
+  log('');
+  log('⚠️  OPEN: Wire 15 cards into React components');
+  log('⚠️  OPEN: BYOK implementation (designed, not built)');
+  log('⚠️  OPEN: Primer template (Tier 2)');
+  log('⚠️  OPEN: Website consolidation (inventory done, merge pending)');
+  log('');
+  log('✅ DONE — Close this tab and REFRESH the calendar.');
+} catch(e) {
+  log('ERROR: ' + e.message);
+}
+</script>
+</body></html>

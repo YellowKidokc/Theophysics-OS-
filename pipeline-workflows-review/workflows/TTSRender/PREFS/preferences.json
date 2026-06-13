@@ -1,0 +1,5 @@
+{
+  "profile": "TTSRender",
+  "inherits": "tts_render",
+  "notes": "Clean and chunk text for restartable TTS playback."
+}

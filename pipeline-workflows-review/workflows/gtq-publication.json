@@ -1,0 +1,19 @@
+{
+  "name": "gtq-publication",
+  "description": "Genesis to Quantum series — 26 articles, full media pipeline. GTQ-10 missing podcast.",
+  "version": "1.0",
+  "stages": [
+    { "name": "intake", "station": "conversion-station", "on_error": "stop", "depends_on": [] },
+    { "name": "vectorize", "station": "sbert-embedder", "on_error": "skip", "depends_on": ["intake"] },
+    { "name": "classify", "station": "classify-documents", "on_error": "skip", "depends_on": ["vectorize"] },
+    { "name": "extract-claims", "station": "claim-extractor", "on_error": "continue", "depends_on": ["classify"] },
+    { "name": "grade", "station": "paper-proof-grader", "on_error": "continue", "depends_on": ["extract-claims"] },
+    { "name": "math-layer", "station": "math-translation-layer", "description": "Math notation + equation rendering", "on_error": "continue", "depends_on": ["grade"] },
+    {
+      "name": "route", "station": "postgres-sync", "on_error": "stop", "depends_on": ["math-layer"],
+      "targets": { "build": "T:\\1111genesis-to-quantum", "site": "faiththruphysics.com", "r2": "theophysics-media" }
+    }
+  ],
+  "preference_profile": "paper_grading.json",
+  "signals": ["quality", "ready"]
+}

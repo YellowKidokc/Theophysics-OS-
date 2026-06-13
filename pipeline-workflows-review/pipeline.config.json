@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "description": "FORGE system configuration — paths, ports, connection strings",
+    "rule": "Use placeholders for secrets. Never commit real tokens or passwords.",
+    "updated": "2026-06-10"
+  },
+  "paths": {
+    "stations_root": "X:\\Backside\\stations",
+    "models_root": "\\\\dlowenas\\brain\\Backside\\_models\\_Models",
+    "vault": "O:\\_Theophysics_v4",
+    "workflows_active": "X:\\WORKFLOWS",
+    "mda_workflow": "X:\\WORKFLOWS\\MDA-PUBLICATION",
+    "gtq_build": "T:\\1111genesis-to-quantum",
+    "bil_data": "X:\\BIL",
+    "graphify": "X:\\graphify",
+    "exports": "X:\\Backside\\EXPORTS"
+  },
+  "services": {
+    "postgres": {
+      "host": "192.168.1.97",
+      "port": 5432,
+      "database": "kj",
+      "user": "postgres",
+      "password": "YOUR_POSTGRES_PASSWORD"
+    },
+    "bil_server": "http://localhost:8420",
+    "sync_server": "http://localhost:3456",
+    "ollama": "http://localhost:11434",
+    "ollama_model": "phi4",
+    "qdrant": "http://192.168.1.177:6333",
+    "comms_hub": "https://comms.dlowehomelab.com"
+  },
+  "cloudflare": {
+    "r2_bucket": "theophysics-media",
+    "r2_public": "pub-8ca8fed850be4a3b98d5b2ac32428fcf.r2.dev",
+    "site": "faiththruphysics.com",
+    "bible_site": "bible.theophysics.pro"
+  },
+  "doctrine": {
+    "vectorize_before_classify": true,
+    "nothing_original_destroyed": true,
+    "preference_layer_observes_never_blocks": true,
+    "idempotency_via_input_hash": true
+  }
+}

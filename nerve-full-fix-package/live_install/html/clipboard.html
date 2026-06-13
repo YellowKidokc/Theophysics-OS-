@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ClipSync</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:#0a0a0f}
+  ::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:#3a3a4a}
+  body{font-family:'IBM Plex Mono',monospace;background:#0a0a0f;color:#c8ccd4;height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+  /* SEARCH BAR */
+  .search-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #1e1e2e;background:#0d0d14;flex-shrink:0}
+  .search-bar input{flex:1;background:#12121c;border:1px solid #1e1e2e;border-radius:5px;padding:8px 10px 8px 30px;color:#c8ccd4;font-size:13px;font-family:inherit;outline:none}
+  .search-bar input:focus{border-color:rgba(245,158,11,.25)}
+  .search-bar input::placeholder{color:#2a2a3a;font-size:13px}
+  .search-wrap{position:relative;flex:1}
+  .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#3a3a4a;pointer-events:none}
+  .brand-badge{font-size:12px;font-weight:700;letter-spacing:2px;color:#f59e0b;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .brand-badge .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.5);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+  /* TABS */
+  .tab-bar{display:flex;background:#0a0a0f;border-bottom:1px solid #1e1e2e;flex-shrink:0}
+  .tab{flex:1;padding:8px 0;text-align:center;font-size:10px;letter-spacing:1.5px;font-weight:600;color:#3a3a4a;cursor:pointer;border-bottom:2px solid transparent;transition:all .1s}
+  .tab:hover{color:#666}
+  .tab.active{color:#f59e0b;border-bottom-color:#f59e0b}
+
+  /* PANELS */
+  .panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+  .panel.active{display:flex}
+
+  /* SLOT GRID — 2 column cards */
+  .slot-grid{flex:1;overflow-y:auto;padding:6px;display:grid;grid-template-columns:1fr;gap:6px;align-content:start}
+  .slot-card{background:#111118;border:1px solid #1e1e2e;border-radius:8px;padding:9px 10px;display:flex;flex-direction:column;gap:6px;min-height:82px;transition:border-color .1s}
+  .slot-card:hover{border-color:#333}
+  .slot-card.filled{border-color:#1e3a5f}
+  .slot-card .slot-head{display:flex;justify-content:space-between;align-items:center}
+  .slot-card .slot-label{font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1px}
+  .slot-card .slot-status{font-size:9px;font-weight:600;letter-spacing:1px;color:#10b981}
+  .slot-card .slot-title{font-size:12px;font-weight:600;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .slot-card .slot-preview{font-size:11px;color:#6b7280;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .slot-card .slot-btns{display:flex;gap:4px;margin-top:auto}
+  .slot-card .slot-btns button{padding:4px 0;flex:1;border:1px solid #1e1e2e;border-radius:4px;background:transparent;color:#555;font-size:10px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .1s;letter-spacing:.5px}
+  .slot-card .slot-btns button.copy-btn{background:rgba(96,208,255,.1);border-color:rgba(96,208,255,.3);color:#60d0ff}
+  .slot-card .slot-btns button.copy-btn:hover{background:rgba(96,208,255,.2)}
+  .slot-card .slot-btns button:hover{border-color:#444;color:#aaa}
+  .slot-card .slot-btns button.save-btn{color:#888}
+  .slot-card .slot-btns button.save-btn:hover{color:#f59e0b;border-color:rgba(245,158,11,.3)}
+
+  /* CLIP LIST (history + saved) */
+  .clip-list{flex:1;overflow-y:auto;padding:6px}
+  .clip-item{padding:10px 10px 9px;margin-bottom:6px;background:#111118;border:1px solid #1e1e2e;border-radius:8px;cursor:pointer;transition:all .08s;position:relative}
+  .clip-item:hover{background:#141723;border-color:#2a2f42}
+  .clip-item.pinned{border-color:rgba(251,191,36,.32);box-shadow:inset 0 0 0 1px rgba(251,191,36,.12)}
+  .clip-title{font-size:12px;font-weight:600;color:#eceef6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:62px}
+  .clip-desc{font-size:10px;line-height:1.4;color:#8f96ab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+  .clip-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px}
+  .clip-tags{display:flex;gap:4px;flex-wrap:wrap;min-width:0}
+  .clip-tag{padding:2px 6px;border:1px solid #2a3145;border-radius:999px;background:#171b27;color:#aeb7cb;font-size:8px;font-weight:600;letter-spacing:.3px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .clip-tag.pinned{border-color:rgba(251,191,36,.28);background:rgba(251,191,36,.1);color:#fbbf24}
+  .clip-time{font-size:9px;color:#4f586f;white-space:nowrap}
+  .clip-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px}
+  .clip-actions button{background:#12121c;border:1px solid #1e1e2e;border-radius:999px;color:#70788f;padding:3px 7px;font-size:9px;font-family:inherit;cursor:pointer;transition:all .1s}
+  .clip-actions button:hover{color:#f59e0b;border-color:rgba(245,158,11,.25)}
+  .clip-actions .del-btn:hover{color:#ef4444;border-color:rgba(239,68,68,.25)}
+
+  .empty-state{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#2a2a3a;gap:6px;padding:20px}
+  .empty-state div:first-child{font-size:14px;letter-spacing:2px}
+  .empty-state div:last-child{font-size:12px;color:#1e1e2e}
+
+  /* ── SHARED BOTTOM DOCK ── */
+  .dock{border-top:1px solid #1e1e2e;background:#0d0d14;flex-shrink:0}
+
+  /* Row 1: action icons + pins */
+  .dock-icons{display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid #151520}
+  .dock-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#111118;border:1px solid #1e1e2e;border-radius:5px;color:#555;font-size:16px;cursor:pointer;transition:all .1s;position:relative}
+  .dock-icon:hover{border-color:#444;color:#aaa}
+  .dock-icon.active{color:#f59e0b;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)}
+  .dock-icon.pin{cursor:grab}
+  .dock-icon.pin:active{cursor:grabbing}
+  .dock-icon.pin.dragging{opacity:.5}
+  .dock-spacer{flex:1}
+  .dock-new{padding:5px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:5px;color:#f59e0b;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:1px;transition:all .1s}
+  .dock-new:hover{background:rgba(245,158,11,.15)}
+
+  /* Row 2: categories */
+  .dock-cats{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid #151520}
+  .dock-cat{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 4px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#3a3a4a;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .1s}
+  .dock-cat:hover{border-color:#333;color:#666}
+  .dock-cat.active{color:#f59e0b;border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05)}
+  .dock-cat .cat-icon{font-size:14px}
+
+  /* Row 3: status bar */
+  .dock-status{display:flex;align-items:center;gap:6px;padding:5px 10px;font-size:11px;color:#2a2a3a}
+  .dock-status button{background:transparent;border:1px solid #1e1e2e;border-radius:3px;color:#555;padding:3px 10px;font-size:14px;cursor:pointer;font-family:inherit;transition:all .1s}
+  .dock-status button:hover{border-color:#444;color:#aaa}
+  .dock-status .status-badge{padding:3px 12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:4px;color:#10b981;font-size:10px;font-weight:700;letter-spacing:1px}
+  .dock-status .status-count{margin-left:auto;font-size:12px;color:#555}
+
+  /* TOAST */
+  .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#10b981;color:#000;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:2px;z-index:9999;pointer-events:none;animation:toastPop .3s ease}
+  @keyframes toastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+</style>
+</head>
+<body>
+
+<!-- SEARCH -->
+<div class="search-bar">
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="clipSearch" placeholder="Search clips...">
+  </div>
+  <div class="brand-badge"><span class="dot"></span> POF 2828</div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('hotkeys')">HOTKEYS</div>
+  <div class="tab" onclick="switchTab('history')">HISTORY</div>
+  <div class="tab" onclick="switchTab('ai')">AI</div>
+  <div class="tab" onclick="switchTab('saved')" style="max-width:36px">+</div>
+</div>
+
+<!-- TAB 1: HOTKEYS (slot cards, 2-column) -->
+<div class="panel active" id="panel-hotkeys">
+  <div class="slot-grid" id="slotGrid"></div>
+</div>
+
+<!-- TAB 2: HISTORY -->
+<div class="panel" id="panel-history">
+  <div class="clip-list" id="clipList"></div>
+</div>
+
+<!-- TAB 3: AI -->
+<div class="panel" id="panel-ai">
+  <div class="clip-list" id="aiList">
+    <div class="empty-state"><div>AI QUICK ACCESS</div><div>use Ctrl+Alt+A for full AI chat</div></div>
+  </div>
+</div>
+
+<!-- TAB 4: SAVED (+) -->
+<div class="panel" id="panel-saved">
+  <div class="clip-list" id="savedList"></div>
+</div>
+
+<!-- SHARED BOTTOM DOCK -->
+<div class="dock">
+  <!-- Row 1: Pin + action icons -->
+  <div class="dock-icons">
+    <div class="dock-icon pin active" id="pin1" draggable="true" ondragstart="dragPin(event,1)" title="Pin 1 — drag to reposition">📌</div>
+    <div class="dock-icon pin" id="pin2" draggable="true" ondragstart="dragPin(event,2)" title="Pin 2 — drag to reposition">📌</div>
+    <div class="dock-icon" onclick="pinExternal()" title="Pin any window — click, then click the window to pin">✏️</div>
+    <div class="dock-icon" title="Slot 1">1</div>
+    <div class="dock-icon" title="Slot 2">2</div>
+    <div class="dock-spacer"></div>
+    <button class="dock-new" onclick="addNewSlot()">+ New</button>
+  </div>
+  <!-- Row 2: Categories -->
+  <div class="dock-cats">
+    <div class="dock-cat" onclick="toggleCat('docs')" id="cat-docs"><span class="cat-icon">📄</span> Docs</div>
+    <div class="dock-cat" onclick="toggleCat('video')" id="cat-video"><span class="cat-icon">🎬</span> Video</div>
+    <div class="dock-cat" onclick="toggleCat('music')" id="cat-music"><span class="cat-icon">🎵</span> Music</div>
+    <div class="dock-cat" onclick="toggleCat('pics')" id="cat-pics"><span class="cat-icon">🖼️</span> Pics</div>
+  </div>
+  <!-- Row 3: Status -->
+  <div class="dock-status">
+    <button onclick="prevPage()">◀</button>
+    <button onclick="playAction()">▶</button>
+    <button onclick="nextAction()">▲</button>
+    <span class="status-badge" id="statusBadge">Updated</span>
+    <span class="status-count" id="statusCount">1/1 · 20 slots</span>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let clips = [];
+let savedClips = [];
+let searchTerm = '';
+let config = {};
+let activeTab = 'hotkeys';
+let activeCat = null;
+const MAX_SLOTS = 50;
+const SLOTS_PER_PAGE = 20;
+let currentPage = 0;
+
+// ── IPC ──
+function sendIpc(msg) {
+  try { window.chrome.webview.postMessage(JSON.stringify(msg)); return true; }
+  catch(e) { return false; }
+}
+
+// ── TABS ──
+function switchTab(name) {
+  activeTab = name;
+  const names = ['hotkeys','history','ai','saved'];
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', names[i] === name);
+  });
+  names.forEach(n => {
+    const p = document.getElementById('panel-' + n);
+    if (p) p.classList.toggle('active', n === name);
+  });
+}
+
+// ── HOTKEY SLOTS (2-column cards) ──
+function renderSlots() {
+  const grid = document.getElementById('slotGrid');
+  const q = searchTerm.toLowerCase();
+  const start = currentPage * SLOTS_PER_PAGE;
+  const end = Math.min(start + SLOTS_PER_PAGE, MAX_SLOTS);
+  let html = '';
+  let totalFilled = 0;
+
+  for (let i = 0; i < MAX_SLOTS; i++) {
+    if (clips[i] && clips[i].content) totalFilled++;
+  }
+
+  for (let i = start; i < end; i++) {
+    const clip = clips[i];
+    const hasFill = clip && clip.content;
+    const title = hasFill ? clip.content.split('\n')[0].substring(0, 30) : '';
+    const preview = hasFill ? clip.content.replace(/\n/g, ' ').substring(0, 50) : '';
+
+    if (q && hasFill && !clip.content.toLowerCase().includes(q)) continue;
+    if (q && !hasFill) continue;
+
+    html += '<div class="slot-card' + (hasFill ? ' filled' : '') + '">' +
+      '<div class="slot-head">' +
+        '<span class="slot-label">SLOT ' + (i + 1) + '</span>' +
+        (hasFill ? '<span class="slot-status">READY</span>' : '') +
+      '</div>' +
+      (hasFill ? '<div class="slot-title">' + esc(title) + '</div>' : '') +
+      '<div class="slot-preview">' + (hasFill ? esc(preview) : '') + '</div>' +
+      '<div class="slot-btns">' +
+        (hasFill
+          ? '<button class="copy-btn" onclick="copySlot(' + i + ')">COPY</button>' +
+            '<button onclick="minimizeSlot(' + i + ')">—</button>' +
+            '<button onclick="clearSlot(' + i + ')">×</button>'
+          : '<button class="save-btn" onclick="saveToSlot(' + i + ')">+ SAVE</button>') +
+      '</div>' +
+    '</div>';
+  }
+
+  grid.innerHTML = html || '<div class="empty-state"><div>NO SLOTS</div><div>copy something to get started</div></div>';
+
+  const totalPages = Math.ceil(MAX_SLOTS / SLOTS_PER_PAGE);
+  document.getElementById('statusCount').textContent =
+    (currentPage + 1) + '/' + totalPages + ' · ' + totalFilled + ' slots';
+}
+
+function copySlot(i) {
+  if (clips[i] && clips[i].content) { navigator.clipboard.writeText(clips[i].content); showToast('COPIED'); }
+}
+function clearSlot(i) {
+  if (clips[i]) { clips[i] = { content: '', timestamp: '', tags: [], pinned: false }; renderSlots(); }
+}
+function minimizeSlot(i) { /* collapse card — future */ }
+function saveToSlot(i) {
+  navigator.clipboard.readText().then(text => {
+    if (text) {
+      clips[i] = { content: text, timestamp: new Date().toLocaleString(), tags: [], pinned: false };
+      renderSlots();
+      showToast('SAVED TO SLOT ' + (i + 1));
+    }
+  }).catch(() => showToast('CLIPBOARD EMPTY'));
+}
+function addNewSlot() {
+  // Find first empty slot and save clipboard there
+  for (let i = 0; i < MAX_SLOTS; i++) {
+    if (!clips[i] || !clips[i].content) {
+      saveToSlot(i);
+      // Jump to the right page
+      currentPage = Math.floor(i / SLOTS_PER_PAGE);
+      return;
+    }
+  }
+  showToast('ALL SLOTS FULL');
+}
+
+// ── PAGINATION ──
+function prevPage() {
+  const totalPages = Math.ceil(MAX_SLOTS / SLOTS_PER_PAGE);
+  currentPage = (currentPage - 1 + totalPages) % totalPages;
+  renderSlots();
+}
+function nextAction() {
+  const totalPages = Math.ceil(MAX_SLOTS / SLOTS_PER_PAGE);
+  currentPage = (currentPage + 1) % totalPages;
+  renderSlots();
+}
+function playAction() { /* future: TTS read or play */ }
+
+function clipTitleLine(content) {
+  return (content || '').split('\n')[0].trim();
+}
+
+function clipDescriptionLine(content) {
+  return (content || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildClipTags(clip) {
+  const tags = [];
+  if (clip.pinned) tags.push('<span class="clip-tag pinned">Pinned</span>');
+  (clip.tags || []).slice(0, 3).forEach(function(tag) {
+    tags.push('<span class="clip-tag">' + esc(tag) + '</span>');
+  });
+  return tags.join('');
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const list = document.getElementById('clipList');
+  const q = searchTerm.toLowerCase();
+  const filled = clips.filter(c => c && c.content);
+  const filtered = filled.filter(c => !q || c.content.toLowerCase().includes(q));
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div>NO HISTORY</div><div>clips appear as you copy</div></div>';
+  } else {
+    list.innerHTML = filtered.map((clip, idx) => {
+      const i = clips.indexOf(clip);
+      const title = clipTitleLine(clip.content);
+      const desc = clipDescriptionLine(clip.content);
+      return '<div class="clip-item' + (clip.pinned ? ' pinned' : '') + '" onclick="navigator.clipboard.writeText(clips[' + i + '].content);showToast(\'COPIED\')">' +
+        '<div class="clip-title">' + esc(title || 'Untitled clip') + '</div>' +
+        '<div class="clip-desc">' + esc(desc || 'No description') + '</div>' +
+        '<div class="clip-meta"><div class="clip-tags">' + buildClipTags(clip) + '</div><span class="clip-time">' + (clip.timestamp || 'just now') + '</span></div>' +
+        '<div class="clip-actions">' +
+          '<button onclick="event.stopPropagation();saveClip(clips[' + i + '].content)">SAVE</button>' +
+          '<button class="del-btn" onclick="event.stopPropagation();clearSlot(' + i + ');renderHistory()">DEL</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+// ── SAVED (long-term) ──
+function renderSaved() {
+  const list = document.getElementById('savedList');
+  const q = searchTerm.toLowerCase();
+  const filtered = savedClips.filter(c => !q || c.content.toLowerCase().includes(q));
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div>NO SAVED CLIPS</div><div>hit SAVE from History to keep items permanently</div></div>';
+  } else {
+    list.innerHTML = filtered.map((clip, i) => {
+      const title = clipTitleLine(clip.content);
+      const desc = clipDescriptionLine(clip.content);
+      return '<div class="clip-item pinned" onclick="navigator.clipboard.writeText(savedClips[' + i + '].content);showToast(\'COPIED\')">' +
+        '<div class="clip-title">' + esc(title || 'Saved clip') + '</div>' +
+        '<div class="clip-desc">' + esc(desc || 'No description') + '</div>' +
+        '<div class="clip-meta"><div class="clip-tags">' + buildClipTags(clip) + '</div><span class="clip-time">' + (clip.timestamp || '') + '</span></div>' +
+        '<div class="clip-actions">' +
+          '<button class="del-btn" onclick="event.stopPropagation();removeSaved(' + i + ')">REMOVE</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+function saveClip(content) {
+  if (savedClips.some(s => s.content === content)) { showToast('ALREADY SAVED'); return; }
+  savedClips.push({ content: content, timestamp: new Date().toLocaleString(), tags: ['saved'], pinned: true });
+  try { localStorage.setItem('clipsync_saved', JSON.stringify(savedClips)); } catch(e) {}
+  renderSaved();
+  showToast('SAVED');
+}
+function removeSaved(i) {
+  savedClips.splice(i, 1);
+  try { localStorage.setItem('clipsync_saved', JSON.stringify(savedClips)); } catch(e) {}
+  renderSaved();
+}
+function loadSaved() {
+  try { const d = localStorage.getItem('clipsync_saved'); if (d) savedClips = JSON.parse(d); } catch(e) {}
+  renderSaved();
+}
+
+// ── CATEGORIES ──
+function toggleCat(name) {
+  activeCat = activeCat === name ? null : name;
+  document.querySelectorAll('.dock-cat').forEach(el => el.classList.remove('active'));
+  if (activeCat) document.getElementById('cat-' + activeCat).classList.add('active');
+}
+
+// ── PIN DRAG ──
+function dragPin(e, pinNum) {
+  e.dataTransfer.setData('text/plain', 'pin_' + pinNum);
+  document.getElementById('pin' + pinNum).classList.add('dragging');
+  // When dropped outside, the window should move there
+  // For now, toggle always-on-top
+}
+document.addEventListener('dragend', () => {
+  document.querySelectorAll('.dock-icon.pin').forEach(el => el.classList.remove('dragging'));
+});
+// Pin click toggles always-on-top
+document.getElementById('pin1').addEventListener('click', () => {
+  const el = document.getElementById('pin1');
+  const isActive = el.classList.toggle('active');
+  sendIpc({ type: 'set_always_on_top', value: isActive });
+  showToast(isActive ? 'PINNED' : 'UNPINNED');
+});
+document.getElementById('pin2').addEventListener('click', () => {
+  const el = document.getElementById('pin2');
+  const isActive = el.classList.toggle('active');
+  // Pin 2 could pin to second monitor — future
+  showToast(isActive ? 'PIN 2 ON' : 'PIN 2 OFF');
+});
+
+// ── PIN EXTERNAL WINDOW ──
+function pinExternal() {
+  showToast('CLICK A WINDOW TO PIN...');
+  sendIpc({ type: 'pin_external' });
+}
+
+// ── SEARCH ──
+document.getElementById('clipSearch').addEventListener('input', e => {
+  searchTerm = e.target.value;
+  renderSlots(); renderHistory(); renderSaved();
+});
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.getElementById('clipSearch').focus(); }
+});
+
+// ── CONFIG ──
+function populateUI() {}
+
+// ── HELPERS ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 600);
+}
+
+// ── IPC INIT ──
+function requestClips() {
+  if (!sendIpc({ type: 'get_clips' })) {
+    clips = [{ content: 'ClipSync running. Copy something.', timestamp: 'now', tags: ['system'], pinned: false }];
+    renderAll();
+  }
+}
+function renderAll() { renderSlots(); renderHistory(); renderSaved(); }
+function renderClips() { renderAll(); }
+function renderSlots_() { renderAll(); }
+
+setInterval(() => { try { sendIpc({ type: 'get_clips' }); } catch(e) {} }, 2000);
+
+// BOOT
+sendIpc({ type: 'get_config' });
+requestClips();
+loadSaved();
+</script>
+</body>
+</html>

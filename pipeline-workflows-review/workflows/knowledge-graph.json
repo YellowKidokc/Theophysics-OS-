@@ -1,0 +1,14 @@
+{
+  "name": "knowledge-graph",
+  "description": "Extract claims -> vectorize -> graph -> Postgres",
+  "version": "1.0",
+  "stages": [
+    { "name": "extract-claims", "station": "claim-extractor", "on_error": "stop", "depends_on": [] },
+    { "name": "vectorize", "station": "sbert-embedder", "on_error": "stop", "depends_on": ["extract-claims"] },
+    { "name": "graphify", "station": "graphify", "description": "Deterministic claim -> force classify -> axiom weld", "on_error": "stop", "depends_on": ["vectorize"] },
+    { "name": "link", "station": "graph-linker", "on_error": "continue", "depends_on": ["graphify"] },
+    { "name": "sync", "station": "postgres-sync", "on_error": "stop", "depends_on": ["link"] }
+  ],
+  "preference_profile": "defaults.json",
+  "signals": ["gap", "duplicate", "ready"]
+}

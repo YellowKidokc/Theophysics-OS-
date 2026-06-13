@@ -1,0 +1,38 @@
+{
+  "name": "theophysics-classifier",
+  "version": "1.0",
+  "path": "C:\\Users\\lowes\\Documents\\theophysics_classifier",
+  "type": "local",
+  "has_run_bat": true,
+  "status": "active",
+  "input": {
+    "accepts": [
+      "*"
+    ],
+    "source": "INPUT/",
+    "description": "Inputs consumed by theophysics-classifier."
+  },
+  "output": {
+    "produces": [
+      "*"
+    ],
+    "destination": "OUTPUT/",
+    "description": "Outputs produced by theophysics-classifier."
+  },
+  "llm_checkpoint": {
+    "enabled": false,
+    "engine": "ollama:phi4",
+    "prompt": null
+  },
+  "dependencies": [],
+  "idempotency": {
+    "method": "input_hash",
+    "cache": "ARCHIVE/"
+  },
+  "canary": {
+    "result": "untested",
+    "kind": "self-test",
+    "last_run": "2026-06-04T09:15:44"
+  },
+  "notes": "Truth Machine v1. 10-step deterministic pipeline: ingest->7Q classify->YAML rules->dependency graph->contradictions->kill chain->truth pressure->graph export->reports. 17 Postgres tables in q7 schema, 5 enums, 7 engine scaffolds. No LLM. Pure rules."
+}

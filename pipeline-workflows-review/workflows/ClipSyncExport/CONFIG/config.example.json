@@ -1,0 +1,6 @@
+{
+  "workflow": "ClipSyncExport",
+  "llm_checkpoint": true,
+  "preference_profile": "default",
+  "dry_run": true
+}

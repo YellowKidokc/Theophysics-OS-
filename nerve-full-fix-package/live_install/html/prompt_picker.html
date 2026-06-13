@@ -1,0 +1,855 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>POF 2828 — Prompt Picker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0f; }
+  ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a4a; }
+
+  body {
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    background: #0a0a0f;
+    color: #c8ccd4;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid #1e1e2e;
+    background: #0d0d14;
+    flex-shrink: 0;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .brand-tag {
+    font-size: 10px; letter-spacing: 3px; color: #f59e0b; font-weight: 700;
+  }
+  .brand-sep { font-size: 11px; color: #2a2a3a; }
+  .brand-sub { font-size: 10px; letter-spacing: 2px; color: #444; }
+
+  .chain-btn {
+    background: transparent;
+    border: 1px solid #2a2a3a;
+    color: #555;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: inherit;
+    cursor: pointer;
+    letter-spacing: 1px;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.12s ease;
+  }
+  .chain-btn.active {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: #10b981;
+    color: #10b981;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Search */
+  .search-wrap {
+    position: relative;
+  }
+  .search-wrap svg {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: #3a3a4a; pointer-events: none; transition: color 0.15s;
+  }
+  .search-input {
+    width: 100%;
+    background: #12121c;
+    border: 1px solid #1e1e2e;
+    border-radius: 6px;
+    padding: 9px 12px 9px 32px;
+    color: #c8ccd4;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  .search-input:focus {
+    border-color: #f59e0b40;
+  }
+  .search-input:focus + svg,
+  .search-input:focus ~ svg { color: #f59e0b; }
+
+  /* Category tabs */
+  .tabs { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+  .tab-btn {
+    background: transparent;
+    border: 1px solid #1a1a2a;
+    color: #555;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: inherit;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.1s ease;
+  }
+  .tab-btn.active {
+    font-weight: 700;
+  }
+
+  /* Main layout */
+  .main { flex: 1; display: flex; overflow: hidden; }
+
+  /* Command list */
+  .list-panel {
+    width: 42%; border-right: 1px solid #1e1e2e; overflow-y: auto;
+    transition: width 0.15s ease;
+  }
+  .list-panel.narrow { width: 35%; }
+
+  .cmd-row {
+    padding: 9px 14px;
+    border-bottom: 1px solid #13131d;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.08s ease;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cmd-row:hover { background: #0f0f1a; }
+  .cmd-row.selected {
+    background: #14142a;
+  }
+  .cmd-info { flex: 1; min-width: 0; }
+  .cmd-name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 2px; }
+  .cmd-name { font-size: 12px; font-weight: 700; }
+  .cmd-cat-badge {
+    font-size: 8px; letter-spacing: 1px; color: #3a3a4a;
+    background: #15151f; padding: 1px 5px; border-radius: 2px;
+  }
+  .cmd-short {
+    font-size: 11px; color: #555;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .add-chain-btn {
+    background: transparent; border: 1px solid #1e1e2e;
+    color: #3a3a4a; border-radius: 3px; padding: 2px 4px;
+    cursor: pointer; flex-shrink: 0; margin-left: 8px;
+    transition: all 0.1s ease; font-size: 12px; line-height: 1;
+  }
+  .add-chain-btn.in-chain { color: #10b981; border-color: #10b98140; }
+
+  /* Preview panel */
+  .preview-panel {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .preview-header {
+    padding: 12px 18px 10px;
+    border-bottom: 1px solid #1e1e2e;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .preview-title-wrap { display: flex; align-items: center; gap: 10px; }
+  .preview-title { font-size: 14px; font-weight: 700; }
+  .preview-short { font-size: 12px; color: #555; }
+  .preview-actions { display: flex; gap: 6px; }
+
+  .action-btn {
+    padding: 4px 12px; border-radius: 3px;
+    font-size: 10px; font-family: inherit;
+    letter-spacing: 1px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.12s ease; border: 1px solid;
+  }
+  .btn-edit {
+    background: transparent; border-color: #2a2a3a; color: #555;
+  }
+  .btn-edit.active { background: rgba(59,130,246,0.12); border-color: #3b82f6; color: #3b82f6; }
+  .btn-copy {
+    background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); color: #f59e0b;
+  }
+  .btn-copy.copied {
+    background: rgba(16,185,129,0.12); border-color: #10b981; color: #10b981;
+  }
+
+  .preview-body {
+    flex: 1; overflow-y: auto; padding: 14px 18px;
+  }
+  .preview-pre {
+    margin: 0; white-space: pre-wrap; font-size: 13px;
+    line-height: 1.7; color: #9ca3af; font-family: inherit;
+  }
+  .tpl-var {
+    color: #f59e0b; background: rgba(245,158,11,0.06);
+    padding: 1px 4px; border-radius: 2px;
+    border: 1px dashed rgba(245,158,11,0.2);
+  }
+  .tpl-cmd { color: #3b82f6; font-weight: 600; }
+
+  .preview-edit {
+    width: 100%; height: 100%;
+    background: #0d0d14; border: 1px solid #1e1e2e;
+    border-radius: 4px; color: #c8ccd4;
+    font-size: 13px; font-family: inherit;
+    padding: 14px; resize: none; outline: none;
+    line-height: 1.7;
+  }
+
+  .empty-preview {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 6px; color: #2a2a3a;
+  }
+  .empty-preview div:first-child { font-size: 12px; letter-spacing: 2px; }
+  .empty-preview div:last-child { font-size: 11px; color: #1e1e2e; }
+
+  /* Chain panel */
+  .chain-panel {
+    width: 220px; border-left: 1px solid #1e1e2e;
+    display: flex; flex-direction: column; overflow: hidden;
+    background: #0b0b12;
+  }
+  .chain-panel.hidden { display: none; }
+  .chain-header {
+    padding: 10px 12px 8px; border-bottom: 1px solid #1e1e2e;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chain-label { font-size: 10px; letter-spacing: 2px; color: #10b981; font-weight: 700; }
+  .chain-clear {
+    background: transparent; border: 1px solid #2a2a3a; color: #555;
+    padding: 2px 8px; border-radius: 3px; font-size: 9px;
+    font-family: inherit; cursor: pointer; letter-spacing: 1px;
+  }
+  .chain-body { flex: 1; overflow-y: auto; padding: 6px; }
+  .chain-empty { padding: 20px 10px; text-align: center; color: #2a2a3a; font-size: 11px; line-height: 1.6; }
+  .chain-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 7px; background: #12121c; border-radius: 4px;
+    border: 1px solid #1e1e2e; margin-bottom: 2px;
+  }
+  .chain-item-left { display: flex; align-items: center; gap: 5px; }
+  .chain-num { font-size: 9px; color: #3a3a4a; font-weight: 700; width: 14px; }
+  .chain-item-name { font-size: 11px; font-weight: 700; }
+  .chain-remove {
+    background: transparent; border: none; color: #3a3a4a;
+    cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1;
+  }
+  .chain-arrow { text-align: center; color: #10b981; font-size: 10px; padding: 1px 0; opacity: 0.5; }
+  .chain-footer { padding: 6px; border-top: 1px solid #1e1e2e; }
+  .chain-copy-btn {
+    width: 100%; background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.25); color: #10b981;
+    padding: 7px; border-radius: 4px; font-size: 10px;
+    font-family: inherit; letter-spacing: 1.5px;
+    cursor: pointer; font-weight: 700;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 5px 16px; border-top: 1px solid #1e1e2e;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: #2a2a3a; background: #0a0a0f; flex-shrink: 0;
+  }
+  .footer-keys { display: flex; gap: 14px; }
+  .kbd {
+    color: #555; border: 1px solid #1e1e2e; padding: 1px 5px;
+    border-radius: 2px; font-size: 9px; margin-right: 3px;
+  }
+
+  /* Files Bar */
+  .files-bar{display:flex;align-items:center;gap:3px;padding:4px 8px;background:#0a0a0f;border-top:1px solid #1e1e2e;flex-shrink:0;}
+  .fbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 4px;background:transparent;border:1px solid #1e1e2e;border-radius:5px;color:#555;font-family:inherit;cursor:pointer;font-size:9px;letter-spacing:.4px;transition:all .12s;}
+  .fbtn:hover{border-color:#4ac4d4;color:#4ac4d4;background:rgba(74,196,212,.08);}
+  .fbtn.active{border-color:#4ac4d4;color:#4ac4d4;background:rgba(74,196,212,.08);}
+  .fbtn-icon{font-size:13px;}
+  .files-panel{display:none;background:#0a0a0f;border-top:1px solid #1e1e2e;flex-shrink:0;max-height:200px;overflow-y:auto;}
+  .files-panel.open{display:block;}
+  .fp-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#0d0d14;border-bottom:1px solid #1e1e2e;position:sticky;top:0;z-index:1;}
+  .fp-title{font-size:9px;color:#4ac4d4;letter-spacing:1px;text-transform:uppercase;font-weight:500;}
+  .fp-close{background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:2px 4px;font-family:inherit;}.fp-close:hover{color:#c8ccd4;}
+  .fp-list{padding:4px;}
+  .fp-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .1s;font-size:10px;color:#c8ccd4;}
+  .fp-item:hover{background:#151520;}
+  .fp-item-icon{font-size:12px;flex-shrink:0;width:18px;text-align:center;}
+  .fp-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fp-item-size{font-size:8px;color:#555;flex-shrink:0;}
+  .fp-empty{text-align:center;padding:16px 8px;color:#2a2a3a;font-size:9px;}
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: #10b981; color: #000; padding: 12px 28px;
+    border-radius: 8px; font-size: 14px; font-weight: 700;
+    letter-spacing: 2px; z-index: 9999; pointer-events: none;
+    animation: toastPop 0.3s ease;
+  }
+  @keyframes toastPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <span class="brand-tag">POF 2828</span>
+      <span class="brand-sep">│</span>
+      <span class="brand-sub">PROMPT PICKER</span>
+    </div>
+    <div class="header-actions">
+      <button class="chain-btn" onclick="openNewPrompt()" style="background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.3)">+ NEW</button>`n      <button class="chain-btn" onclick="exportPromptsBridge()">EXPORT</button>
+      <button class="chain-btn" id="chainToggle" onclick="toggleChain()">
+        ⚡ CHAIN <span id="chainCount"></span>
+      </button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search commands, prompts..." autofocus>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  </div>
+  <div class="tabs" id="tabBar"></div>
+</div>
+
+<div class="main">
+  <div class="list-panel" id="listPanel"></div>
+  <div class="preview-panel" id="previewPanel">
+    <div class="empty-preview">
+      <div>SELECT A COMMAND</div>
+      <div>or start typing to search</div>
+    </div>
+  </div>
+  <div class="chain-panel hidden" id="chainPanel">
+    <div class="chain-header">
+      <span class="chain-label">CHAIN BUILDER</span>
+      <button class="chain-clear" onclick="clearChain()">CLEAR</button>
+    </div>
+    <div class="chain-body" id="chainBody"></div>
+    <div class="chain-footer" id="chainFooter" style="display:none">
+      <button class="chain-copy-btn" onclick="copyChain()">COPY CHAIN</button>
+    </div>
+  </div>
+</div>
+
+<div class="files-bar">
+  <button class="fbtn" data-folder="documents" onclick="toggleFiles('documents')"><span class="fbtn-icon">&#x1F4C4;</span>Docs</button>
+  <button class="fbtn" data-folder="videos" onclick="toggleFiles('videos')"><span class="fbtn-icon">&#x1F3AC;</span>Video</button>
+  <button class="fbtn" data-folder="music" onclick="toggleFiles('music')"><span class="fbtn-icon">&#x1F3B5;</span>Music</button>
+  <button class="fbtn" data-folder="pictures" onclick="toggleFiles('pictures')"><span class="fbtn-icon">&#x1F5BC;</span>Pics</button>
+</div>
+<div class="files-panel" id="filesPanel">
+  <div class="fp-header"><span class="fp-title" id="fpTitle">Documents</span><button class="fp-close" onclick="closeFiles()">&#x2715;</button></div>
+  <div class="fp-list" id="fpList"></div>
+</div>
+
+<div class="footer">
+  <span id="cmdCount">0 commands</span>
+  <div class="footer-keys">
+    <span><span class="kbd">↑↓</span> navigate</span>
+    <span><span class="kbd">Enter</span> copy & close</span>
+    <span><span class="kbd">Esc</span> close</span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA — Edit these to add/change your prompts
+// ============================================================
+const COMMANDS = {
+  core8: {
+    label: "CORE 8", color: "#f59e0b",
+    items: [
+      { id: "probe", name: "/PROBE", short: "Structural integrity test", template: `/PROBE: {claim}\n\nFind the exact hold-or-break point. Name the failure mode with precision. If it holds → explain nontriviality (what SHOULD break it but doesn't?).` },
+      { id: "deeper", name: "/DEEPER", short: "3+ layers deep", template: `/DEEPER: {topic}\n\nGo minimum 3 layers:\n1. Observation →\n2. Pattern →\n3. LAW\n\nMost AI stops at layer 2. The value is layer 3. If you can't reach L3 → say so.` },
+      { id: "integrate", name: "/INTEGRATE", short: "Structural isomorphism", template: `/INTEGRATE: {domain_a} ↔ {domain_b}\n\nFind structural isomorphism — shared logical architecture, NOT metaphorical similarity. Real iso → constrains predictions in both domains. If analogy only → flag as analogy.` },
+      { id: "east", name: "/EAST", short: "Steelman objection", template: `/EAST: {position}\n\nSteelman the strongest objection. The version that makes a serious physicist or theologian pause. Articulate it as well as the best advocates would. Then let the idea respond.` },
+      { id: "north", name: "/NORTH", short: "Return to bedrock", template: `/NORTH\n\nReturn to bedrock. What do we KNOW?\nAnchors: grace, entropy, curvature, will, Logos, Master Equation.\nUse when drifting from ground truth.` },
+      { id: "connect", name: "/CONNECT", short: "Bridge unlikely domains", template: `/CONNECT: {thing_a} ↔ {thing_b}\n\nBridge things that shouldn't relate. The value IS the bridge, not the domains. If it survives /PROBE → real. If not → discard and say so.` },
+      { id: "chain_cmd", name: "/CHAIN", short: "Find weakest link", template: `/CHAIN: {logic_sequence}\n\nWalk the full logic chain. ID the single weakest link. Explain what breaks downstream if it fails. (Complement to /PROBE — /PROBE tests the whole, /CHAIN finds the vulnerability.)` },
+      { id: "blindspot", name: "/BLINDSPOT", short: "What are we not seeing?", template: `/BLINDSPOT: {topic_or_framework}\n\nWhat is DL or the framework NOT seeing? What's unquestioned? What assumption is unexamined? Should produce discomfort if working correctly.` },
+    ]
+  },
+  extended: {
+    label: "EXTENDED", color: "#3b82f6",
+    items: [
+      { id: "west", name: "/WEST", short: "Structural forensics", template: `/WEST: {target}\n\nStructural forensics underneath. Funding, affiliations, unstated assumptions, the unsaid. Not conspiracy — structural.` },
+      { id: "south", name: "/SOUTH", short: "Unexpected connection", template: `/SOUTH: {problem}\n\nUnexpected connection from a different field. Untried analogy. An approach nobody took.` },
+      { id: "brain", name: "/BRAIN", short: "Profile & categorize", template: `/BRAIN: {target}\n\nProfile target (person, idea, institution) → categorize → initial hypothesis.\nSetup for full 360°: /BRAIN + /E + /W + /N + /S` },
+      { id: "risks", name: "/RISKS", short: "Failure modes", template: `/RISKS: {claim_or_plan}\n\nRight in form AND wrong in substance? Edge cases where logic inverts? Silent assumptions masquerading as conclusions?` },
+      { id: "feedback", name: "/FEEDBACK", short: "Direct critique", template: `/FEEDBACK: {work}\n\nDirect. Redundancy → name it. Circular → trace the exact loop. Don't soften.` },
+      { id: "verify", name: "/VERIFY", short: "Check sources & math", template: `/VERIFY: {claim}\n\nCheck sources, math, framework consistency. State confidence: HIGH / MED / LOW + reason.` },
+      { id: "metric", name: "/METRIC", short: "Quantify it", template: `/METRIC: {claim}\n\nNumbers or relative magnitudes → abstract claims. How much info compressed? How many independent falsification paths? If not quantifiable → state the blocker.` },
+      { id: "decide", name: "/DECIDE", short: "Options + tradeoffs", template: `/DECIDE: {decision}\n\nOptions + tradeoffs weighted vs axioms. Recommend + show full reasoning chain.` },
+      { id: "scen", name: "/SCEN", short: "Causal chains", template: `/SCEN: {situation}\n\nWalk causal chains (best AND worst). Identify bifurcation points. What triggers the split?` },
+      { id: "pattern", name: "/PATTERN", short: "Cross-domain repetition", template: `/PATTERN: {observation}\n\nFind repetition across domains. Same structure in physics AND scripture → name it. Then /PROBE. If it doesn't survive → discard.` },
+    ]
+  },
+  chains: {
+    label: "CHAINS", color: "#10b981",
+    items: [
+      { id: "ch_integrity", name: "/PROBE → /CHAIN", short: "Integrity → vulnerability", template: `/PROBE → /CHAIN: {claim}\n\nFirst test structural integrity of the whole, then walk the chain to find the specific vulnerability point.` },
+      { id: "ch_360", name: "/BRAIN → /E → /W → /N → /S", short: "Full 360° analysis", template: `/BRAIN → /EAST → /WEST → /NORTH → /SOUTH: {target}\n\nFull 360°:\n1. Profile & categorize\n2. Steelman opposition\n3. Hidden structural forces\n4. First principles anchor\n5. Novel unexpected angle` },
+      { id: "ch_law", name: "/DEEPER → /INTEGRATE", short: "Extract law → merge domains", template: `/DEEPER → /INTEGRATE: {observation}\n\nExtract the law (3 layers min), then merge across physics ∧ theology ∧ consciousness.` },
+      { id: "ch_fail", name: "/RISKS → /SCEN", short: "Failure modes → simulate", template: `/RISKS → /SCEN: {plan_or_claim}\n\nSurface failure modes, then simulate their causal trajectories.` },
+      { id: "ch_crit", name: "/PROBE → /EAST → /FEEDBACK", short: "Test → object → critique", template: `/PROBE → /EAST → /FEEDBACK: {idea}\n\nStructural test → strongest objection → direct unfiltered critique.` },
+      { id: "ch_novel", name: "/CONNECT → /BLINDSPOT", short: "Novel bridge → reveal missed", template: `/CONNECT → /BLINDSPOT: {topic}\n\nForce a novel bridge, then reveal what's been missed.` },
+      { id: "ch_paper", name: "/PATTERN → /DEEPER → /PAPER", short: "Pattern → law → formal write", template: `/PATTERN → /DEEPER → /PAPER: {observation}\n\nCross-domain pattern → extract the law → write it formally.` },
+    ]
+  },
+  ops: {
+    label: "OPS", color: "#a855f7",
+    items: [
+      { id: "save", name: "/SAVE", short: "Capture session state", template: `/SAVE\n\nCapture: what was discussed, decided, changed, next steps.\nRoute → Claude memory + DAILY_LOG bucket (10176) + Obsidian daily note.` },
+      { id: "recall", name: "/RECALL", short: "Reconstruct from stored", template: `/RECALL: {topic_or_id}\n\nReconstruct from stored data. Flag what's retrieved vs inferred.` },
+      { id: "deep_save", name: "/DEEP", short: "Breakthroughs ONLY", template: `/DEEP\n\nBreakthroughs ONLY. Record:\n- What shifted\n- Why it matters\n- What it connects to\n- What it invalidated\nRoute → MCP memory + Obsidian canonical.` },
+      { id: "title", name: "/TITLE", short: "Name this session", template: `/TITLE\n\nName this session. Memorable + specific.\nGood: 'Storm-Calming-as-Wavefunction-Collapse'\nBad: 'Physics_Discussion'` },
+      { id: "log", name: "/LOG", short: "Operational status", template: `/LOG\n\nOperational: done, files touched, pending.\nRoute → DAILY_LOG bucket (10176).` },
+      { id: "context", name: "/CONTEXT", short: "Set the stage", template: `/CONTEXT\n\nEstablish: project, directory, database, current state.\nSet the stage before building.` },
+      { id: "paper", name: "/PAPER", short: "Academic output", template: `/PAPER: {topic}\n\nAcademic structure + Theophysics voice.\nRequired: abstract, framework positioning, formal argument, implications, falsification criteria.\nUUID citations per standard.` },
+      { id: "workflow", name: "/WORKFLOW", short: "Define executable steps", template: `/WORKFLOW: {objective}\n\nDefine: objective, steps, dependencies, exit criteria.\nExecutable, NOT aspirational. If a step isn't actionable → rewrite it.` },
+    ]
+  },
+  custom: {
+    label: "CUSTOM", color: "#ef4444",
+    items: [
+      { id: "cust_audit", name: "Axiom Audit", short: "Scan axiom set for gaps", template: `Run a full audit of the current axiom set. For each axiom:\n1. Does it carry unique predictive weight, or is it derivable from others?\n2. Are there gaps — phenomena the framework addresses but no axiom covers?\n3. Rank by load-bearing importance to the Master Equation.\n\nFlag any axiom that's decorative rather than structural.` },
+      { id: "cust_kickstart", name: "Paper Kickstart", short: "Bootstrap a Logos Paper", template: `I'm starting Logos Paper {number}: {title}\n\nBefore we write anything:\n1. What's the ONE thing this paper must prove?\n2. What prior papers does it depend on?\n3. What's the strongest objection a physicist would raise?\n4. What's the strongest objection a theologian would raise?\n5. Draft a 3-sentence abstract.` },
+      { id: "cust_stress", name: "Framework Stress Test", short: "Try to break the framework", template: `Pick the 3 most vulnerable points in the Theophysics framework and attack them. Not strawmen — the real weak spots.\n\nFor each:\n- State the attack clearly\n- Rate damage if it lands (1-10)\n- Show whether the framework can absorb, adapt, or would break\n\nThen: is there a single point of failure that would collapse everything?` },
+    ]
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let allItems = [];
+let filtered = [];
+let selectedId = null;
+let activeCategory = null;
+let editMode = false;
+let editText = "";
+let chain = [];
+let selectedIndex = -1; // for keyboard nav
+const BRIDGE_HINT = 'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Prompts';
+
+// Build flat item list
+Object.entries(COMMANDS).forEach(([catKey, cat]) => {
+  cat.items.forEach(item => {
+    allItems.push({ ...item, category: catKey, categoryLabel: cat.label, color: cat.color });
+  });
+});
+
+// ============================================================
+// RENDER
+// ============================================================
+
+function render() {
+  // Filter
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  filtered = allItems.filter(item => {
+    if (activeCategory && item.category !== activeCategory) return false;
+    if (q && !item.name.toLowerCase().includes(q) && !item.short.toLowerCase().includes(q) && !item.template.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  // Tab bar
+  const cats = [
+    { key: null, label: "ALL", color: "#94a3b8" },
+    ...Object.entries(COMMANDS).map(([k, v]) => ({ key: k, label: v.label, color: v.color }))
+  ];
+  document.getElementById('tabBar').innerHTML = cats.map(c => {
+    const active = activeCategory === c.key;
+    return `<button class="tab-btn ${active ? 'active' : ''}" 
+      style="${active ? `background:${c.color}18;border-color:${c.color}60;color:${c.color}` : ''}"
+      onclick="setCategory(${c.key === null ? 'null' : `'${c.key}'`})">${c.label}</button>`;
+  }).join('');
+
+  // List
+  const lp = document.getElementById('listPanel');
+  const chainOpen = !document.getElementById('chainPanel').classList.contains('hidden');
+  lp.className = 'list-panel' + (chainOpen ? ' narrow' : '');
+
+  if (filtered.length === 0) {
+    lp.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#3a3a4a;font-size:12px">No matches</div>';
+  } else {
+    lp.innerHTML = filtered.map((item, i) => {
+      const sel = item.id === selectedId;
+      const inChain = chain.some(c => c.id === item.id);
+      return `<div class="cmd-row ${sel ? 'selected' : ''}" style="${sel ? `border-left-color:${item.color}` : ''}"
+        onclick="selectItem('${item.id}')" data-idx="${i}">
+        <div class="cmd-info">
+          <div class="cmd-name-row">
+            <span class="cmd-name" style="color:${item.color}">${esc(item.name)}</span>
+            <span class="cmd-cat-badge">${item.categoryLabel}</span>
+          </div>
+          <div class="cmd-short">${esc(item.short)}</div>
+        </div>
+        <button class="add-chain-btn ${inChain ? 'in-chain' : ''}" onclick="event.stopPropagation();addToChain('${item.id}')">+</button>
+      </div>`;
+    }).join('');
+  }
+
+  // Preview
+  const sel = allItems.find(i => i.id === selectedId);
+  const pp = document.getElementById('previewPanel');
+  if (!sel) {
+    pp.innerHTML = '<div class="empty-preview"><div>SELECT A COMMAND</div><div>or start typing to search</div></div>';
+  } else {
+    const tpl = editMode ? editText : sel.template;
+    pp.innerHTML = `
+      <div class="preview-header">
+        <div class="preview-title-wrap">
+          <span class="preview-title" style="color:${sel.color}">${esc(sel.name)}</span>
+          <span class="preview-short">${esc(sel.short)}</span>
+        </div>
+        <div class="preview-actions">
+          <button class="action-btn btn-edit ${editMode ? 'active' : ''}" onclick="toggleEdit()">
+            ${editMode ? 'PREVIEW' : 'EDIT'}
+          </button>
+          <button class="action-btn btn-copy" id="copyBtn" onclick="copyAndClose()">
+            📋 COPY & CLOSE
+          </button>
+        </div>
+      </div>
+      <div class="preview-body">
+        ${editMode
+          ? `<textarea class="preview-edit" oninput="editText=this.value">${esc(tpl)}</textarea>`
+          : `<pre class="preview-pre">${highlightTemplate(tpl)}</pre>`
+        }
+      </div>`;
+  }
+
+  // Chain
+  renderChain();
+
+  // Count
+  document.getElementById('cmdCount').textContent = filtered.length + ' commands';
+}
+
+function renderChain() {
+  const body = document.getElementById('chainBody');
+  const footer = document.getElementById('chainFooter');
+  const toggle = document.getElementById('chainToggle');
+  const countEl = document.getElementById('chainCount');
+
+  countEl.textContent = chain.length > 0 ? `(${chain.length})` : '';
+  toggle.className = 'chain-btn' + (chain.length > 0 ? ' active' : '');
+
+  if (chain.length === 0) {
+    body.innerHTML = '<div class="chain-empty">Click <span style="color:#10b981">+</span> on any command to build a pipeline</div>';
+    footer.style.display = 'none';
+  } else {
+    body.innerHTML = chain.map((item, i) => `
+      <div class="chain-item">
+        <div class="chain-item-left">
+          <span class="chain-num">${i + 1}</span>
+          <span class="chain-item-name" style="color:${item.color}">${esc(item.name)}</span>
+        </div>
+        <button class="chain-remove" onclick="removeFromChain('${item.id}')">×</button>
+      </div>
+      ${i < chain.length - 1 ? '<div class="chain-arrow">→</div>' : ''}
+    `).join('');
+    footer.style.display = 'block';
+  }
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+
+function selectItem(id) {
+  selectedId = id;
+  editMode = false;
+  const item = allItems.find(i => i.id === id);
+  if (item) editText = item.template;
+  selectedIndex = filtered.findIndex(i => i.id === id);
+  render();
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  render();
+}
+
+function toggleEdit() {
+  const sel = allItems.find(i => i.id === selectedId);
+  if (!sel) return;
+  if (!editMode) editText = sel.template;
+  editMode = !editMode;
+  render();
+}
+
+function copyAndClose() {
+  const sel = allItems.find(i => i.id === selectedId);
+  if (!sel) return;
+  const text = editMode ? editText : sel.template;
+  navigator.clipboard.writeText(text).then(() => {
+    // Show toast, then close
+    showToast('COPIED');
+    setTimeout(() => {
+      try { window.close(); } catch(e) {}
+    }, 400);
+  });
+}
+
+function copyOnly() {
+  const sel = allItems.find(i => i.id === selectedId);
+  if (!sel) return;
+  const text = editMode ? editText : sel.template;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    if (btn) { btn.textContent = '✓ COPIED'; btn.classList.add('copied'); }
+    setTimeout(() => render(), 1200);
+  });
+}
+
+function addToChain(id) {
+  if (!chain.some(c => c.id === id)) {
+    const item = allItems.find(i => i.id === id);
+    if (item) chain.push(item);
+  }
+  document.getElementById('chainPanel').classList.remove('hidden');
+  render();
+}
+
+function removeFromChain(id) {
+  chain = chain.filter(c => c.id !== id);
+  render();
+}
+
+function clearChain() { chain = []; render(); }
+
+function toggleChain() {
+  document.getElementById('chainPanel').classList.toggle('hidden');
+  render();
+}
+
+function copyChain() {
+  const text = chain.map(c => c.name).join(' → ') + '\n\n' +
+    chain.map((c, i) => `--- Step ${i + 1}: ${c.name} ---\n${c.template}`).join('\n\n');
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('CHAIN COPIED');
+    setTimeout(() => { try { window.close(); } catch(e) {} }, 400);
+  });
+}
+
+async function exportPromptsBridge() {
+  const ts = new Date().toISOString();
+  const items = allItems.map(item => ({
+    id: `prompt_${item.id}`,
+    type: 'prompt',
+    title: item.name,
+    content: item.template,
+    source_app: 'prompt_picker.html',
+    created_at: ts,
+    updated_at: ts,
+    tags: [item.category, item.categoryLabel.toLowerCase()],
+    category: item.categoryLabel,
+    meta: {
+      short: item.short,
+      color: item.color
+    }
+  }));
+  await saveBridgeExport(items, `prompt_bridge_${ts.slice(0, 10)}.json`);
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 600);
+}
+
+// ============================================================
+// KEYBOARD NAV
+// ============================================================
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    try { window.close(); } catch(ex) {}
+    return;
+  }
+
+  // Arrow keys to navigate list
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (filtered.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      selectedIndex = Math.min(selectedIndex + 1, filtered.length - 1);
+    } else {
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+    }
+    selectedId = filtered[selectedIndex].id;
+    editMode = false;
+    editText = filtered[selectedIndex].template;
+    render();
+    // Scroll into view
+    const row = document.querySelector(`.cmd-row[data-idx="${selectedIndex}"]`);
+    if (row) row.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+
+  // Enter to copy & close
+  if (e.key === 'Enter' && !editMode && selectedId) {
+    e.preventDefault();
+    copyAndClose();
+    return;
+  }
+
+  // Ctrl+C when not in edit/search to copy without closing
+  if (e.ctrlKey && e.key === 'c' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    if (selectedId) { e.preventDefault(); copyOnly(); }
+  }
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function highlightTemplate(tpl) {
+  return esc(tpl)
+    .replace(/(\{[^}]+\})/g, '<span class="tpl-var">$1</span>')
+    .replace(/(\/[A-Z]+)/g, '<span class="tpl-cmd">$1</span>');
+}
+
+async function saveBridgeExport(items, filename) {
+  const payload = {
+    generated_at: new Date().toISOString(),
+    bridge_target: 'ai-hub',
+    hint_path: BRIDGE_HINT,
+    count: items.length,
+    items
+  };
+  const text = JSON.stringify(payload, null, 2);
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      showToast('EXPORT SAVED');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('EXPORT READY');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+document.getElementById('searchInput').addEventListener('input', () => {
+  selectedIndex = -1;
+  render();
+});
+
+render();
+</script>
+
+<!-- NEW PROMPT MODAL -->
+<div id="newPromptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeNewPrompt()">
+<div style="background:#12121c;border:1px solid #1e1e2e;border-radius:10px;padding:16px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto">
+  <div style="font-size:11px;letter-spacing:2px;color:#f59e0b;margin-bottom:12px;font-weight:700">NEW PROMPT</div>
+  <label style="display:block;font-size:9px;letter-spacing:1px;color:#666680;margin:8px 0 3px;text-transform:uppercase">Name</label>
+  <input id="npName" style="width:100%;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:5px;padding:8px 10px;color:#c8ccd4;font-family:inherit;font-size:12px;outline:none" placeholder="/fix-grammar">
+  <label style="display:block;font-size:9px;letter-spacing:1px;color:#666680;margin:8px 0 3px;text-transform:uppercase">Category</label>
+  <input id="npCategory" style="width:100%;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:5px;padding:8px 10px;color:#c8ccd4;font-family:inherit;font-size:12px;outline:none" placeholder="General" value="General">
+  <label style="display:block;font-size:9px;letter-spacing:1px;color:#666680;margin:8px 0 3px;text-transform:uppercase">Prompt Template</label>
+  <textarea id="npContent" style="width:100%;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:5px;padding:10px;color:#c8ccd4;font-family:inherit;font-size:11px;outline:none;min-height:120px;resize:vertical" placeholder="Fix grammar and spelling. Return ONLY the corrected text."></textarea>
+  <label style="display:block;font-size:9px;letter-spacing:1px;color:#666680;margin:8px 0 3px;text-transform:uppercase">Tags (comma sep)</label>
+  <input id="npTags" style="width:100%;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:5px;padding:8px 10px;color:#c8ccd4;font-family:inherit;font-size:12px;outline:none" placeholder="writing, fix">
+  <div style="display:flex;align-items:center;gap:8px;margin:12px 0 4px">
+    <label style="font-size:9px;color:#666680;letter-spacing:1px">SLASH CMD</label>
+    <input type="checkbox" id="npSlash" style="accent-color:#f59e0b">
+    <span style="font-size:8px;color:#444">Register as /command in AHK</span>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+    <button onclick="closeNewPrompt()" style="padding:8px 18px;border-radius:5px;font-family:inherit;font-size:10px;cursor:pointer;background:transparent;color:#666680;border:1px solid #1e1e2e;letter-spacing:1px">CANCEL</button>
+    <button onclick="saveNewPrompt()" style="padding:8px 18px;border-radius:5px;font-family:inherit;font-size:10px;cursor:pointer;background:#10b981;color:#000;border:1px solid #10b981;font-weight:700;letter-spacing:1px">SAVE</button>
+  </div>
+</div></div>
+
+<script>
+function openNewPrompt(){document.getElementById('newPromptModal').style.display='flex'}
+function closeNewPrompt(){document.getElementById('newPromptModal').style.display='none';document.getElementById('npName').value='';document.getElementById('npContent').value='';document.getElementById('npTags').value='';document.getElementById('npCategory').value='General';document.getElementById('npSlash').checked=false}
+async function saveNewPrompt(){
+  const name=document.getElementById('npName').value.trim();
+  const content=document.getElementById('npContent').value.trim();
+  const category=document.getElementById('npCategory').value.trim()||'General';
+  const tags=document.getElementById('npTags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const isSlash=document.getElementById('npSlash').checked;
+  if(!name||!content){showToast('Name and content required');return}
+  const prompt={name,content,category,tags,description:content.substring(0,80),meta:{slash:isSlash}};
+  try{
+    const r=await fetch('http://localhost:3456/api/prompts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(prompt)});
+    if(r.ok){showToast('PROMPT SAVED');closeNewPrompt();setTimeout(()=>location.reload(),500)}
+    else showToast('Save failed')
+  }catch{showToast('Server error')}
+}
+
+// ═══ FILES PANEL ═══
+const FILES_API='http://localhost:3456/api';
+const FILE_FOLDERS={documents:{label:'Documents'},videos:{label:'Videos'},music:{label:'Music'},pictures:{label:'Pictures'}};
+const FILE_ICONS={pdf:'\u{1F4D5}',doc:'\u{1F4DD}',docx:'\u{1F4DD}',txt:'\u{1F4C3}',md:'\u{1F4C3}',mp4:'\u{1F3AC}',mkv:'\u{1F3AC}',avi:'\u{1F3AC}',mov:'\u{1F3AC}',mp3:'\u{1F3B5}',wav:'\u{1F3B5}',flac:'\u{1F3B5}',m4a:'\u{1F3B5}',jpg:'\u{1F5BC}',jpeg:'\u{1F5BC}',png:'\u{1F5BC}',gif:'\u{1F5BC}',webp:'\u{1F5BC}',svg:'\u{1F5BC}',zip:'\u{1F4E6}',rar:'\u{1F4E6}',xlsx:'\u{1F4CA}',csv:'\u{1F4CA}',json:'\u{2699}',html:'\u{1F310}',js:'\u{2699}',py:'\u{2699}'};
+let activeFolder=null;
+function getFileIcon(n){const e=(n.split('.').pop()||'').toLowerCase();return FILE_ICONS[e]||'\u{1F4C4}';}
+function fmtSize(b){if(!b||b<0)return'';if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'K';if(b<1073741824)return(b/1048576).toFixed(1)+'M';return(b/1073741824).toFixed(1)+'G';}
+function escF(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function toggleFiles(folder){
+  const panel=document.getElementById('filesPanel');
+  if(activeFolder===folder){closeFiles();return;}
+  activeFolder=folder;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.dataset.folder===folder));
+  document.getElementById('fpTitle').textContent=FILE_FOLDERS[folder].label;
+  document.getElementById('fpList').innerHTML='<div class="fp-empty">Loading...</div>';
+  panel.classList.add('open');
+  loadFiles(folder);
+}
+function closeFiles(){activeFolder=null;document.getElementById('filesPanel').classList.remove('open');document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));}
+async function loadFiles(folder){
+  const list=document.getElementById('fpList');
+  try{const r=await fetch(FILES_API+'/files/'+folder);if(!r.ok)throw new Error('Server '+r.status);const files=await r.json();
+    if(!files.length){list.innerHTML='<div class="fp-empty">Folder empty</div>';return;}
+    list.innerHTML=files.map(f=>`<div class="fp-item" onclick="openFile('${escF(f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')"><span class="fp-item-icon">${getFileIcon(f.name)}</span><span class="fp-item-name" title="${escF(f.name)}">${escF(f.name)}</span><span class="fp-item-size">${fmtSize(f.size)}</span></div>`).join('');
+  }catch(e){list.innerHTML='<div class="fp-empty">'+escF(e.message)+'</div>';}
+}
+function openFile(path){fetch(FILES_API+'/files/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})}).then(r=>{if(r.ok)showToast('OPENED');else throw 0;}).catch(()=>{navigator.clipboard.writeText(path).then(()=>showToast('PATH COPIED'));});}
+</script>
+</body>
+</html>
