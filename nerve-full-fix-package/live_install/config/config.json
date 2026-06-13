@@ -134,8 +134,8 @@
       "name": "clipboard",
       "title": "ClipSync",
       "url": "file:///C:/Users/lowes/AppData/Local/ClipSync/html/clipboard.html",
-      "width": 240,
-      "height": 1080,
+      "width": 480,
+      "height": 720,
       "x": null,
       "y": 0,
       "always_on_top": true

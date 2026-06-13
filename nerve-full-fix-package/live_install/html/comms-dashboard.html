@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Theophysics Comms</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#08080c;--panel:#101018;--panel2:#161622;--card:#13131d;--line:rgba(255,255,255,.08);--text:#c8ccd6;--muted:#74788a;--bright:#f0f2f7;--gold:#e8a912;--green:#2ecc8e;--red:#d44;--blue:#4f8ef7;--purple:#9b7fe8;--mono:Consolas,"DM Mono",monospace;--sans:"Segoe UI",sans-serif}
+body{height:100vh;overflow:hidden;background:var(--bg);color:var(--text);font:13px var(--sans);display:flex;flex-direction:column}
+button,input,textarea{font:inherit}
+.top{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.top h1{font-size:14px;color:var(--bright);letter-spacing:.5px}
+.status{font:11px var(--mono);color:var(--muted)}
+.status.live{color:var(--green)}
+.wrap{flex:1;display:grid;grid-template-columns:300px 1fr;min-height:0}
+.rooms{border-right:1px solid var(--line);background:#0b0b11;display:flex;flex-direction:column;min-height:0}
+.head{padding:10px 12px;color:var(--muted);font-size:11px;letter-spacing:.8px;text-transform:uppercase;background:var(--panel2);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.list{overflow:auto;padding:8px}
+.room{padding:9px 10px;border:1px solid transparent;border-radius:6px;margin-bottom:5px;cursor:pointer;background:var(--card)}
+.room:hover,.room.active{border-color:rgba(79,142,247,.55)}
+.room .name{color:var(--bright);font-weight:600}
+.room .role{font-size:11px;color:var(--muted);line-height:1.35;margin-top:2px}
+.room .seen{font:10px var(--mono);color:var(--muted);margin-top:5px}
+.main{display:grid;grid-template-rows:auto 1fr auto;min-height:0}
+.title{padding:12px 14px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.title strong{color:var(--gold)}
+.title span{color:var(--muted);margin-left:8px}
+.msgs{overflow:auto;padding:12px}
+.msg{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:6px;padding:9px 10px;margin-bottom:8px}
+.msg.program{border-left-color:var(--gold)}
+.msg.workflow{border-left-color:var(--purple)}
+.meta{display:flex;gap:8px;align-items:center;margin-bottom:5px;font:11px var(--mono);color:var(--muted)}
+.sender{color:var(--green);font-weight:700}
+.body{white-space:pre-wrap;line-height:1.45;color:var(--text)}
+.compose{display:grid;grid-template-columns:1fr auto auto;gap:8px;padding:10px 12px;background:var(--panel);border-top:1px solid var(--line)}
+.compose textarea{height:42px;resize:vertical;max-height:160px;background:#0b0b11;color:var(--bright);border:1px solid var(--line);border-radius:6px;padding:9px 10px;outline:none}
+.compose button{border:0;border-radius:6px;padding:0 14px;color:#fff;background:var(--blue);cursor:pointer;font-weight:600}
+.compose button.broadcast{background:var(--gold);color:#111}
+.compose button:hover{filter:brightness(1.12)}
+@media(max-width:760px){.wrap{grid-template-columns:1fr}.rooms{height:34vh;border-right:0;border-bottom:1px solid var(--line)}.compose{grid-template-columns:1fr}.compose button{height:36px}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Theophysics Comms</h1>
+  <div class="status" id="status">CONNECTING</div>
+</div>
+<div class="wrap">
+  <aside class="rooms">
+    <div class="head"><span>Rooms</span><span id="roomCount">0</span></div>
+    <div class="list" id="rooms"></div>
+  </aside>
+  <main class="main">
+    <div class="title"><strong id="roomTitle">/programs</strong><span id="roomRole"></span></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="compose">
+      <textarea id="text" placeholder="Post to selected room..."></textarea>
+      <button onclick="postSelected()">Post</button>
+      <button class="broadcast" onclick="postBroadcast()">Broadcast</button>
+    </div>
+  </main>
+</div>
+<script>
+const COMMS_URL = 'https://comms.faiththruphysics.com';
+const TOKEN_STORAGE_KEY = 'theophysics_comms_token';
+let TOKEN = localStorage.getItem(TOKEN_STORAGE_KEY) || '';
+const SENDER = 'david';
+const PRIORITY = ['programs','workflow-1','workflow-2','projects','repositories','locations','codex','opus','sonnet','gpt','gemini','david','broadcast'];
+let channels = [];
+let selected = 'programs';
+
+function authHeaders(extra){
+  if(!TOKEN){
+    TOKEN = prompt('Enter your Theophysics comms bearer token:') || '';
+    if(TOKEN) localStorage.setItem(TOKEN_STORAGE_KEY, TOKEN);
+  }
+  return Object.assign({'Authorization':'Bearer ' + TOKEN}, extra || {});
+}
+
+async function api(path, options){
+  const res = await fetch(COMMS_URL + path, options || {headers:authHeaders()});
+  if(!res.ok) throw new Error(res.status + ' ' + path);
+  return await res.json();
+}
+
+async function loadChannels(){
+  const data = await api('/channels');
+  channels = (data.channels || []).sort((a,b) => {
+    const ai = PRIORITY.indexOf(a.name), bi = PRIORITY.indexOf(b.name);
+    return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) || a.name.localeCompare(b.name);
+  });
+  renderRooms();
+  if(!channels.find(c => c.name === selected) && channels[0]) selected = channels[0].name;
+  await loadRoom(selected);
+  setStatus('LIVE', true);
+}
+
+function renderRooms(){
+  document.getElementById('roomCount').textContent = channels.length;
+  document.getElementById('rooms').innerHTML = channels.map(ch => `
+    <div class="room ${ch.name === selected ? 'active' : ''}" onclick="loadRoom('${escAttr(ch.name)}')">
+      <div class="name">/${esc(ch.name)} <span style="color:var(--muted);font-weight:400">${esc(ch.display_name || '')}</span></div>
+      <div class="role">${esc(ch.role || '')}</div>
+      <div class="seen">${ch.last_seen ? 'last: ' + esc(ch.last_seen) : 'no recent activity'}</div>
+    </div>`).join('');
+}
+
+async function loadRoom(name){
+  selected = name;
+  renderRooms();
+  const ch = channels.find(c => c.name === name) || {name, role:''};
+  document.getElementById('roomTitle').textContent = '/' + name;
+  document.getElementById('roomRole').textContent = ch.role || '';
+  const data = await api('/channel/' + encodeURIComponent(name) + '?limit=40');
+  const msgs = data.messages || [];
+  document.getElementById('msgs').innerHTML = msgs.slice().reverse().map(renderMsg).join('') || '<div style="color:var(--muted)">No messages yet.</div>';
+  setStatus('LIVE', true);
+}
+
+function renderMsg(m){
+  const cls = (m.content || '').includes('[program:') ? ' program' : ((m.channel || '').startsWith('workflow') ? ' workflow' : '');
+  return `<div class="msg${cls}">
+    <div class="meta"><span>#${m.id || ''}</span><span class="sender">${esc(m.sender || '')}</span><span>${esc(m.timestamp || '')}</span></div>
+    <div class="body">${esc(m.content || '')}</div>
+  </div>`;
+}
+
+async function postSelected(){
+  const box = document.getElementById('text');
+  const content = box.value.trim();
+  if(!content) return;
+  await fetch(COMMS_URL + '/channel/' + encodeURIComponent(selected), {
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:JSON.stringify({sender:SENDER, content:'[david] ' + content})
+  });
+  box.value = '';
+  await loadRoom(selected);
+}
+
+async function postBroadcast(){
+  const box = document.getElementById('text');
+  const content = box.value.trim();
+  if(!content) return;
+  await fetch(COMMS_URL + '/broadcast', {
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:JSON.stringify({sender:SENDER, content:'[david] ' + content})
+  });
+  box.value = '';
+  await loadRoom(selected);
+}
+
+function setStatus(text, live){
+  const el = document.getElementById('status');
+  el.textContent = text + ' ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  el.classList.toggle('live', !!live);
+}
+
+function esc(s){
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escAttr(s){ return esc(s).replace(/\\/g,'\\\\'); }
+
+document.getElementById('text').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ postSelected(); e.preventDefault(); }
+});
+
+loadChannels().catch(e => setStatus('ERROR ' + e.message, false));
+setInterval(() => loadChannels().catch(e => setStatus('ERROR ' + e.message, false)), 30000);
+</script>
+</body>
+</html>

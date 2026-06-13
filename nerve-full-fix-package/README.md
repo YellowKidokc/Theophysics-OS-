@@ -12,6 +12,18 @@ Source repo: https://github.com/YellowKidokc/nerve/tree/main
 - Theophysics TTS pipeline scripts/config/launchers in `tts_pipeline/`
 - Existing notes and session logs in `notes/`
 
+## Applied Fixes
+- Clipboard/taskbar panels now show/focus instead of toggling closed.
+- Panel windows are skipped from the Windows taskbar.
+- Clipboard UI updated from AI-HUB ClipSync modules: 99 slots, API fallback, quick slot save.
+- Live `clipboard` panel is resized to `480x720`.
+- Package `nerve.exe` was rebuilt from this package source after the fixes.
+
+## Hotkeys
+- Hotkeys are installed through `live_install/config/config.json`.
+- `repo/src/hotkeys.rs` registers them when `live_install/runtime/nerve.exe` runs.
+- Current config contains 29 hotkeys, including `Ctrl+Alt+C` clipboard, `Ctrl+Alt+3` clipboard3, `Ctrl+Alt+T` read selection, and `Ctrl+Alt+E` TTS engine.
+
 ## Deliberate Exclusions
 - WebView2 cache/profile directories were excluded because they are large, machine-specific, and not required for source-level TTS repair.
 - Full Python venv contents were excluded for the same reason.

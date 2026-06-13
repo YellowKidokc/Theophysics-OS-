@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tao::dpi::{LogicalPosition, LogicalSize};
 use tao::event_loop::{EventLoopProxy, EventLoopWindowTarget};
+#[cfg(target_os = "windows")]
+use tao::platform::windows::WindowBuilderExtWindows;
 use tao::window::WindowBuilder;
 use tracing::{error, info, warn};
 use wry::WebViewBuilder;
@@ -61,11 +63,10 @@ impl PanelManager {
         cfg: &Arc<Mutex<Config>>,
     ) {
         if let Some(panel) = self.windows.get_mut(name) {
-            panel.visible = !panel.visible;
-            panel.window.set_visible(panel.visible);
-            if panel.visible {
-                panel.window.set_focus();
-            }
+            panel.visible = true;
+            panel.window.set_visible(true);
+            panel.window.set_minimized(false);
+            panel.window.set_focus();
             return;
         }
 
@@ -94,6 +95,11 @@ impl PanelManager {
             .with_inner_size(LogicalSize::new(panel_def.width, panel_def.height))
             .with_decorations(true)
             .with_always_on_top(panel_def.always_on_top);
+
+        #[cfg(target_os = "windows")]
+        {
+            builder = builder.with_skip_taskbar(true);
+        }
 
         // Restore saved position
         if let (Some(x), Some(y)) = (panel_def.x, panel_def.y) {

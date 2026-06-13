@@ -1,456 +1,504 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Prophecy Research</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>POF 2828 — Research Links</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-  :root{
-    --bg:#090b10;
-    --surface:#11151d;
-    --surface-2:#171d28;
-    --line:#232c3b;
-    --text:#e8edf7;
-    --muted:#93a0b8;
-    --blue:#6ea8fe;
-    --cyan:#4fd1c5;
-    --gold:#f6c453;
-    --red:#ff7a7a;
-    --green:#5bd59c;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f; --surface: #12121c; --surface2: #1a1a25;
+    --border: #1e1e2e; --border-hover: #2a2a3e;
+    --text: #c8ccd4; --text-dim: #666680; --text-bright: #e8ecf4;
+    --accent: #4a6fa5; --gold: #f59e0b; --green: #10b981;
+    --red: #ef4444; --purple: #8b5cf6; --blue: #3b82f6;
   }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family:'IBM Plex Sans',sans-serif;
-    background:radial-gradient(circle at top right,#172033 0%,#090b10 45%);
-    color:var(--text);
-    height:100vh;
-    overflow:hidden;
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
+
+  body {
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    background: var(--bg); color: var(--text);
+    height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column; overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
-  .app{
-    display:flex;
-    flex-direction:column;
-    height:100%;
+
+  .header {
+    padding: 12px 16px 10px; border-bottom: 1px solid var(--border);
+    background: #0d0d14; flex-shrink: 0;
   }
-  .header{
-    padding:14px 16px 12px;
-    border-bottom:1px solid var(--line);
-    background:rgba(9,11,16,.92);
-    backdrop-filter:blur(10px);
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
   }
-  .eyebrow{
-    font:600 10px 'IBM Plex Mono',monospace;
-    letter-spacing:2px;
-    color:var(--gold);
-    text-transform:uppercase;
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand-tag { font-size: 10px; letter-spacing: 3px; color: var(--gold); font-weight: 700; }
+  .brand-sep { font-size: 11px; color: #2a2a3a; }
+  .brand-sub { font-size: 10px; letter-spacing: 2px; color: #444; }
+
+  .hdr-btn {
+    background: transparent; border: 1px solid #2a2a3a; color: #555;
+    padding: 4px 10px; border-radius: 4px; font-size: 10px; font-family: inherit;
+    cursor: pointer; letter-spacing: 1px; transition: all 0.12s ease;
   }
-  .title-row{
-    display:flex;
-    gap:10px;
-    justify-content:space-between;
-    align-items:flex-end;
-    margin-top:4px;
+  .hdr-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+    background: var(--green); margin-right: 4px; box-shadow: 0 0 6px var(--green);
   }
-  h1{
-    margin:0;
-    font-size:20px;
-    line-height:1.1;
+  .status-dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  .search-wrap { position: relative; }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: #3a3a4a; pointer-events: none; font-size: 14px;
   }
-  .subtitle{
-    color:var(--muted);
-    font-size:12px;
-    margin-top:3px;
+  .search-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 9px 12px 9px 32px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
   }
-  .meta{
-    display:flex;
-    gap:6px;
-    flex-wrap:wrap;
-    justify-content:flex-end;
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: #333; }
+
+  .tabs {
+    display: flex; gap: 2px; padding: 8px 16px 0;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    overflow-x: auto; flex-shrink: 0;
   }
-  .pill{
-    border:1px solid var(--line);
-    background:rgba(255,255,255,.03);
-    color:var(--muted);
-    border-radius:999px;
-    padding:5px 9px;
-    font:500 10px 'IBM Plex Mono',monospace;
-    letter-spacing:.6px;
+  .tab {
+    padding: 6px 14px 8px; font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text-dim); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.12s; white-space: nowrap;
+    font-family: inherit; background: none; border-top: none; border-left: none; border-right: none;
   }
-  .controls{
-    display:flex;
-    gap:8px;
-    margin-top:12px;
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .card-list {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 8px;
   }
-  .search{
-    flex:1;
-    background:var(--surface);
-    border:1px solid var(--line);
-    color:var(--text);
-    border-radius:10px;
-    padding:10px 12px;
-    outline:none;
-    font-size:13px;
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 14px; cursor: pointer;
+    transition: all 0.08s ease; border-left: 3px solid var(--accent);
   }
-  .tabs{
-    display:flex;
-    gap:6px;
-    padding:10px 16px 0;
-    overflow:auto;
+  .card:hover { background: #14141e; border-color: var(--border-hover); }
+  .card:active { transform: scale(0.99); }
+
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--text-bright);
+    margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .tab{
-    border:1px solid var(--line);
-    background:var(--surface);
-    color:var(--muted);
-    border-radius:10px;
-    padding:8px 10px;
-    font:600 10px 'IBM Plex Mono',monospace;
-    letter-spacing:1px;
-    text-transform:uppercase;
-    cursor:pointer;
-    white-space:nowrap;
+  .card-url {
+    font-size: 10px; color: var(--text-dim); margin-bottom: 8px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .tab.active{
-    color:var(--text);
-    border-color:#34507b;
-    background:linear-gradient(180deg,#1a2435 0%,#11151d 100%);
+  .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag-pill {
+    font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 3px; background: #15151f;
+    color: var(--text-dim); border: 1px solid #1e1e2e;
   }
-  .content{
-    flex:1;
-    overflow:auto;
-    padding:12px 16px 16px;
+
+  .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .action-btn {
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    min-width: 52px; min-height: 44px; padding: 8px 14px;
+    border-radius: 5px; border: 1px solid #2a2a3a; background: transparent;
+    color: var(--text-dim); font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; font-family: inherit; cursor: pointer;
+    transition: all 0.1s ease; font-weight: 500;
   }
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:10px;
+  .action-btn:active { transform: scale(0.95); }
+  .action-btn.open { border-color: rgba(59,130,246,0.4); color: var(--blue); flex: 1; }
+  .action-btn.open:hover { background: rgba(59,130,246,0.12); }
+  .action-btn.copy { border-color: rgba(16,185,129,0.4); color: var(--green); }
+  .action-btn.copy:hover { background: rgba(16,185,129,0.12); }
+  .action-btn.edit { border-color: rgba(139,92,246,0.4); color: var(--purple); }
+  .action-btn.edit:hover { background: rgba(139,92,246,0.12); }
+  .action-btn.delete { border-color: rgba(239,68,68,0.3); color: #884444; }
+  .action-btn.delete:hover { background: rgba(239,68,68,0.08); color: var(--red); }
+  .action-btn .icon { font-size: 16px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 100; align-items: center; justify-content: center; padding: 16px;
   }
-  .card{
-    background:linear-gradient(180deg,rgba(23,29,40,.96),rgba(17,21,29,.96));
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:12px;
-    min-height:120px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    box-shadow:0 10px 24px rgba(0,0,0,.18);
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; width: 100%; max-width: 520px;
   }
-  .card-head{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:10px;
+  .modal h2 { font-size: 14px; letter-spacing: 2px; text-transform: uppercase; color: var(--blue); margin-bottom: 16px; }
+  .modal label { display: block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; margin-top: 12px; }
+  .modal input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 10px 12px; color: var(--text);
+    font-size: 13px; font-family: inherit; outline: none;
   }
-  .card h2{
-    margin:0;
-    font-size:14px;
-    line-height:1.25;
+  .modal input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 10px 24px; border-radius: 5px; font-size: 11px; font-family: inherit;
+    letter-spacing: 1px; cursor: pointer; font-weight: 600; min-height: 44px;
+    border: 1px solid var(--border);
   }
-  .score{
-    flex-shrink:0;
-    min-width:42px;
-    text-align:center;
-    padding:6px 8px;
-    border-radius:10px;
-    background:rgba(110,168,254,.12);
-    border:1px solid rgba(110,168,254,.24);
-    color:var(--blue);
-    font:700 13px 'IBM Plex Mono',monospace;
+  .modal-btn.save { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .modal-btn.cancel { background: transparent; color: var(--text-dim); }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--blue); color: #fff; padding: 8px 20px;
+    border-radius: 5px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    font-weight: 700; font-family: inherit; z-index: 200;
+    transition: transform 0.2s ease; pointer-events: none;
   }
-  .desc{
-    color:var(--muted);
-    font-size:12px;
-    line-height:1.4;
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-    min-height:34px;
-  }
-  .tags{
-    display:flex;
-    flex-wrap:wrap;
-    gap:5px;
-    margin-top:auto;
-  }
-  .tag{
-    padding:4px 8px;
-    border-radius:999px;
-    border:1px solid var(--line);
-    background:#0d1118;
-    color:var(--muted);
-    font:500 9px 'IBM Plex Mono',monospace;
-    letter-spacing:.4px;
-  }
-  .actions{
-    display:flex;
-    gap:6px;
-  }
-  .btn{
-    flex:1;
-    border:1px solid var(--line);
-    background:#0d1118;
-    color:var(--text);
-    border-radius:9px;
-    padding:8px 10px;
-    cursor:pointer;
-    font:600 10px 'IBM Plex Mono',monospace;
-    letter-spacing:.8px;
-    text-transform:uppercase;
-  }
-  .btn:hover{border-color:#34507b}
-  .section-note{
-    color:var(--muted);
-    font-size:12px;
-    margin:0 0 10px;
-  }
-  .terms{
-    display:flex;
-    flex-wrap:wrap;
-    gap:7px;
-  }
-  .term{
-    padding:7px 10px;
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:999px;
-    color:#c6d3eb;
-    font-size:12px;
-  }
-  .empty{
-    border:1px dashed var(--line);
-    border-radius:14px;
-    padding:24px;
-    color:var(--muted);
-    text-align:center;
-  }
-  @media (max-width:520px){
-    .title-row{flex-direction:column;align-items:flex-start}
-    .meta{justify-content:flex-start}
-    .grid{grid-template-columns:1fr}
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Files Bar */
+  .files-bar{display:flex;align-items:center;gap:3px;padding:4px 8px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+  .fbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 4px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text-dim);font-family:inherit;cursor:pointer;font-size:9px;letter-spacing:.4px;transition:all .12s;}
+  .fbtn:hover{border-color:var(--blue);color:var(--blue);background:rgba(79,142,247,.08);}
+  .fbtn.active{border-color:var(--blue);color:var(--blue);background:rgba(79,142,247,.08);}
+  .fbtn-icon{font-size:13px;}
+  .files-panel{display:none;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0;max-height:200px;overflow-y:auto;}
+  .files-panel.open{display:block;}
+  .fp-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;}
+  .fp-title{font-size:9px;color:var(--blue);letter-spacing:1px;text-transform:uppercase;font-weight:500;}
+  .fp-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 4px;font-family:inherit;}.fp-close:hover{color:var(--text);}
+  .fp-list{padding:4px;}
+  .fp-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .1s;font-size:10px;color:var(--text);}
+  .fp-item:hover{background:var(--surface);}
+  .fp-item-icon{font-size:12px;flex-shrink:0;width:18px;text-align:center;}
+  .fp-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fp-item-size{font-size:8px;color:var(--text-dim);flex-shrink:0;}
+  .fp-empty{text-align:center;padding:16px 8px;color:var(--text-dim);font-size:9px;}
+
+  @media (max-width: 480px) {
+    .card-actions { gap: 4px; }
+    .action-btn { min-height: 48px; font-size: 11px; }
+    .action-btn.open { flex: 2; }
   }
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <div class="eyebrow">Prophecy Intel</div>
-    <div class="title-row">
-      <div>
-        <h1>Watchlist And RSS</h1>
-        <div class="subtitle">Workbook-wired research panel for fast scanning, terms, and triggers.</div>
-      </div>
-      <div class="meta" id="metaStats"></div>
+
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <span class="brand-tag">POF 2828</span>
+      <span class="brand-sep">|</span>
+      <span class="brand-sub">RESEARCH LINKS</span>
     </div>
-    <div class="controls">
-      <input class="search" id="searchInput" type="text" placeholder="Search names, verses, terms, or feeds..." autocomplete="off" />
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="status-dot" id="statusDot"></span>
+      <button class="hdr-btn" onclick="exportResearchBridge()">EXPORT</button>
+      <button class="hdr-btn" onclick="openCreateModal()">+ NEW</button>
     </div>
   </div>
-
-  <div class="tabs" id="tabs"></div>
-
-  <div class="content">
-    <div id="view"></div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="Search links..." autocomplete="off">
   </div>
 </div>
 
-<script src="./data/prophecy_watchlist_data.js"></script>
+<div class="tabs" id="tabsContainer">
+  <button class="tab active" data-category="all">ALL</button>
+</div>
+
+<div class="card-list" id="cardList"></div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modalTitle">New Bookmark</h2>
+    <input type="hidden" id="editId">
+    <label>Title</label>
+    <input type="text" id="fieldTitle" placeholder="e.g. Theophysics Dashboard">
+    <label>URL</label>
+    <input type="url" id="fieldUrl" placeholder="https://...">
+    <label>Category</label>
+    <input type="text" id="fieldCategory" placeholder="e.g. Theophysics, Infrastructure">
+    <label>Tags (comma separated)</label>
+    <input type="text" id="fieldTags" placeholder="e.g. dashboard, api">
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">CANCEL</button>
+      <button class="modal-btn save" onclick="saveBookmark()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<div class="files-bar">
+  <button class="fbtn" data-folder="documents" onclick="toggleFiles('documents')"><span class="fbtn-icon">&#x1F4C4;</span>Docs</button>
+  <button class="fbtn" data-folder="videos" onclick="toggleFiles('videos')"><span class="fbtn-icon">&#x1F3AC;</span>Video</button>
+  <button class="fbtn" data-folder="music" onclick="toggleFiles('music')"><span class="fbtn-icon">&#x1F3B5;</span>Music</button>
+  <button class="fbtn" data-folder="pictures" onclick="toggleFiles('pictures')"><span class="fbtn-icon">&#x1F5BC;</span>Pics</button>
+</div>
+<div class="files-panel" id="filesPanel">
+  <div class="fp-header"><span class="fp-title" id="fpTitle">Documents</span><button class="fp-close" onclick="closeFiles()">&#x2715;</button></div>
+  <div class="fp-list" id="fpList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-const DATA = window.PROPHECY_WATCHLIST_DATA || {
-  meta: {},
-  rss_feeds: [],
-  watchlist: [],
-  key_bible_verses: [],
-  key_terms: [],
+const API = 'http://localhost:3456/api';
+const BRIDGE_HINT = 'C:\\Users\\lowes\\Desktop\\Personal dashboard\\Data\\Research';
+let bookmarks = [];
+let activeCategory = 'all';
+let searchQuery = '';
+
+async function fetchBookmarks() {
+  try {
+    const res = await fetch(`${API}/bookmarks`);
+    if (res.ok) {
+      bookmarks = await res.json();
+      document.getElementById('statusDot').classList.remove('offline');
+    } else throw new Error();
+  } catch (e) {
+    document.getElementById('statusDot').classList.add('offline');
+    const cached = localStorage.getItem('bookmarks_cache');
+    if (cached) bookmarks = JSON.parse(cached);
+  }
+  localStorage.setItem('bookmarks_cache', JSON.stringify(bookmarks));
+  buildTabs();
+  render();
+}
+
+async function apiSave(bm) {
+  try {
+    const isNew = !bm._existing;
+    delete bm._existing;
+    const url = isNew ? `${API}/bookmarks` : `${API}/bookmarks/${bm.id}`;
+    const method = isNew ? 'POST' : 'PUT';
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bm),
+    });
+    return res.ok;
+  } catch (e) { return false; }
+}
+
+async function apiDelete(id) {
+  try { return (await fetch(`${API}/bookmarks/${id}`, { method: 'DELETE' })).ok; }
+  catch (e) { return false; }
+}
+
+const catColors = {
+  'theophysics': '#f59e0b', 'infrastructure': '#3b82f6', 'research': '#10b981',
+  'consciousness': '#8b5cf6', 'physics': '#06b6d4', 'general': '#6b7280',
 };
-
-const tabs = [
-  { id: 'watchlist', label: 'Watchlist' },
-  { id: 'rss', label: 'RSS Feeds' },
-  { id: 'verses', label: 'Bible Verses' },
-  { id: 'terms', label: 'Key Terms' },
-];
-
-let activeTab = 'watchlist';
-let query = '';
-
-function esc(value) {
-  const div = document.createElement('div');
-  div.textContent = value == null ? '' : String(value);
-  return div.innerHTML;
+function getCatColor(cat) {
+  return catColors[(cat||'').toLowerCase()] || '#4a6fa5';
 }
 
-function scoreColor(score) {
-  const n = Number(score) || 0;
-  if (n >= 22) return 'var(--red)';
-  if (n >= 18) return 'var(--gold)';
-  return 'var(--blue)';
-}
-
-function renderMeta() {
-  const meta = document.getElementById('metaStats');
-  meta.innerHTML = [
-    ['Watchlist', DATA.meta.watchlist_count || 0],
-    ['RSS', DATA.meta.rss_count || 0],
-    ['Verses', DATA.meta.verses_count || 0],
-    ['Terms', DATA.meta.terms_count || 0],
-  ].map(([label, count]) => `<span class="pill">${label}: ${count}</span>`).join('');
-}
-
-function renderTabs() {
-  document.getElementById('tabs').innerHTML = tabs.map(tab =>
-    `<button class="tab${tab.id === activeTab ? ' active' : ''}" onclick="switchTab('${tab.id}')">${tab.label}</button>`
+function buildTabs() {
+  const cats = ['all', ...new Set(bookmarks.map(b => b.category || 'General'))];
+  document.getElementById('tabsContainer').innerHTML = cats.map(c =>
+    `<button class="tab${c===activeCategory?' active':''}" data-category="${c}" 
+            onclick="setCategory('${c}')">${c.toUpperCase()}</button>`
   ).join('');
 }
 
-function switchTab(id) {
-  activeTab = id;
-  renderTabs();
-  renderView();
+function setCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.category === cat));
+  render();
 }
 
-function filteredWatchlist() {
-  const q = query.toLowerCase();
-  return DATA.watchlist.filter(item => {
-    if (!q) return true;
-    return [
-      item.name,
-      item.position,
-      item.total_score,
-      ...(item.tags || []),
-    ].join(' ').toLowerCase().includes(q);
-  });
-}
+function render() {
+  const list = document.getElementById('cardList');
+  let filtered = bookmarks;
+  if (activeCategory !== 'all')
+    filtered = filtered.filter(b => (b.category||'General').toLowerCase() === activeCategory.toLowerCase());
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(b => b.title.toLowerCase().includes(q) || b.url.toLowerCase().includes(q));
+  }
 
-function filteredRss() {
-  const q = query.toLowerCase();
-  return DATA.rss_feeds.filter(item =>
-    !q || [item.title, item.url, ...(item.tags || [])].join(' ').toLowerCase().includes(q)
-  );
-}
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#666680;font-size:12px">No bookmarks found</div>';
+    return;
+  }
 
-function filteredVerses() {
-  const q = query.toLowerCase();
-  return DATA.key_bible_verses.filter(item =>
-    !q || [item.reference, item.label, item.trigger, item.category].join(' ').toLowerCase().includes(q)
-  );
-}
-
-function filteredTerms() {
-  const q = query.toLowerCase();
-  return DATA.key_terms.filter(term => !q || term.toLowerCase().includes(q));
-}
-
-function openUrl(url) {
-  window.open(url, '_blank');
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch (_) {}
-}
-
-function watchlistView(items) {
-  if (!items.length) return `<div class="empty">No watchlist matches for this search.</div>`;
-  return `
-    <p class="section-note">Ranked from the workbook by total score, with position and quick tags surfaced for one-pass review.</p>
-    <div class="grid">
-      ${items.map(item => `
-        <article class="card">
-          <div class="card-head">
-            <div>
-              <h2>${esc(item.name)}</h2>
-              <div class="desc">${esc(item.position || 'No position noted')}</div>
-            </div>
-            <div class="score" style="color:${scoreColor(item.total_score)};border-color:${scoreColor(item.total_score)}33;background:${scoreColor(item.total_score)}14">${esc(item.total_score)}</div>
-          </div>
-          <div class="tags">
-            ${(item.tags || []).slice(0, 4).map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}
-          </div>
-        </article>
-      `).join('')}
+  list.innerHTML = filtered.map(b => `
+    <div class="card" style="border-left-color:${getCatColor(b.category)}">
+      <div class="card-title">${esc(b.title)}</div>
+      <div class="card-url">${esc(b.url)}</div>
+      <div class="card-tags">
+        ${(b.tags||[]).map(t => `<span class="tag-pill">${esc(t)}</span>`).join('')}
+      </div>
+      <div class="card-actions">
+        <button class="action-btn open" onclick="event.stopPropagation();window.open('${esc(b.url)}','_blank')">
+          <span class="icon">🔗</span> OPEN
+        </button>
+        <button class="action-btn copy" onclick="event.stopPropagation();copyUrl('${esc(b.url)}')">
+          <span class="icon">📋</span> COPY
+        </button>
+        <button class="action-btn edit" onclick="event.stopPropagation();openEditModal('${b.id}')">
+          <span class="icon">✏️</span>
+        </button>
+        <button class="action-btn delete" onclick="event.stopPropagation();deleteBookmark('${b.id}')">
+          <span class="icon">🗑️</span>
+        </button>
+      </div>
     </div>
-  `;
+  `).join('');
 }
 
-function rssView(items) {
-  if (!items.length) return `<div class="empty">No RSS feed matches for this search.</div>`;
-  return `
-    <p class="section-note">Google Alerts and feed targets from the workbook, cleaned into compact link cards.</p>
-    <div class="grid">
-      ${items.map(item => `
-        <article class="card">
-          <div class="card-head">
-            <div>
-              <h2>${esc(item.title)}</h2>
-              <div class="desc">${esc(item.url)}</div>
-            </div>
-          </div>
-          <div class="tags">
-            ${(item.tags || []).map(tag => `<span class="tag">${esc(tag)}</span>`).join('')}
-          </div>
-          <div class="actions">
-            <button class="btn" onclick="openUrl('${esc(item.url)}')">Open</button>
-            <button class="btn" onclick="copyText('${esc(item.url)}')">Copy</button>
-          </div>
-        </article>
-      `).join('')}
-    </div>
-  `;
+async function copyUrl(url) {
+  await navigator.clipboard.writeText(url);
+  showToast('URL COPIED');
 }
 
-function versesView(items) {
-  if (!items.length) return `<div class="empty">No verse matches for this search.</div>`;
-  return `
-    <p class="section-note">Verse labels and trigger summaries from the workbook with category tags kept visible.</p>
-    <div class="grid">
-      ${items.map(item => `
-        <article class="card">
-          <div class="card-head">
-            <div>
-              <h2>${esc(item.label || item.reference || 'Verse')}</h2>
-              <div class="desc">${esc(item.trigger || item.reference || '')}</div>
-            </div>
-          </div>
-          <div class="tags">
-            ${item.reference ? `<span class="tag">${esc(item.reference)}</span>` : ''}
-            ${item.category ? `<span class="tag">${esc(item.category)}</span>` : ''}
-          </div>
-        </article>
-      `).join('')}
-    </div>
-  `;
+async function exportResearchBridge() {
+  const ts = new Date().toISOString();
+  const items = bookmarks.map(b => ({
+    id: b.id || `bookmark_${Math.random().toString(36).slice(2, 10)}`,
+    type: 'research_link',
+    title: b.title,
+    content: b.url,
+    source_app: 'research_links.html',
+    created_at: b.created_at || ts,
+    updated_at: b.updated_at || ts,
+    tags: b.tags || [],
+    category: b.category || 'General',
+    url: b.url,
+    meta: {
+      api_source: API
+    }
+  }));
+  await saveBridgeExport(items, `research_bridge_${ts.slice(0, 10)}.json`);
 }
 
-function termsView(items) {
-  if (!items.length) return `<div class="empty">No terms match for this search.</div>`;
-  return `
-    <p class="section-note">Search phrases and trigger terms surfaced as compact chips for scanning and copy-forward work.</p>
-    <div class="terms">
-      ${items.map(term => `<span class="term">${esc(term)}</span>`).join('')}
-    </div>
-  `;
+async function deleteBookmark(id) {
+  if (!confirm('Delete this bookmark?')) return;
+  if (await apiDelete(id)) {
+    bookmarks = bookmarks.filter(b => b.id !== id);
+    localStorage.setItem('bookmarks_cache', JSON.stringify(bookmarks));
+    render();
+    showToast('DELETED');
+  }
 }
 
-function renderView() {
-  const view = document.getElementById('view');
-  if (activeTab === 'watchlist') view.innerHTML = watchlistView(filteredWatchlist());
-  if (activeTab === 'rss') view.innerHTML = rssView(filteredRss());
-  if (activeTab === 'verses') view.innerHTML = versesView(filteredVerses());
-  if (activeTab === 'terms') view.innerHTML = termsView(filteredTerms());
+function openCreateModal() {
+  document.getElementById('modalTitle').textContent = 'New Bookmark';
+  document.getElementById('editId').value = '';
+  document.getElementById('fieldTitle').value = '';
+  document.getElementById('fieldUrl').value = '';
+  document.getElementById('fieldCategory').value = '';
+  document.getElementById('fieldTags').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
 }
 
-document.getElementById('searchInput').addEventListener('input', (event) => {
-  query = event.target.value.trim();
-  renderView();
-});
+function openEditModal(id) {
+  const b = bookmarks.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('modalTitle').textContent = 'Edit Bookmark';
+  document.getElementById('editId').value = b.id;
+  document.getElementById('fieldTitle').value = b.title;
+  document.getElementById('fieldUrl').value = b.url;
+  document.getElementById('fieldCategory').value = b.category || '';
+  document.getElementById('fieldTags').value = (b.tags||[]).join(', ');
+  document.getElementById('modalOverlay').classList.add('open');
+}
 
-renderMeta();
-renderTabs();
-renderView();
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+async function saveBookmark() {
+  const editId = document.getElementById('editId').value;
+  const data = {
+    title: document.getElementById('fieldTitle').value.trim(),
+    url: document.getElementById('fieldUrl').value.trim(),
+    category: document.getElementById('fieldCategory').value.trim() || 'General',
+    tags: document.getElementById('fieldTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+  };
+  if (!data.title || !data.url) { showToast('TITLE AND URL REQUIRED'); return; }
+  if (editId) { data.id = editId; data._existing = true; }
+  if (await apiSave(data)) {
+    closeModal(); await fetchBookmarks(); showToast(editId ? 'UPDATED' : 'CREATED');
+  } else { showToast('SAVE FAILED'); }
+}
+
+function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+async function saveBridgeExport(items, filename) {
+  const payload = {
+    generated_at: new Date().toISOString(),
+    bridge_target: 'ai-hub',
+    hint_path: BRIDGE_HINT,
+    count: items.length,
+    items
+  };
+  const text = JSON.stringify(payload, null, 2);
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      showToast('EXPORT SAVED');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('EXPORT READY');
+}
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+document.getElementById('searchInput').addEventListener('input', e => { searchQuery = e.target.value; render(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape')closeModal(); });
+
+fetchBookmarks();
+setInterval(fetchBookmarks, 5000);
+
+// ═══ FILES PANEL ═══
+const FILE_FOLDERS={documents:{label:'Documents'},videos:{label:'Videos'},music:{label:'Music'},pictures:{label:'Pictures'}};
+const FILE_ICONS={pdf:'\u{1F4D5}',doc:'\u{1F4DD}',docx:'\u{1F4DD}',txt:'\u{1F4C3}',md:'\u{1F4C3}',mp4:'\u{1F3AC}',mkv:'\u{1F3AC}',avi:'\u{1F3AC}',mov:'\u{1F3AC}',mp3:'\u{1F3B5}',wav:'\u{1F3B5}',flac:'\u{1F3B5}',m4a:'\u{1F3B5}',jpg:'\u{1F5BC}',jpeg:'\u{1F5BC}',png:'\u{1F5BC}',gif:'\u{1F5BC}',webp:'\u{1F5BC}',svg:'\u{1F5BC}',zip:'\u{1F4E6}',rar:'\u{1F4E6}',xlsx:'\u{1F4CA}',csv:'\u{1F4CA}',json:'\u{2699}',html:'\u{1F310}',js:'\u{2699}',py:'\u{2699}'};
+let activeFolder=null;
+function getFileIcon(n){const e=(n.split('.').pop()||'').toLowerCase();return FILE_ICONS[e]||'\u{1F4C4}';}
+function fmtSize(b){if(!b||b<0)return'';if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'K';if(b<1073741824)return(b/1048576).toFixed(1)+'M';return(b/1073741824).toFixed(1)+'G';}
+function escF(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function toggleFiles(folder){
+  const panel=document.getElementById('filesPanel');
+  if(activeFolder===folder){closeFiles();return;}
+  activeFolder=folder;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.dataset.folder===folder));
+  document.getElementById('fpTitle').textContent=FILE_FOLDERS[folder].label;
+  document.getElementById('fpList').innerHTML='<div class="fp-empty">Loading...</div>';
+  panel.classList.add('open');
+  loadFiles(folder);
+}
+function closeFiles(){activeFolder=null;document.getElementById('filesPanel').classList.remove('open');document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));}
+async function loadFiles(folder){
+  const list=document.getElementById('fpList');
+  try{const r=await fetch(API+'/files/'+folder);if(!r.ok)throw new Error('Server '+r.status);const files=await r.json();
+    if(!files.length){list.innerHTML='<div class="fp-empty">Folder empty</div>';return;}
+    list.innerHTML=files.map(f=>`<div class="fp-item" onclick="openFile('${escF(f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}')"><span class="fp-item-icon">${getFileIcon(f.name)}</span><span class="fp-item-name" title="${escF(f.name)}">${escF(f.name)}</span><span class="fp-item-size">${fmtSize(f.size)}</span></div>`).join('');
+  }catch(e){list.innerHTML='<div class="fp-empty">'+escF(e.message)+'</div>';}
+}
+function openFile(path){fetch(API+'/files/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})}).then(r=>{if(r.ok)showToast('OPENED');else throw 0;}).catch(()=>{navigator.clipboard.writeText(path).then(()=>showToast('PATH COPIED'));});}
 </script>
 </body>
 </html>
