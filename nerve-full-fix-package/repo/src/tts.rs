@@ -1,10 +1,10 @@
-use tracing::{info, warn, error};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
-use std::path::PathBuf;
+use tracing::{error, info, warn};
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -14,12 +14,10 @@ use std::os::windows::process::CommandExt;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 /// Registry path for legacy SAPI voice tokens
-const SAPI_VOICES_PATH: &str =
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices";
+const SAPI_VOICES_PATH: &str = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices";
 
 /// Registry path for OneCore/Neural voice tokens
-const ONECORE_VOICES_PATH: &str =
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices";
+const ONECORE_VOICES_PATH: &str = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices";
 
 /// Subprocess timeout for edge_tts --list-voices (Change 5)
 const EDGE_TTS_TIMEOUT_SECS: u64 = 8;
@@ -48,10 +46,10 @@ pub struct VoiceInfo {
 
 /// TTS settings (loaded from config, changeable at runtime)
 pub struct TtsSettings {
-    pub voice: String,      // voice name for matching against enumerated list
-    pub speed: i32,         // SAPI rate: -10 to 10 (0=normal, 2=slightly fast, 5=fast)
-    pub engine: String,     // "edge" or "sapi"
-    pub volume: u32,        // 0-100
+    pub voice: String,  // voice name for matching against enumerated list
+    pub speed: i32,     // SAPI rate: -10 to 10 (0=normal, 2=slightly fast, 5=fast)
+    pub engine: String, // "edge" or "sapi"
+    pub volume: u32,    // 0-100
 }
 
 static TTS_SETTINGS: OnceLock<Mutex<TtsSettings>> = OnceLock::new();
@@ -59,7 +57,7 @@ static TTS_SETTINGS: OnceLock<Mutex<TtsSettings>> = OnceLock::new();
 fn settings() -> &'static Mutex<TtsSettings> {
     TTS_SETTINGS.get_or_init(|| {
         Mutex::new(TtsSettings {
-            voice: "Brian".into(),  // Microsoft Brian Online — natural male
+            voice: "Brian".into(), // Microsoft Brian Online — natural male
             speed: 2,              // slightly fast
             engine: "sapi".into(), // works out of the box
             volume: 100,
@@ -89,7 +87,27 @@ pub fn configure(voice: &str, speed: i32, engine: &str, volume: u32) {
     s.speed = speed;
     s.engine = engine.into();
     s.volume = volume;
-    info!("TTS configured: voice={}, speed={}, engine={}, vol={}", voice, speed, engine, volume);
+    info!(
+        "TTS configured: voice={}, speed={}, engine={}, vol={}",
+        voice, speed, engine, volume
+    );
+}
+
+/// Populate the voice cache in the background so the first TTS request can
+/// validate voices without doing slow registry or Edge TTS enumeration work.
+pub fn warm_voice_cache() {
+    std::thread::spawn(|| {
+        let result = get_voices();
+        if result.voices.is_empty() {
+            warn!("TTS voice warmup found no voices: {:?}", result.errors);
+        } else {
+            info!(
+                "TTS voice warmup cached {} voices{}",
+                result.voices.len(),
+                if result.stale { " (stale cache)" } else { "" }
+            );
+        }
+    });
 }
 
 // ── Dual-hive SAPI voice enumeration (Change 1) ────────────────────────────
@@ -101,9 +119,7 @@ pub fn configure(voice: &str, speed: i32, engine: &str, volume: u32) {
 /// OneCore hive (there is no SPCAT_ constant for it).
 fn enumerate_from_path(path: &str, hive: &str) -> Result<Vec<VoiceInfo>, String> {
     use windows::core::PCWSTR;
-    use windows::Win32::Media::Speech::{
-        SpObjectTokenCategory, ISpObjectTokenCategory,
-    };
+    use windows::Win32::Media::Speech::{ISpObjectTokenCategory, SpObjectTokenCategory};
     use windows::Win32::System::Com::{
         CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_APARTMENTTHREADED,
     };
@@ -116,9 +132,7 @@ fn enumerate_from_path(path: &str, hive: &str) -> Result<Vec<VoiceInfo>, String>
             CoCreateInstance(&SpObjectTokenCategory, None, CLSCTX_ALL)
                 .map_err(|e| format!("CoCreateInstance(SpObjectTokenCategory): {e}"))?;
 
-        let wide_path: Vec<u16> = path.encode_utf16()
-            .chain(std::iter::once(0u16))
-            .collect();
+        let wide_path: Vec<u16> = path.encode_utf16().chain(std::iter::once(0u16)).collect();
 
         // SetId accepts an arbitrary registry path string, not just SPCAT_
         // constants. This is the key to enumerating the OneCore hive.
@@ -139,10 +153,8 @@ fn enumerate_from_path(path: &str, hive: &str) -> Result<Vec<VoiceInfo>, String>
         for i in 0..count {
             match enum_tokens.Item(i) {
                 Ok(tok) => {
-                    let id_ptr = tok.GetId()
-                    .map_err(|e| format!("GetId: {e}"))?;
-                    let id = id_ptr.to_string()
-                        .unwrap_or_default();
+                    let id_ptr = tok.GetId().map_err(|e| format!("GetId: {e}"))?;
+                    let id = id_ptr.to_string().unwrap_or_default();
 
                     let (name, lang) = match tok.OpenKey(windows::core::w!("Attributes")) {
                         Ok(attrs) => {
@@ -230,8 +242,7 @@ pub fn check_edge_tts_available() -> Result<(), String> {
 
     if !py.status.success() {
         return Err(
-            "Python launcher 'py' is present but not functional. Reinstall Python."
-                .to_string(),
+            "Python launcher 'py' is present but not functional. Reinstall Python.".to_string(),
         );
     }
 
@@ -281,10 +292,7 @@ pub fn get_edge_voices() -> Result<Vec<VoiceInfo>, String> {
 /// Uses a poll loop with `try_wait` instead of an external dependency.
 /// Returns the output if the process finishes within the deadline, or kills
 /// the process and returns an error on timeout.
-fn run_with_timeout(
-    cmd: &mut Command,
-    timeout: Duration,
-) -> Result<std::process::Output, String> {
+fn run_with_timeout(cmd: &mut Command, timeout: Duration) -> Result<std::process::Output, String> {
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Subprocess spawn failed: {e}"))?;
@@ -354,10 +362,7 @@ fn parse_edge_voices_table(output: &str) -> Result<Vec<VoiceInfo>, String> {
     let mut voices = Vec::new();
     for line in output.lines() {
         let trimmed = line.trim();
-        if trimmed.is_empty()
-            || trimmed.starts_with("Name ")
-            || trimmed.starts_with("---")
-        {
+        if trimmed.is_empty() || trimmed.starts_with("Name ") || trimmed.starts_with("---") {
             continue;
         }
 
@@ -365,11 +370,7 @@ fn parse_edge_voices_table(output: &str) -> Result<Vec<VoiceInfo>, String> {
             Some(name) if name.contains("Neural") => name,
             _ => continue,
         };
-        let locale = short_name
-            .split('-')
-            .take(2)
-            .collect::<Vec<_>>()
-            .join("-");
+        let locale = short_name.split('-').take(2).collect::<Vec<_>>().join("-");
 
         voices.push(VoiceInfo {
             id: short_name.to_string(),
@@ -405,7 +406,11 @@ fn save_voice_cache(voices: &[VoiceInfo]) {
             if let Err(e) = std::fs::write(&path, json) {
                 warn!("Failed to write voice cache: {e}");
             } else {
-                info!("Voice cache saved: {} voices to {}", voices.len(), path.display());
+                info!(
+                    "Voice cache saved: {} voices to {}",
+                    voices.len(),
+                    path.display()
+                );
             }
         }
         Err(e) => warn!("Failed to serialize voice cache: {e}"),
@@ -419,7 +424,11 @@ fn load_voice_cache() -> Option<Vec<VoiceInfo>> {
     if voices.is_empty() {
         None
     } else {
-        info!("Loaded {} voices from cache ({})", voices.len(), path.display());
+        info!(
+            "Loaded {} voices from cache ({})",
+            voices.len(),
+            path.display()
+        );
         Some(voices)
     }
 }
@@ -502,10 +511,7 @@ fn find_voice(voices: &[VoiceInfo], name: &str) -> Option<VoiceInfo> {
     let lower = name.to_lowercase();
     voices
         .iter()
-        .find(|v| {
-            v.name.to_lowercase().contains(&lower)
-                || v.id.to_lowercase().contains(&lower)
-        })
+        .find(|v| v.name.to_lowercase().contains(&lower) || v.id.to_lowercase().contains(&lower))
         .cloned()
 }
 
@@ -544,10 +550,20 @@ pub fn speak(text: &str) -> Result<(), String> {
     drop(s); // Release lock before spawning
 
     match engine.as_str() {
-        "edge" => {
-            speak_edge_tts(text, &voice_name, speed);
-            Ok(())
-        }
+        "edge" => match speak_edge_tts(text, &voice_name, speed) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                warn!("Edge TTS failed, falling back to SAPI: {}", e);
+                let default_voice = VoiceInfo {
+                    id: String::new(),
+                    name: "default".to_string(),
+                    lang: String::new(),
+                    hive: "sapi".to_string(),
+                };
+                speak_sapi(text, &default_voice, speed, volume);
+                Ok(())
+            }
+        },
         _ => {
             // For "default" or empty voice, skip validation — use SAPI default
             if voice_name.is_empty() || voice_name == "default" {
@@ -571,7 +587,10 @@ pub fn speak(text: &str) -> Result<(), String> {
 
             // If no voice list available yet, skip validation to avoid blocking
             if voices.is_empty() {
-                warn!("Voice list not populated yet, skipping validation for '{}'", voice_name);
+                warn!(
+                    "Voice list not populated yet, skipping validation for '{}'",
+                    voice_name
+                );
                 let vi = VoiceInfo {
                     id: String::new(),
                     name: voice_name.clone(),
@@ -656,37 +675,87 @@ fn speak_sapi(text: &str, voice: &VoiceInfo, speed: i32, volume: u32) {
     {
         Ok(child) => {
             *speaking_pid().lock().unwrap() = Some(child.id());
-            info!("TTS SAPI: voice={}, hive={}, rate={}, vol={}", voice.name, voice.hive, rate, volume);
+            info!(
+                "TTS SAPI: voice={}, hive={}, rate={}, vol={}",
+                voice.name, voice.hive, rate, volume
+            );
         }
         Err(e) => error!("TTS SAPI failed: {}", e),
     }
 }
 
 /// Speak using Edge TTS (pip install edge-tts for natural voices)
-fn speak_edge_tts(text: &str, voice: &str, speed: i32) {
-    let escaped = text.replace('"', r#"\""#).replace('\n', " ");
-    let rate_pct = speed * 10;
-    let rate_str = if rate_pct >= 0 { format!("+{}%", rate_pct) } else { format!("{}%", rate_pct) };
-    let voice = if voice.is_empty() || voice == "default" { "en-US-GuyNeural" } else { voice };
+fn speak_edge_tts(text: &str, voice: &str, speed: i32) -> Result<(), String> {
+    check_edge_playback_available()?;
 
-    match new_hidden_command("py")
-        .args(["-m", "edge_playback", "--voice", voice, "--rate", &rate_str, "--text", &escaped])
+    let normalized_text = text.replace('\n', " ").replace('\r', " ");
+    let rate_pct = speed * 10;
+    let rate_str = if rate_pct >= 0 {
+        format!("+{}%", rate_pct)
+    } else {
+        format!("{}%", rate_pct)
+    };
+    let voice = if voice.is_empty() || voice == "default" {
+        "en-US-GuyNeural"
+    } else {
+        voice
+    };
+
+    let mut child = new_hidden_command("py")
+        .args([
+            "-m",
+            "edge_playback",
+            "--voice",
+            voice,
+            "--rate",
+            &rate_str,
+            "--text",
+            &normalized_text,
+        ])
         .spawn()
-    {
-        Ok(child) => {
-            *speaking_pid().lock().unwrap() = Some(child.id());
+        .map_err(|e| format!("Failed to launch edge_playback: {e}"))?;
+
+    let pid = child.id();
+    *speaking_pid().lock().unwrap() = Some(pid);
+    std::thread::sleep(Duration::from_millis(350));
+
+    match child.try_wait() {
+        Ok(Some(status)) if !status.success() => {
+            *speaking_pid().lock().unwrap() = None;
+            Err(format!("edge_playback exited early with status {status}"))
+        }
+        Ok(_) => {
             info!("TTS Edge: voice={}, rate={}", voice, rate_str);
+            Ok(())
         }
-        Err(_) => {
-            info!("edge-tts not installed, falling back to SAPI");
-            let default_voice = VoiceInfo {
-                id: String::new(),
-                name: "default".to_string(),
-                lang: String::new(),
-                hive: "sapi".to_string(),
-            };
-            speak_sapi(&escaped, &default_voice, speed, 100);
+        Err(e) => {
+            *speaking_pid().lock().unwrap() = None;
+            Err(format!(
+                "Failed to monitor edge_playback process {pid}: {e}"
+            ))
         }
+    }
+}
+
+fn check_edge_playback_available() -> Result<(), String> {
+    check_edge_tts_available()?;
+
+    let output = run_with_timeout(
+        new_hidden_command("py")
+            .args(["-m", "edge_playback", "--help"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped()),
+        Duration::from_secs(5),
+    )?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!(
+            "edge_playback module is unavailable. Run: py -m pip install edge-tts. Details: {}",
+            stderr.trim()
+        ))
     }
 }
 
@@ -699,16 +768,37 @@ pub fn save_audio(text: &str, output_path: &str) {
     let engine = s.engine.clone();
     drop(s);
 
-    let escaped = text.replace('\'', "''").replace('\n', " ").replace('\r', "");
+    let escaped = text
+        .replace('\'', "''")
+        .replace('\n', " ")
+        .replace('\r', "");
 
     match engine.as_str() {
         "edge" => {
             let rate_pct = speed * 10;
-            let rate_str = if rate_pct >= 0 { format!("+{}%", rate_pct) } else { format!("{}%", rate_pct) };
-            let v = if voice.is_empty() || voice == "default" { "en-US-GuyNeural".into() } else { voice };
+            let rate_str = if rate_pct >= 0 {
+                format!("+{}%", rate_pct)
+            } else {
+                format!("{}%", rate_pct)
+            };
+            let v = if voice.is_empty() || voice == "default" {
+                "en-US-GuyNeural".into()
+            } else {
+                voice
+            };
             let _ = new_hidden_command("py")
-                .args(["-m", "edge_tts", "--voice", &v, "--rate", &rate_str,
-                       "--text", &escaped, "--write-media", output_path])
+                .args([
+                    "-m",
+                    "edge_tts",
+                    "--voice",
+                    &v,
+                    "--rate",
+                    &rate_str,
+                    "--text",
+                    &escaped,
+                    "--write-media",
+                    output_path,
+                ])
                 .spawn();
         }
         _ => {
@@ -719,7 +809,9 @@ pub fn save_audio(text: &str, output_path: &str) {
                  $synth.SetOutputToWaveFile('{}'); \
                  $synth.Speak('{}'); \
                  $synth.SetOutputToDefaultAudioDevice()",
-                speed, output_path.replace('\'', "''"), escaped
+                speed,
+                output_path.replace('\'', "''"),
+                escaped
             );
             let _ = new_hidden_command("powershell")
                 .args(["-NoProfile", "-Command", &script])
@@ -732,11 +824,7 @@ pub fn save_audio(text: &str, output_path: &str) {
 /// List available voice names (backward-compatible wrapper around get_voices).
 #[allow(dead_code)]
 pub fn list_voices() -> Vec<String> {
-    get_voices()
-        .voices
-        .into_iter()
-        .map(|v| v.name)
-        .collect()
+    get_voices().voices.into_iter().map(|v| v.name).collect()
 }
 
 /// Create a Command that hides the console window on Windows
@@ -773,25 +861,49 @@ fn send_ctrl_c() {
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
-                ki: KEYBDINPUT { wVk: VK_CONTROL, wScan: 0, dwFlags: KEYBD_EVENT_FLAGS(0), time: 0, dwExtraInfo: 0 },
+                ki: KEYBDINPUT {
+                    wVk: VK_CONTROL,
+                    wScan: 0,
+                    dwFlags: KEYBD_EVENT_FLAGS(0),
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
             },
         },
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
-                ki: KEYBDINPUT { wVk: VK_C, wScan: 0, dwFlags: KEYBD_EVENT_FLAGS(0), time: 0, dwExtraInfo: 0 },
+                ki: KEYBDINPUT {
+                    wVk: VK_C,
+                    wScan: 0,
+                    dwFlags: KEYBD_EVENT_FLAGS(0),
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
             },
         },
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
-                ki: KEYBDINPUT { wVk: VK_C, wScan: 0, dwFlags: KEYEVENTF_KEYUP, time: 0, dwExtraInfo: 0 },
+                ki: KEYBDINPUT {
+                    wVk: VK_C,
+                    wScan: 0,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
             },
         },
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
-                ki: KEYBDINPUT { wVk: VK_CONTROL, wScan: 0, dwFlags: KEYEVENTF_KEYUP, time: 0, dwExtraInfo: 0 },
+                ki: KEYBDINPUT {
+                    wVk: VK_CONTROL,
+                    wScan: 0,
+                    dwFlags: KEYEVENTF_KEYUP,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
             },
         },
     ];
@@ -803,7 +915,7 @@ fn send_ctrl_c() {
 
 fn get_clipboard_text() -> anyhow::Result<String> {
     use clipboard_win::{formats, get_clipboard};
-    let text: String = get_clipboard(formats::Unicode)
-        .map_err(|e| anyhow::anyhow!("clipboard: {:?}", e))?;
+    let text: String =
+        get_clipboard(formats::Unicode).map_err(|e| anyhow::anyhow!("clipboard: {:?}", e))?;
     Ok(text)
 }
