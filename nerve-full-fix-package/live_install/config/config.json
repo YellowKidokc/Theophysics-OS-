@@ -113,8 +113,12 @@
       "action": "ai_rewrite_selection"
     },
     {
-      "keys": "",
-      "action": ""
+      "keys": "Ctrl+Alt+D",
+      "action": "toggle_service_dashboard"
+    },
+    {
+      "keys": "Ctrl+Alt+L",
+      "action": "send_text"
     }
   ],
   "hotstrings": [
@@ -388,7 +392,7 @@
         "system_prompt": "Extract every URL, file path, and reference from the input. Return them as a clean list.",
         "user_template": "{{input}}",
         "max_tokens": 2048,
-        "temperature": 0.0
+        "temperature": 0
       },
       {
         "name": "Rewrite Selected Text",
