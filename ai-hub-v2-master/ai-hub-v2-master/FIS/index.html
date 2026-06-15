@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Sorter Hub</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace; }
+    #root { min-height: 100vh; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-type="module">
+const { useState, useEffect, useCallback, useRef } = React;
+const API = "http://127.0.0.1:8450";
+
+const DOMAIN_COLORS = {
+  THEOPHYSICS: { bg: "#1a1a2e", fg: "#e8d5b7", border: "#c9a96e" },
+  DEVELOPMENT: { bg: "#0d1b2a", fg: "#a8d8ea", border: "#5fa8d3" },
+  DATA_TRADING: { bg: "#1b2d1b", fg: "#b8e6b8", border: "#6db86d" },
+  BUSINESS: { bg: "#2d1b2d", fg: "#e6b8e6", border: "#b86db8" },
+  AI_ML: { bg: "#1b1b2d", fg: "#b8b8e6", border: "#6d6db8" },
+  INFRASTRUCTURE: { bg: "#2d2d1b", fg: "#e6e6b8", border: "#b8b86d" },
+  MEDIA: { bg: "#2d1b1b", fg: "#e6b8b8", border: "#b86d6d" },
+  DOCUMENTS: { bg: "#1b2d2d", fg: "#b8e6e6", border: "#6db8b8" },
+  IMAGES: { bg: "#2d261b", fg: "#e6dab8", border: "#b8a86d" },
+  PERSONAL: { bg: "#261b2d", fg: "#dab8e6", border: "#a86db8" },
+  UNCATEGORIZED: { bg: "#1a1a1a", fg: "#999", border: "#555" },
+};
+const SOURCE_LABELS = { yake: "Keywords", deberta: "DeBERTa", ollama: "Ollama", markov: "Learned" };
+const formatSize = (b) => b < 1024 ? b + " B" : b < 1048576 ? (b/1024).toFixed(1) + " KB" : (b/1048576).toFixed(1) + " MB";
+const BLOCK_COLORS = {
+  scan: { bg:"#102018", border:"#2f7a58", fg:"#9ee0be" },
+  composition: { bg:"#172016", border:"#7aa34a", fg:"#c8e59b" },
+  compare: { bg:"#121a26", border:"#4f8cc9", fg:"#a9d2ff" },
+  duplicates: { bg:"#251a10", border:"#c98a3f", fg:"#ffd49a" },
+  combine: { bg:"#201820", border:"#b16bb0", fg:"#e9b9e8" },
+  separate: { bg:"#241818", border:"#c96767", fg:"#ffb4b4" },
+  rename: { bg:"#1f1a12", border:"#d4b046", fg:"#ffe08a" },
+  move: { bg:"#111f24", border:"#48a9c5", fg:"#9de5f7" },
+  copy: { bg:"#151d2a", border:"#6d8ee8", fg:"#bdccff" },
+  archive: { bg:"#1d1a12", border:"#9c8450", fg:"#dcc58b" },
+  deleteLater: { bg:"#241414", border:"#c95a5a", fg:"#ffa3a3" },
+  hub: { bg:"#171827", border:"#8b82e6", fg:"#c7c2ff" },
+  automation: { bg:"#14221d", border:"#53b889", fg:"#a6efca" },
+  review: { bg:"#211d13", border:"#d0a44b", fg:"#ffd98e" },
+  report: { bg:"#171717", border:"#777", fg:"#ddd" },
+};
+const WORK_BLOCKS = {
+  scan: {
+    title: "Scan",
+    purpose: "Inspect files and folders before action.",
+    fields: [
+      ["source", "Source location", "path"],
+      ["depth", "Scan depth", "select", ["top only", "recursive", "follow linked folders"]],
+      ["types", "File types", "text", "all, pdf, xlsx, py"],
+      ["duplicates", "Detect duplicates", "select", ["yes", "no"]],
+      ["themes", "Detect themes", "select", ["yes", "no"]],
+      ["tinyFolders", "Detect tiny folders", "select", ["yes", "no"]],
+    ],
+  },
+  composition: {
+    title: "Folder Composition",
+    purpose: "Find folders dominated by an extension and separate archives, apps, notes, and mixed review.",
+    fields: [
+      ["root", "Broad folder to inspect", "path", "\\\\dlowenas\\h_hp\\Desktop\\Folders"],
+      ["profile", "Extension family", "select", ["html_pages", "web_project", "markdown_obsidian", "images", "documents", "spreadsheets", "presentations", "code", "archives", "media", "custom"]],
+      ["extension", "Add extensions", "text", "html, htm, xhtml"],
+      ["threshold", "Minimum percentage", "text", "60"],
+      ["maxFolders", "Folder limit", "text", "400"],
+      ["maxFiles", "Per-folder file cap", "text", "20000"],
+      ["exclude", "Exclude folders", "text", "node_modules, .git, .venv, __pycache__"],
+    ],
+  },
+  compare: {
+    title: "Compare",
+    purpose: "Compare two folders side by side before copying, moving, or leaving both alone.",
+    fields: [
+      ["left", "Left folder", "path"],
+      ["right", "Right folder", "path"],
+      ["compare", "Compare by", "select", ["relative_path", "filename_only"]],
+      ["recursive", "Scan mode", "select", ["recursive", "top only"]],
+      ["maxFiles", "File limit", "text", "50000"],
+      ["exclude", "Exclude folders", "text", "node_modules, .git, .venv, __pycache__"],
+    ],
+  },
+  duplicates: {
+    title: "Duplicates",
+    purpose: "Find repeated files by name, size, or hash before deciding what to keep.",
+    fields: [
+      ["source", "Source location", "path"],
+      ["matchBy", "Match by", "select", ["same filename", "same size", "same hash", "near name", "name + size"]],
+      ["scope", "Scope", "select", ["inside source", "compare against cache", "two folders"]],
+      ["keepRule", "Keep rule", "select", ["review manually", "keep newest", "keep largest", "keep shortest path"]],
+      ["destination", "Review / delete-later folder", "path"],
+      ["hash", "Calculate hash if missing", "select", ["yes", "no"]],
+    ],
+  },
+  combine: {
+    title: "Combine",
+    purpose: "Bring related files or folders together.",
+    fields: [
+      ["sources", "Sources", "textarea"],
+      ["target", "Target", "path"],
+      ["mode", "Mode", "select", ["preserve hierarchy", "flatten", "group by source"]],
+      ["filter", "Filter", "select", ["all", "extension", "tag", "theme"]],
+      ["stragglers", "Stragglers rule", "select", ["send to review", "leave in place", "include anyway"]],
+      ["duplicates", "Duplicate rule", "select", ["keep both", "rename duplicates", "skip duplicates"]],
+    ],
+  },
+  separate: {
+    title: "Separate",
+    purpose: "Split a messy folder into cleaner groups.",
+    fields: [
+      ["source", "Source", "path"],
+      ["separateBy", "Separate by", "select", ["extension", "type", "date", "tag", "domain", "custom"]],
+      ["target", "Target location", "path"],
+      ["unknown", "Unknown rule", "select", ["send to review", "leave here", "custom group"]],
+    ],
+  },
+  rename: {
+    title: "Rename",
+    purpose: "Clean identity and produce approved names.",
+    fields: [
+      ["items", "Items", "textarea"],
+      ["preset", "Preset", "select", ["baseline", "slug", "keywords", "descriptive", "custom"]],
+      ["baseline", "Baseline", "select", ["lowercase hyphen slug", "keep current", "custom"]],
+      ["keywords", "Keywords", "text", "domain, topic, type"],
+      ["conflict", "Conflict rule", "select", ["add v01", "skip", "ask"]],
+      ["approval", "Approve final names", "select", ["ask first", "auto if clean", "manual only"]],
+    ],
+  },
+  move: {
+    title: "Move",
+    purpose: "Relocate active files or folders.",
+    fields: [
+      ["items", "Items", "textarea"],
+      ["destination", "Destination", "path"],
+      ["createFolder", "Create folder if missing", "select", ["yes", "no"]],
+      ["conflict", "Conflict rule", "select", ["rename", "skip", "ask", "overwrite never"]],
+      ["metadata", "Keep metadata", "select", ["yes", "no"]],
+    ],
+  },
+  copy: {
+    title: "Copy",
+    purpose: "Duplicate into another place without changing originals.",
+    fields: [
+      ["items", "Items", "textarea"],
+      ["destination", "Destination", "path"],
+      ["structure", "Preserve structure", "select", ["yes", "no", "flat copy"]],
+      ["metadata", "Copy metadata", "select", ["yes", "no"]],
+      ["conflict", "Conflict rule", "select", ["skip", "version", "replace copy only"]],
+    ],
+  },
+  archive: {
+    title: "Archive",
+    purpose: "Remove from active work but preserve.",
+    fields: [
+      ["items", "Items", "textarea"],
+      ["destination", "Archive location", "path"],
+      ["reason", "Reason", "select", ["old", "finished", "duplicate", "inactive", "manual"]],
+      ["style", "Archive style", "select", ["as-is", "dated folder", "zip packet"]],
+    ],
+  },
+  deleteLater: {
+    title: "Delete Later",
+    purpose: "Quarantine, not destroy.",
+    fields: [
+      ["items", "Items", "textarea"],
+      ["reason", "Reason", "select", ["duplicate", "junk", "temp", "failed output", "unknown"]],
+      ["quarantine", "Quarantine folder", "path"],
+      ["retention", "Retention period", "select", ["7 days", "30 days", "90 days", "manual review"]],
+      ["hardDelete", "Hard delete allowed later", "select", ["no", "yes after review"]],
+    ],
+  },
+  hub: {
+    title: "Link / Hub",
+    purpose: "Connect related things without merging.",
+    fields: [
+      ["items", "Items", "textarea"],
+      ["hubName", "Hub name", "text", "autohotkey hub"],
+      ["hubLocation", "Hub location", "path"],
+      ["linkType", "Link type", "select", ["manifest", "shortcut", "both"]],
+      ["summary", "Summary", "select", ["auto", "custom", "none"]],
+    ],
+  },
+  automation: {
+    title: "Automation",
+    purpose: "Create a standing rule for future behavior.",
+    fields: [
+      ["watch", "Watch location", "path"],
+      ["trigger", "Trigger", "select", ["extension", "name pattern", "folder", "date", "custom"]],
+      ["action", "Action", "select", ["move", "copy", "create job", "rename", "archive"]],
+      ["destination", "Destination", "path"],
+      ["approval", "Approval", "select", ["ask first", "automatic", "record only"]],
+    ],
+  },
+  review: {
+    title: "Review / Approve",
+    purpose: "Approve machine suggestions and train preferences.",
+    fields: [
+      ["queue", "Pending suggestions", "select", ["all", "renames", "moves", "clusters", "delete later"]],
+      ["decision", "Decision mode", "select", ["approve / reject / edit", "approve only", "manual review"]],
+      ["train", "Train preference engine", "select", ["yes", "no"]],
+    ],
+  },
+  report: {
+    title: "Report",
+    purpose: "Summarize what happened.",
+    fields: [
+      ["reportType", "Report type", "select", ["summary", "before/after", "errors", "full action log"]],
+      ["paths", "Include before/after paths", "select", ["yes", "no"]],
+      ["errors", "Include errors", "select", ["yes", "no"]],
+      ["export", "Export location", "path"],
+    ],
+  },
+};
+
+function DomainBadge({ domain, small, onClick }) {
+  const c = DOMAIN_COLORS[domain] || DOMAIN_COLORS.UNCATEGORIZED;
+  return React.createElement("span", {
+    onClick, style: {
+      display: "inline-block", padding: small ? "1px 6px" : "2px 8px", borderRadius: 3,
+      fontSize: small ? 10 : 11, fontWeight: 600, letterSpacing: 0.5,
+      background: c.bg, color: c.fg, border: `1px solid ${c.border}`,
+      cursor: onClick ? "pointer" : "default"
+    }
+  }, domain);
+}
+
+function ConfBar({ value, source }) {
+  const color = value >= 70 ? "#4a9" : value >= 40 ? "#da5" : "#d55";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ width: 60, height: 6, background: "#222", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ width: `${Math.min(value,100)}%`, height: "100%", background: color, borderRadius: 3 }} />
+      </div>
+      <span style={{ fontSize: 11, color: "#888", minWidth: 30 }}>{value}%</span>
+      {source && source !== "yake" && <span style={{ fontSize: 9, color: "#666", background: "#1a1a1a", padding: "1px 4px", borderRadius: 2 }}>{SOURCE_LABELS[source]||source}</span>}
+    </div>
+  );
+}
+
+function StatsPanel({ stats, onClose }) {
+  if (!stats) return null;
+  const acc = stats.accuracy || 0;
+  const accColor = acc >= 90 ? "#4a9" : acc >= 75 ? "#da5" : "#d55";
+  return (
+    <div style={{ background: "#111", border: "1px solid #333", borderRadius: 6, padding: 16, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#ccc", letterSpacing: 1 }}>PREFERENCE ENGINE</span>
+        <span onClick={onClose} style={{ cursor: "pointer", color: "#666", fontSize: 18 }}>×</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 12 }}>
+        {[
+          { label: "Decisions", val: stats.total_decisions },
+          { label: "Accuracy", val: `${acc}%`, color: accColor },
+          { label: "Auto-approve", val: `≥${stats.auto_approve_threshold}%` },
+          { label: "Keywords", val: stats.unique_keywords_learned },
+        ].map(s => <div key={s.label} style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: s.color || "#eee" }}>{s.val}</div>
+          <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>{s.label}</div>
+        </div>)}
+      </div>
+      {stats.top_corrections?.length > 0 && <div style={{ borderTop: "1px solid #222", paddingTop: 8 }}>
+        <div style={{ fontSize: 10, color: "#666", marginBottom: 4 }}>TOP CORRECTIONS</div>
+        {stats.top_corrections.map((c,i) => <div key={i} style={{ fontSize: 11, color: "#999", display: "flex", gap: 4, alignItems: "center" }}>
+          <DomainBadge domain={c.from} small /> <span style={{ color: "#555" }}>→</span> <DomainBadge domain={c.to} small />
+          <span style={{ color: "#555", marginLeft: "auto" }}>{c.count}×</span>
+        </div>)}
+      </div>}
+      <div style={{ fontSize: 10, color: "#555", marginTop: 8 }}>✓ {stats.approvals||0} approved · ✎ {stats.overrides||0} overridden · ✗ {stats.rejects||0} rejected</div>
+    </div>
+  );
+}
+
+function HubPanel({ hub, onClose, onRefresh }) {
+  if (!hub) return null;
+  const ready = hub.engines?.filter(e => e.status === "ready" || e.status === "available").length || 0;
+  return (
+    <div style={{ background:"#111", border:"1px solid #333", borderRadius:6, padding:16, marginBottom:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <div>
+          <span style={{ fontSize:13, fontWeight:700, color:"#ddd", letterSpacing:1 }}>FILE SORTER HUB</span>
+          <span style={{ fontSize:10, color:"#666", marginLeft:8 }}>{ready} engines visible</span>
+        </div>
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          <button onClick={onRefresh} style={{ background:"#1a1a1a", border:"1px solid #333", color:"#888", padding:"3px 10px", borderRadius:3, cursor:"pointer", fontSize:11 }}>Refresh</button>
+          <span onClick={onClose} style={{ cursor:"pointer", color:"#666", fontSize:18 }}>×</span>
+        </div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(240px, 1fr))", gap:10 }}>
+        {hub.engines?.map(engine => (
+          <div key={engine.id} style={{ background:"#0b0b0b", border:"1px solid #252525", borderRadius:4, padding:10 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", gap:8, alignItems:"center", marginBottom:6 }}>
+              <span style={{ color:"#ddd", fontSize:12, fontWeight:700 }}>{engine.name}</span>
+              <span style={{ color:engine.status==="missing"?"#d88":"#8c8", fontSize:10 }}>{engine.status}</span>
+            </div>
+            <div style={{ color:"#888", fontSize:11, lineHeight:1.45 }}>{engine.role}</div>
+            <div style={{ color:"#555", fontSize:10, marginTop:8 }}>{engine.notes}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop:"1px solid #222", marginTop:12, paddingTop:10, display:"flex", flexWrap:"wrap", gap:6 }}>
+        {Object.entries(hub.optional_packages || {}).map(([name, ok]) => (
+          <span key={name} style={{ fontSize:10, color:ok?"#8c8":"#666", background:"#0b0b0b", border:"1px solid #222", borderRadius:3, padding:"2px 6px" }}>
+            {name}: {ok ? "ok" : "optional"}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WorkbenchPage({ page, scanPath, setScanPath, flash }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const run = async (mode = "preview") => {
+    if (!scanPath.trim()) return;
+    setBusy(true);
+    setResult(null);
+    const route = page === "rename" && mode === "plan" ? "/api/rename/baseline-plan" : page === "rename" ? "/api/rename/preview" : page === "manual" ? "/api/manual/scan" : "/api/organizer/preview";
+    const maxFiles = page === "rename" && mode === "plan" ? 200 : 50;
+    try {
+      const r = await fetch(`${API}${route}?path=${encodeURIComponent(scanPath)}&max=${maxFiles}`);
+      const d = await r.json();
+      setResult(d);
+      flash(d.error ? `Error: ${d.error}` : mode === "plan" ? "Baseline rename plan ready" : `${page} page updated`);
+    } catch(e) {
+      flash("API error");
+    }
+    setBusy(false);
+  };
+  const title = page === "rename" ? "Rename Workbench" : page === "manual" ? "Manual Sort Workbench" : "Intelligence Workbench";
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+        <input value={scanPath} onChange={e=>setScanPath(e.target.value)} onKeyDown={e=>e.key==="Enter"&&run()}
+          style={{ flex:1, background:"#111", border:"1px solid #333", borderRadius:3, padding:"6px 10px", color:"#eee", fontSize:12, fontFamily:"inherit" }} />
+        <button onClick={run} disabled={busy}
+          style={{ background:"#1a2a1a", border:"1px solid #3a5a3a", color:"#8c8", padding:"6px 16px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          {busy ? "Working..." : page === "rename" ? "Preview Names" : page === "manual" ? "Scan Manual" : "Inspect"}
+        </button>
+        {page === "rename" && <button onClick={()=>run("plan")} disabled={busy}
+          style={{ background:"#151526", border:"1px solid #383866", color:"#aab", padding:"6px 16px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          Baseline Plan
+        </button>}
+      </div>
+      <div style={{ background:"#0b0b0b", border:"1px solid #222", borderRadius:6, padding:14, marginBottom:12 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:"#ddd", marginBottom:6 }}>{title}</div>
+        <div style={{ fontSize:11, color:"#777", lineHeight:1.5 }}>
+          {page === "rename" && "Baseline is always lowercase with hyphens. Presets are layered on top after that first clean pass."}
+          {page === "manual" && "Hands-on scan for file kinds, extensions, folder counts, and duplicate-name groups. Move/delete actions stay disabled until we add review gates."}
+          {page === "intelligence" && "Content preview and engine inspection. Heavy model features remain optional until the environment is configured."}
+        </div>
+      </div>
+      {result?.error && <div style={{ color:"#d88", fontSize:12, background:"#1a0d0d", border:"1px solid #3a1a1a", borderRadius:4, padding:10 }}>{result.error}</div>}
+      {page === "rename" && result?.operations && <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        <div style={{ background:"#07110a", border:"1px solid #1f3a25", borderRadius:4, padding:10, color:"#8c8", fontSize:11 }}>
+          Dry run only. Nothing was renamed. {result.count} files checked.
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:8 }}>
+          {[["Would rename", result.counts?.would_rename], ["Already clean", result.counts?.already_clean], ["Needs review", result.counts?.collision]].map(([label,val]) =>
+            <div key={label} style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:10 }}>
+              <div style={{ color:"#eee", fontSize:18, fontWeight:700 }}>{val ?? 0}</div>
+              <div style={{ color:"#666", fontSize:10 }}>{label}</div>
+            </div>
+          )}
+        </div>
+        {(result.operations || []).slice(0, 80).map((op,i) => <div key={i} style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:10 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 110px", gap:8, alignItems:"center" }}>
+            <span style={{ color:"#aaa", fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{op.filename}</span>
+            <span style={{ color:op.status==="collision"?"#d88":"#4a9", fontSize:11, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>→ {op.baseline}</span>
+            <span style={{ color:op.status==="would_rename"?"#8c8":op.status==="collision"?"#d88":"#888", fontSize:10, textAlign:"right" }}>{op.status}</span>
+          </div>
+          <div style={{ color:"#666", fontSize:10, marginTop:4 }}>{op.reason}</div>
+        </div>)}
+      </div>}
+      {page === "rename" && result?.previews && <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+        <div style={{ background:"#07110a", border:"1px solid #1f3a25", borderRadius:4, padding:10, color:"#8c8", fontSize:11 }}>
+          Baseline pass: every scanned file gets a lowercase, hyphenated name suggestion first.
+        </div>
+        {result.previews.map((p,i) => <div key={i} style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:10 }}>
+          <div style={{ color:"#aaa", fontSize:12, marginBottom:4 }}>{p.filename}</div>
+          <div style={{ color:"#4a9", fontSize:11, fontWeight:700 }}>baseline: {p.baseline}</div>
+          {Object.entries(p.presets || {}).slice(0, 4).map(([k,v]) => <div key={k} style={{ color:"#777", fontSize:10, marginTop:3 }}>{k}: {v}</div>)}
+        </div>)}
+      </div>}
+      {page === "manual" && result && !result.error && <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))", gap:10 }}>
+        {[["Files", result.total_files], ["Folders", result.folder_count], ["Duplicate name groups", result.duplicate_name_groups]].map(([label,val]) =>
+          <div key={label} style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:12 }}>
+            <div style={{ color:"#eee", fontSize:20, fontWeight:700 }}>{val ?? "-"}</div>
+            <div style={{ color:"#666", fontSize:10 }}>{label}</div>
+          </div>)}
+        <div style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:12 }}>
+          <div style={{ color:"#888", fontSize:10, marginBottom:4 }}>TOP KINDS</div>
+          {Object.entries(result.kind_counts || {}).slice(0, 8).map(([k,v]) => <div key={k} style={{ color:"#aaa", fontSize:11 }}>{k}: {v}</div>)}
+        </div>
+        <div style={{ gridColumn:"1 / -1", background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:12 }}>
+          <div style={{ color:"#888", fontSize:10, marginBottom:6 }}>BASELINE NAME PASS</div>
+          {(result.file_previews || []).slice(0, 20).map((p,i) => <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, borderTop:i?"1px solid #141414":"none", padding:"4px 0" }}>
+            <span style={{ color:"#888", fontSize:10, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.filename}</span>
+            <span style={{ color:"#4a9", fontSize:10, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>→ {p.baseline}</span>
+          </div>)}
+        </div>
+      </div>}
+      {page === "intelligence" && result?.previews && <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+        <div style={{ color:"#666", fontSize:11 }}>{result.note}</div>
+        {result.previews.map((p,i) => <div key={i} style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:10 }}>
+          <div style={{ color:"#aaa", fontSize:12, marginBottom:4 }}>{p.filename}</div>
+          <div style={{ color:"#4a9", fontSize:10, marginBottom:4 }}>baseline: {p.baseline}</div>
+          <div style={{ color:"#777", fontSize:10, whiteSpace:"pre-wrap" }}>{p.preview || "(no preview)"}</div>
+        </div>)}
+      </div>}
+    </div>
+  );
+}
+
+function FieldInput({ blockId, field, value, onChange }) {
+  const [key, label, type, options] = field;
+  const common = {
+    value: value || "",
+    onChange: e => onChange(blockId, key, e.target.value),
+    style: {
+      width:"100%", background:"#101010", border:"1px solid #2a2a2a", borderRadius:3,
+      padding:"6px 8px", color:"#ddd", fontSize:11, fontFamily:"inherit", minHeight:type==="textarea"?58:30,
+    },
+  };
+  return (
+    <label style={{ display:"flex", flexDirection:"column", gap:4 }}>
+      <span style={{ color:"#777", fontSize:10 }}>{label}</span>
+      {type === "select" ? (
+        <select {...common}>
+          {(options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+      ) : type === "textarea" ? (
+        <textarea {...common} placeholder="one item per line" />
+      ) : (
+        <input {...common} placeholder={options || ""} />
+      )}
+    </label>
+  );
+}
+
+function CompositionResults({ data }) {
+  if (!data) return null;
+  if (data.only_left || data.only_right || data.changed) return null;
+  const rows = (data.matches?.length ? data.matches : data.rows || []).slice(0, 80);
+  const kindColor = {
+    production_web_project: "#5fa8d3",
+    obsidian_vault_or_notes: "#b86db8",
+    obsidian_or_web_capture_mix: "#da5",
+    html_archive_or_webpages: "#8c8",
+    webpage_heavy_mixed: "#d88",
+    some_target_extension_present: "#999",
+    not_target_focused: "#666",
+  };
+  return (
+    <div style={{ marginTop:10, background:"#090909", border:"1px solid #243124", borderRadius:4, overflow:"hidden" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:1, background:"#181818" }}>
+        {[
+          ["Checked", data.folder_count],
+          ["Matches", data.matching_count],
+          ["Threshold", `${data.threshold}%`],
+          ["Family", data.target_profile || "custom"],
+          ["Extensions", data.target_ext],
+        ].map(([label, value]) => (
+          <div key={label} style={{ background:"#0d0d0d", padding:10 }}>
+            <div style={{ color:"#eee", fontSize:18, fontWeight:700 }}>{value}</div>
+            <div style={{ color:"#777", fontSize:10 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:10, display:"flex", gap:6, flexWrap:"wrap", borderBottom:"1px solid #1d1d1d" }}>
+        {Object.entries(data.summary || {}).map(([kind, count]) => (
+          <span key={kind} style={{ border:`1px solid ${kindColor[kind] || "#555"}`, color:kindColor[kind] || "#aaa", borderRadius:3, padding:"3px 7px", fontSize:10 }}>
+            {kind.replaceAll("_", " ")}: {count}
+          </span>
+        ))}
+      </div>
+      <div style={{ overflowX:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:10 }}>
+          <thead>
+            <tr style={{ background:"#101010", color:"#888", textAlign:"left" }}>
+              <th style={{ padding:8 }}>Folder</th>
+              <th style={{ padding:8 }}>Match</th>
+              <th style={{ padding:8 }}>Kind</th>
+              <th style={{ padding:8 }}>Top Extensions</th>
+              <th style={{ padding:8 }}>Recommendation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.path} style={{ borderTop:"1px solid #1b1b1b" }}>
+                <td style={{ padding:8, color:"#ddd", minWidth:220 }}>
+                  <div style={{ fontWeight:700 }}>{row.name}</div>
+                  <div style={{ color:"#666", marginTop:3, whiteSpace:"nowrap" }}>{row.path}</div>
+                </td>
+                <td style={{ padding:8, color:row.matches_threshold ? "#8c8" : "#999", fontWeight:700 }}>
+                  {row.target_pct}%<div style={{ color:"#666", fontWeight:400 }}>{row.target_count}/{row.file_count}</div>
+                </td>
+                <td style={{ padding:8, color:kindColor[row.kind] || "#aaa", minWidth:150 }}>{row.kind.replaceAll("_", " ")}</td>
+                <td style={{ padding:8, color:"#aaa", minWidth:160 }}>
+                  {(row.top_ext || []).map(x => `${x.ext} ${x.count}`).join(" · ")}
+                </td>
+                <td style={{ padding:8, color:"#888", minWidth:220 }}>{row.recommendation}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(data.rows || []).length > rows.length && <div style={{ padding:8, color:"#777", fontSize:10 }}>
+        Showing the first {rows.length} rows. Tighten the threshold, extension, or exclusions to narrow the set.
+      </div>}
+    </div>
+  );
+}
+
+function CompareResults({ data }) {
+  if (!data || !(data.only_left || data.only_right || data.changed)) return null;
+  const fileRow = (item, side) => (
+    <tr key={`${side}-${item.path}`} style={{ borderTop:"1px solid #1b1b1b" }}>
+      <td style={{ padding:8, color:"#ddd", minWidth:260 }}>
+        <div style={{ fontWeight:700 }}>{item.rel}</div>
+        <div style={{ color:"#666", marginTop:3, whiteSpace:"nowrap" }}>{item.path}</div>
+      </td>
+      <td style={{ padding:8, color:"#aaa" }}>{formatSize(item.size || 0)}</td>
+      <td style={{ padding:8, color:"#777" }}>{item.mtime_iso || ""}</td>
+      <td style={{ padding:8, color:side === "left" ? "#8cd" : "#da5", fontWeight:700 }}>{side}</td>
+    </tr>
+  );
+  const changedRow = (row) => (
+    <tr key={row.key} style={{ borderTop:"1px solid #1b1b1b" }}>
+      <td style={{ padding:8, color:"#ddd", minWidth:260 }}>
+        <div style={{ fontWeight:700 }}>{row.left?.rel || row.right?.rel || row.key}</div>
+        <div style={{ color:"#666", marginTop:3 }}>newer: {row.newer_side}</div>
+      </td>
+      <td style={{ padding:8, color:"#8cd" }}>{formatSize(row.left?.size || 0)}</td>
+      <td style={{ padding:8, color:"#da5" }}>{formatSize(row.right?.size || 0)}</td>
+      <td style={{ padding:8, color:"#aaa" }}>{row.size_delta > 0 ? "+" : ""}{formatSize(Math.abs(row.size_delta || 0))}</td>
+    </tr>
+  );
+  const section = (title, count, rows, renderer, emptyText) => (
+    <div style={{ borderTop:"1px solid #202020" }}>
+      <div style={{ padding:"9px 10px", background:"#0d0d0d", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span style={{ color:"#ddd", fontSize:11, fontWeight:700 }}>{title}</span>
+        <span style={{ color:"#777", fontSize:10 }}>{count} found · showing {Math.min((rows || []).length, 80)}</span>
+      </div>
+      {(rows || []).length ? (
+        <div style={{ overflowX:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:10 }}>
+            <tbody>{(rows || []).slice(0, 80).map(renderer)}</tbody>
+          </table>
+        </div>
+      ) : (
+        <div style={{ padding:10, color:"#666", fontSize:10 }}>{emptyText}</div>
+      )}
+    </div>
+  );
+  return (
+    <div style={{ marginTop:10, background:"#090909", border:"1px solid #243040", borderRadius:4, overflow:"hidden" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:1, background:"#181818" }}>
+        {[
+          ["Left files", data.left_count],
+          ["Right files", data.right_count],
+          ["Same", data.same_count],
+          ["Changed", data.changed_count],
+          ["Left only", data.only_left_count],
+          ["Right only", data.only_right_count],
+        ].map(([label, value]) => (
+          <div key={label} style={{ background:"#0d0d0d", padding:10 }}>
+            <div style={{ color:"#eee", fontSize:18, fontWeight:700 }}>{value}</div>
+            <div style={{ color:"#777", fontSize:10 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:10, borderBottom:"1px solid #1d1d1d" }}>
+        <div style={{ color:"#aaa", fontSize:11, lineHeight:1.5, marginBottom:8 }}>
+          This is a preview-only comparison. It helps decide what should move right, move left, stay both places, or go to review.
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))", gap:8 }}>
+          {(data.suggested_actions || []).map(action => (
+            <div key={action.action} style={{ background:"#0d0d0d", border:"1px solid #252525", borderRadius:4, padding:9 }}>
+              <div style={{ color:"#ddd", fontSize:11, fontWeight:700 }}>{action.label}</div>
+              <div style={{ color:"#777", fontSize:10, marginTop:4 }}>{action.count} items · risk {action.risk}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {section("Right-only files", data.only_right_count, data.only_right, x => fileRow(x, "right"), "Nothing exists only on the right side.")}
+      {section("Left-only files", data.only_left_count, data.only_left, x => fileRow(x, "left"), "Nothing exists only on the left side.")}
+      {section("Changed files with the same identity", data.changed_count, data.changed, changedRow, "No same-name/same-path files have different sizes.")}
+      {data.capped && <div style={{ padding:10, color:"#da5", fontSize:10 }}>
+        This comparison hit the file limit. Raise the limit or narrow the folders before using it for action decisions.
+      </div>}
+    </div>
+  );
+}
+
+function AdvancedWorkbenchPage({ scanPath, flash }) {
+  const [blocks, setBlocks] = useState([{
+    id: 1,
+    type: "scan",
+    values: { source: scanPath, depth: "recursive", types: "all", duplicates: "yes", themes: "yes", tinyFolders: "yes" },
+    status: "draft",
+    preview: "",
+  }]);
+  const nextId = useRef(2);
+
+  const addBlock = (type) => {
+    const spec = WORK_BLOCKS[type];
+    const values = {};
+    spec.fields.forEach(([key,, fieldType, options]) => {
+      if (fieldType === "select") values[key] = options[0];
+      if (fieldType !== "select" && options) values[key] = options;
+      if (key === "source" || key === "destination" || key === "target" || key === "export" || key === "watch" || key === "left") values[key] = scanPath;
+      if (key === "right") values[key] = "";
+    });
+    setBlocks(prev => [...prev, { id: nextId.current++, type, values, status:"draft", preview:"", previewData:null }]);
+    flash(`${spec.title} block added`);
+  };
+
+  const updateBlock = (id, key, value) => {
+    setBlocks(prev => prev.map(block => block.id === id
+      ? { ...block, values:{ ...block.values, [key]: value }, status:block.status === "recorded" ? "edited" : block.status }
+      : block
+    ));
+  };
+
+  const removeBlock = (id) => {
+    setBlocks(prev => prev.filter(block => block.id !== id));
+  };
+
+  const previewBlock = async (id) => {
+    const block = blocks.find(b => b.id === id);
+    if (block?.type === "compare") {
+      setBlocks(prev => prev.map(b => b.id === id ? { ...b, status:"scanning", preview:"Comparing both folders. Nothing is being changed.", previewData:null } : b));
+      try {
+        const v = block.values;
+        const recursive = (v.recursive || "recursive") === "recursive";
+        const url = `${API}/api/folders/compare?left=${encodeURIComponent(v.left || "")}&right=${encodeURIComponent(v.right || "")}&compare=${encodeURIComponent(v.compare || "relative_path")}&recursive=${encodeURIComponent(recursive)}&max_files=${encodeURIComponent(v.maxFiles || "50000")}&exclude=${encodeURIComponent(v.exclude || "")}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Compare failed");
+        setBlocks(prev => prev.map(b => b.id === id ? {
+          ...b,
+          status:"previewed",
+          preview:`${data.message} Review the left-only, right-only, and changed groups before choosing any copy or move action.`,
+          previewData:data,
+        } : b));
+        flash("Folder compare preview ready");
+      } catch(e) {
+        setBlocks(prev => prev.map(b => b.id === id ? { ...b, status:"draft", preview:e.message || "Compare failed", previewData:null } : b));
+        flash("Compare preview failed");
+      }
+      return;
+    }
+    if (block?.type === "composition") {
+      setBlocks(prev => prev.map(b => b.id === id ? { ...b, status:"scanning", preview:"Reading folder composition. Nothing is being changed.", previewData:null } : b));
+      try {
+        const v = block.values;
+        const url = `${API}/api/folders/composition?root=${encodeURIComponent(v.root || "")}&profile=${encodeURIComponent(v.profile || "html_pages")}&extension=${encodeURIComponent(v.extension || "")}&threshold=${encodeURIComponent(v.threshold || "60")}&max_folders=${encodeURIComponent(v.maxFolders || "400")}&max_files_per_folder=${encodeURIComponent(v.maxFiles || "20000")}&exclude=${encodeURIComponent(v.exclude || "")}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Composition scan failed");
+        setBlocks(prev => prev.map(b => b.id === id ? {
+          ...b,
+          status:"previewed",
+          preview:`${data.message} ${data.folder_count} folders were checked. This is a diagnostic view only.`,
+          previewData:data,
+        } : b));
+        flash("Folder composition preview ready");
+      } catch(e) {
+        setBlocks(prev => prev.map(b => b.id === id ? { ...b, status:"draft", preview:e.message || "Composition scan failed", previewData:null } : b));
+        flash("Composition preview failed");
+      }
+      return;
+    }
+    setBlocks(prev => prev.map(block => {
+      if (block.id !== id) return block;
+      const spec = WORK_BLOCKS[block.type];
+      const filled = spec.fields.filter(([key]) => String(block.values[key] || "").trim()).length;
+      const preview = `${spec.title} is ready as a dry-run card. ${filled}/${spec.fields.length} fields have values. This preview records intent only; it does not change files.`;
+      return { ...block, status:"previewed", preview, previewData:null };
+    }));
+    flash("Preview ready");
+  };
+
+  const recordBlock = (id) => {
+    setBlocks(prev => prev.map(block => block.id === id
+      ? { ...block, status:"recorded", preview:block.preview || "Recorded as a planned manual work block. No file action was executed." }
+      : block
+    ));
+    flash("Work block recorded");
+  };
+
+  const blockButtons = Object.entries(WORK_BLOCKS);
+  const statusColor = { draft:"#777", edited:"#da5", scanning:"#da5", previewed:"#8cd", recorded:"#8c8" };
+
+  return (
+    <div>
+      <div style={{ background:"#0b0b0b", border:"1px solid #222", borderRadius:6, padding:14, marginBottom:12 }}>
+        <div style={{ color:"#eee", fontSize:15, fontWeight:700, marginBottom:6 }}>Manual Advanced Workbench</div>
+        <div style={{ color:"#777", fontSize:11, lineHeight:1.5 }}>
+          Add work blocks, fill in the minimum choices, preview them, then record the plan. Real file execution stays behind approval gates.
+        </div>
+      </div>
+
+      <div style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:6, padding:12, marginBottom:12 }}>
+        <div style={{ color:"#888", fontSize:10, marginBottom:8 }}>ADD WORK BLOCK</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+          {blockButtons.map(([type, spec], i) => {
+            const color = BLOCK_COLORS[type] || BLOCK_COLORS.report;
+            return <button key={type} onClick={()=>addBlock(type)}
+              style={{ background:color.bg, border:`1px solid ${color.border}`, color:color.fg, borderRadius:3, padding:"7px 10px", cursor:"pointer", fontSize:10, fontWeight:700, boxShadow:`inset 3px 0 0 ${color.border}` }}>
+              {i + 1}. {spec.title}
+            </button>;
+          })}
+        </div>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {blocks.map((block, index) => {
+          const spec = WORK_BLOCKS[block.type];
+          const color = BLOCK_COLORS[block.type] || BLOCK_COLORS.report;
+          return (
+            <div key={block.id} style={{ background:"#0c0c0c", border:`1px solid ${color.border}`, borderRadius:6, overflow:"hidden", boxShadow:`inset 5px 0 0 ${color.border}` }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, alignItems:"center", padding:"11px 12px 11px 16px", borderBottom:`1px solid ${color.border}`, background:`linear-gradient(90deg, ${color.bg}, #101010 70%)` }}>
+                <div>
+                  <div style={{ color:color.fg, fontSize:15, fontWeight:800 }}>Function {index + 1}: {spec.title}</div>
+                  <div style={{ color:"#777", fontSize:10, marginTop:3 }}>{spec.purpose}</div>
+                </div>
+                <span style={{ color:statusColor[block.status] || "#777", fontSize:10, fontWeight:700 }}>{block.status}</span>
+                <button onClick={()=>removeBlock(block.id)}
+                  style={{ background:"#171111", border:"1px solid #3a2222", color:"#d88", borderRadius:3, padding:"4px 8px", cursor:"pointer", fontSize:10 }}>
+                  Remove
+                </button>
+              </div>
+
+              <div style={{ padding:12 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10 }}>
+                  {spec.fields.map(field => <FieldInput key={field[0]} blockId={block.id} field={field} value={block.values[field[0]]} onChange={updateBlock} />)}
+                  <FieldInput blockId={block.id} field={["reason", "Reason", "text", "why this block belongs in the chain"]} value={block.values.reason} onChange={updateBlock} />
+                  <FieldInput blockId={block.id} field={["safety", "Safety rule", "select", ["preview only", "ask before action", "copy before move", "record only"]]} value={block.values.safety || "preview only"} onChange={updateBlock} />
+                </div>
+
+                {block.preview && <div style={{ marginTop:10, background:"#071014", border:"1px solid #1f3540", borderRadius:4, padding:10, color:"#8cd", fontSize:11, lineHeight:1.45 }}>
+                  {block.preview}
+                </div>}
+                <CompositionResults data={block.previewData} />
+                <CompareResults data={block.previewData} />
+
+                <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:10, flexWrap:"wrap" }}>
+                  <button onClick={()=>previewBlock(block.id)}
+                    style={{ background:"#151526", border:"1px solid #383866", color:"#aab", padding:"6px 12px", borderRadius:3, cursor:"pointer", fontSize:11, fontWeight:600 }}>
+                    Preview
+                  </button>
+                  <button onClick={()=>recordBlock(block.id)} disabled={block.status !== "previewed" && block.status !== "recorded"}
+                    style={{ background:block.status === "previewed" || block.status === "recorded" ? "#1a2a1a" : "#121212", border:"1px solid #333", color:block.status === "previewed" || block.status === "recorded" ? "#8c8" : "#555", padding:"6px 12px", borderRadius:3, cursor:block.status === "previewed" || block.status === "recorded" ? "pointer" : "not-allowed", fontSize:11, fontWeight:600 }}>
+                    Record Block
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HomePage({ setActivePage, cache }) {
+  const cards = [
+    {
+      id: "manual",
+      title: "Manual advanced",
+      body: "Build notebook-style work blocks: scan, combine, separate, rename, move, copy, archive, review, and report.",
+      accent: "#da5",
+    },
+    {
+      id: "sort",
+      title: "Let intelligence sort",
+      body: "Scan folders, classify domains, preview destinations, and train the preference engine.",
+      accent: "#8c8",
+    },
+    {
+      id: "rename",
+      title: "Rename files",
+      body: "Generate clean baseline names and structured naming presets before applying anything.",
+      accent: "#88c",
+    },
+    {
+      id: "cache",
+      title: "Build file cache",
+      body: "Scan folders into SQLite so pages can open from saved names, folders, and extensions.",
+      accent: "#4a9",
+    },
+  ];
+  return (
+    <div>
+      <div style={{ background:"#0b0b0b", border:"1px solid #222", borderRadius:6, padding:16, marginBottom:12 }}>
+        <div style={{ fontSize:16, fontWeight:700, color:"#eee", marginBottom:6 }}>What do you want to do?</div>
+        <div style={{ fontSize:11, color:"#777", lineHeight:1.5 }}>Choose a workflow. Each page uses its own engine, but they all live inside this one hub.</div>
+      </div>
+      {cache && <div style={{ background:"#0d0d0d", border:"1px solid #222", borderRadius:6, padding:12, marginBottom:12, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:10 }}>
+        {[
+          ["Cached files", cache.counts?.files],
+          ["Classifications", cache.counts?.classifications],
+          ["Decisions", cache.counts?.decisions],
+          ["Scan runs", cache.counts?.scan_runs],
+        ].map(([label,val]) => <div key={label}>
+          <div style={{ color:"#eee", fontSize:18, fontWeight:700 }}>{val ?? 0}</div>
+          <div style={{ color:"#666", fontSize:10 }}>{label}</div>
+        </div>)}
+        {cache.latest_scan && <div style={{ gridColumn:"1 / -1", color:"#777", fontSize:10 }}>
+          Last scan: {cache.latest_scan.scan_path} · {cache.latest_scan.file_count} files · {cache.latest_scan.status}
+        </div>}
+      </div>}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:12 }}>
+        {cards.map(card => (
+          <button key={card.id} onClick={()=>setActivePage(card.id)}
+            style={{ textAlign:"left", background:"#101010", border:`1px solid ${card.accent}`, borderRadius:6, padding:16, cursor:"pointer", minHeight:130 }}>
+            <div style={{ color:card.accent, fontSize:13, fontWeight:700, marginBottom:8 }}>{card.title}</div>
+            <div style={{ color:"#999", fontSize:11, lineHeight:1.5 }}>{card.body}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CachePage({ scanPath, setScanPath, cache, loadCache, flash, loadClassifiedFiles }) {
+  const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [files, setFiles] = useState([]);
+  const [scanResult, setScanResult] = useState(null);
+  const [folderResult, setFolderResult] = useState(null);
+  const [clusters, setClusters] = useState(null);
+  const [sidecarResult, setSidecarResult] = useState(null);
+  const [roots, setRoots] = useState([]);
+  const [actions, setActions] = useState([]);
+
+  const loadSystem = async (seed=false) => {
+    try {
+      const rr = await fetch(`${API}/api/roots${seed ? "?seed=true" : ""}`);
+      const rd = await rr.json();
+      setRoots(rd.roots || []);
+      const ar = await fetch(`${API}/api/actions?limit=8`);
+      const ad = await ar.json();
+      setActions(ad.actions || []);
+      if (seed) {
+        await loadCache();
+        flash("A/B/C roots registered");
+      }
+    } catch(e) {
+      flash("System registry lookup failed");
+    }
+  };
+
+  useEffect(() => { loadSystem(false); }, []);
+
+  const loadFiles = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/api/cache/files?root=${encodeURIComponent(scanPath)}&q=${encodeURIComponent(query)}&limit=120`);
+      const d = await r.json();
+      setFiles(d.files || []);
+      flash(`Loaded ${(d.files || []).length} cached files`);
+    } catch(e) {
+      flash("Cache lookup failed");
+    }
+    setBusy(false);
+  };
+
+  const scanCache = async () => {
+    if (!scanPath.trim()) return;
+    setBusy(true);
+    setScanResult(null);
+    try {
+      const r = await fetch(`${API}/api/cache/scan?path=${encodeURIComponent(scanPath)}&recursive=true&follow_links=true&max=10000`);
+      const d = await r.json();
+      setScanResult(d);
+      await loadCache();
+      if (!d.error) {
+        flash(`Cached ${d.file_count || 0} files`);
+        loadFiles();
+      } else {
+        flash(`Error: ${d.error}`);
+      }
+    } catch(e) {
+      flash("Cache scan failed");
+    }
+    setBusy(false);
+  };
+
+  const openFolder = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/api/cache/folder?path=${encodeURIComponent(scanPath)}&limit=120`);
+      const d = await r.json();
+      setFolderResult(d);
+      flash(`Loaded cached folder`);
+    } catch(e) {
+      flash("Folder cache lookup failed");
+    }
+    setBusy(false);
+  };
+
+  const findThemes = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/api/cache/clusters?root=${encodeURIComponent(scanPath)}&min_folders=2&limit=12`);
+      const d = await r.json();
+      setClusters(d);
+      flash(`Found ${(d.suggestions || []).length} theme clusters`);
+    } catch(e) {
+      flash("Theme search failed");
+    }
+    setBusy(false);
+  };
+
+  const writeFolderbrain = async () => {
+    if (!scanPath.trim()) return;
+    setBusy(true);
+    setSidecarResult(null);
+    try {
+      const r = await fetch(`${API}/api/cache/folderbrain?path=${encodeURIComponent(scanPath)}&write=true`);
+      const d = await r.json();
+      setSidecarResult(d);
+      await loadCache();
+      await loadSystem(false);
+      flash(d.error ? "Folder brain write failed" : `Wrote ${d.sidecar || ".folderbrain.json"}`);
+    } catch(e) {
+      flash("Folder brain write failed");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+        <input value={scanPath} onChange={e=>setScanPath(e.target.value)} onKeyDown={e=>e.key==="Enter"&&loadFiles()}
+          style={{ flex:"1 1 360px", background:"#111", border:"1px solid #333", borderRadius:3, padding:"6px 10px", color:"#eee", fontSize:12, fontFamily:"inherit" }} />
+        <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="filter name or folder"
+          style={{ flex:"0 1 220px", background:"#111", border:"1px solid #333", borderRadius:3, padding:"6px 10px", color:"#eee", fontSize:12, fontFamily:"inherit" }} />
+        <button onClick={scanCache} disabled={busy}
+          style={{ background:"#1a2a1a", border:"1px solid #3a5a3a", color:"#8c8", padding:"6px 14px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          {busy ? "Working..." : "Scan Into Cache"}
+        </button>
+        <button onClick={loadFiles} disabled={busy}
+          style={{ background:"#1a1a2a", border:"1px solid #333", color:"#aac", padding:"6px 14px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          Show Cached Files
+        </button>
+        <button onClick={()=>loadClassifiedFiles(scanPath)} disabled={busy}
+          style={{ background:"#1a241f", border:"1px solid #2f5a45", color:"#8db", padding:"6px 14px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          Classify For Review
+        </button>
+        <button onClick={openFolder} disabled={busy}
+          style={{ background:"#181818", border:"1px solid #333", color:"#aaa", padding:"6px 14px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          Open Cached Folder
+        </button>
+        <button onClick={findThemes} disabled={busy}
+          style={{ background:"#241f16", border:"1px solid #5a4930", color:"#db8", padding:"6px 14px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          Find Themes
+        </button>
+        <button onClick={writeFolderbrain} disabled={busy}
+          style={{ background:"#162024", border:"1px solid #30505a", color:"#8cd", padding:"6px 14px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          Write Folder Brain
+        </button>
+      </div>
+
+      {cache && <div style={{ background:"#0d0d0d", border:"1px solid #222", borderRadius:6, padding:12, marginBottom:12, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:10 }}>
+        {[["Files", cache.counts?.files], ["Folders", cache.counts?.folders], ["Scans", cache.counts?.scan_runs], ["Decisions", cache.counts?.decisions], ["Roots", cache.counts?.roots], ["Actions", cache.counts?.actions]].map(([label,val]) =>
+          <div key={label}>
+            <div style={{ color:"#eee", fontSize:18, fontWeight:700 }}>{val ?? 0}</div>
+            <div style={{ color:"#666", fontSize:10 }}>{label}</div>
+          </div>
+        )}
+        <div style={{ gridColumn:"1 / -1", color:"#777", fontSize:10 }}>
+          Top extensions: {(cache.extensions || []).slice(0, 8).map(e => `${e.ext} ${e.count}`).join(" · ") || "none yet"}
+        </div>
+      </div>}
+
+      <div style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:12, marginBottom:12 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:8 }}>
+          <div style={{ color:"#888", fontSize:10 }}>SYSTEM ROOTS</div>
+          <button onClick={()=>loadSystem(true)} disabled={busy}
+            style={{ background:"#111", border:"1px solid #333", color:"#aaa", padding:"3px 8px", borderRadius:3, cursor:busy?"wait":"pointer", fontSize:10 }}>
+            Register A/B/C
+          </button>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))", gap:8 }}>
+          {(roots || []).map(r => <button key={r.root_code} onClick={()=>setScanPath(r.root_path)}
+            style={{ textAlign:"left", background:r.status==="ready"?"#07110a":"#111", border:"1px solid #222", borderRadius:4, padding:8, cursor:"pointer" }}>
+            <div style={{ color:r.status==="ready"?"#8c8":"#777", fontSize:12, fontWeight:700 }}>{r.root_code} · {r.label}</div>
+            <div style={{ color:"#666", fontSize:9, marginTop:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.root_path}</div>
+          </button>)}
+          {(!roots || roots.length===0) && <div style={{ color:"#666", fontSize:11 }}>Register A/B/C to start the numbered workflow.</div>}
+        </div>
+        {(actions || []).length > 0 && <div style={{ marginTop:10, borderTop:"1px solid #151515", paddingTop:8 }}>
+          <div style={{ color:"#888", fontSize:10, marginBottom:6 }}>RECENT ACTIONS</div>
+          {actions.map(a => <div key={a.action_id} style={{ display:"grid", gridTemplateColumns:"54px 1fr 80px", gap:8, padding:"3px 0", borderTop:"1px solid #101010" }}>
+            <span style={{ color:"#aac", fontSize:10, fontWeight:700 }}>{a.action_code}</span>
+            <span style={{ color:"#888", fontSize:10, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.action_type} {a.root_code ? `· ${a.root_code}` : ""}</span>
+            <span style={{ color:a.status==="complete"?"#8c8":a.status==="error"?"#d88":"#777", fontSize:10, textAlign:"right" }}>{a.status}</span>
+          </div>)}
+        </div>}
+      </div>
+
+      {scanResult && <div style={{ background:"#07110a", border:"1px solid #1f3a25", borderRadius:4, padding:10, marginBottom:12, color:scanResult.error?"#d88":"#8c8", fontSize:11 }}>
+        {scanResult.error ? scanResult.error : `Action ${scanResult.action_code || "-----"} · Last cache scan: ${scanResult.file_count} files, ${scanResult.folder_count} folders, ${scanResult.skipped} skipped${scanResult.stopped_at_limit ? " - hit limit" : ""}.`}
+      </div>}
+
+      {sidecarResult && <div style={{ background:"#071014", border:"1px solid #1f3540", borderRadius:4, padding:10, marginBottom:12, color:sidecarResult.error?"#d88":"#8cd", fontSize:11 }}>
+        {sidecarResult.error ? sidecarResult.error : `Action ${sidecarResult.action_code || "-----"} · Folder brain written: ${sidecarResult.sidecar}`}
+      </div>}
+
+      {folderResult && <div style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:12, marginBottom:12 }}>
+        <div style={{ color:"#888", fontSize:10, marginBottom:6 }}>CACHED FOLDER</div>
+        <div style={{ color:"#ddd", fontSize:12, marginBottom:8 }}>{folderResult.folder?.folder_path}</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:8 }}>
+          {(folderResult.folders || []).slice(0, 12).map(f => <div key={f.folder_path} style={{ color:"#8c8", fontSize:10, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.folder_name} / {f.file_count} files</div>)}
+          {(folderResult.files || []).slice(0, 24).map(f => <div key={f.filepath} style={{ color:"#aaa", fontSize:10, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.filename}</div>)}
+        </div>
+      </div>}
+
+      {clusters && <div style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:4, padding:12, marginBottom:12 }}>
+        <div style={{ color:"#888", fontSize:10, marginBottom:8 }}>THEME CLUSTERS</div>
+        {(clusters.suggestions || []).length === 0 && <div style={{ color:"#666", fontSize:11 }}>No repeated themes found in the current cache yet.</div>}
+        {(clusters.suggestions || []).map((c,i) => <div key={`${c.theme}-${i}`} style={{ borderTop:i?"1px solid #151515":"none", padding:"8px 0" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, alignItems:"center" }}>
+            <span style={{ color:"#ddd", fontSize:12, fontWeight:700 }}>{c.theme}</span>
+            <span style={{ color:"#777", fontSize:10 }}>{c.folder_count} folders</span>
+            <span style={{ color:"#777", fontSize:10 }}>{c.file_count} files</span>
+          </div>
+          <div style={{ color:"#999", fontSize:11, marginTop:4 }}>{c.summary}</div>
+          <div style={{ color:"#db8", fontSize:10, marginTop:4 }}>{c.recommendation}</div>
+          <div style={{ color:"#555", fontSize:9, marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            {(c.folders || []).slice(0,4).map(f => `${f.path} (${f.count})`).join(" · ")}
+          </div>
+        </div>)}
+      </div>}
+
+      <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+        {files.map((f,i) => <div key={f.filepath || i} style={{ display:"grid", gridTemplateColumns:"1fr 90px 110px", gap:8, background:"#090909", border:"1px solid #151515", borderRadius:3, padding:"6px 8px" }}>
+          <span style={{ color:"#aaa", fontSize:11, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.filename}</span>
+          <span style={{ color:"#777", fontSize:10 }}>{f.ext || "(none)"}</span>
+          <span style={{ color:"#666", fontSize:10, textAlign:"right" }}>{f.size ?? 0} bytes</span>
+          <span style={{ gridColumn:"1 / -1", color:"#555", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.filepath}</span>
+        </div>)}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [scanPath, setScanPath] = useState("C:\\Users\\lowes\\OneDrive\\A");
+  const [files, setFiles] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [domainFilter, setDomainFilter] = useState(null);
+  const [sortBy, setSortBy] = useState("confidence");
+  const [threshold, setThreshold] = useState(30);
+  const [stats, setStats] = useState(null);
+  const [showStats, setShowStats] = useState(false);
+  const [showHub, setShowHub] = useState(false);
+  const [hub, setHub] = useState(null);
+  const [cache, setCache] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [apiOk, setApiOk] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [topOnly, setTopOnly] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
+  const [expandedFiles, setExpandedFiles] = useState(new Set());
+  const [viewMode, setViewMode] = useState("grouped"); // grouped | flat
+  const [activePage, setActivePage] = useState("home");
+  const toggleFolder = (key) => setExpandedFolders(prev => { const n = new Set(prev); n.has(key)?n.delete(key):n.add(key); return n; });
+  const toggleFileExpand = (id) => setExpandedFiles(prev => { const n = new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
+  const expandAllFolders = (groups) => setExpandedFolders(new Set(groups.map(g=>g.fullPath)));
+  const collapseAllFolders = () => { setExpandedFolders(new Set()); setExpandedFiles(new Set()); };
+
+  const loadHub = () => fetch(`${API}/api/hub/status`).then(r=>r.json()).then(d=>{setHub(d);setApiOk(true)}).catch(()=>setApiOk(false));
+  const loadCache = () => fetch(`${API}/api/cache/status`).then(r=>r.json()).then(d=>{setCache(d);setApiOk(true)}).catch(()=>setApiOk(false));
+  useEffect(() => {
+    fetch(`${API}/api/stats`).then(r=>r.json()).then(d=>{setApiOk(true);setStats(d)}).catch(()=>setApiOk(false));
+    loadHub();
+    loadCache();
+  }, []);
+  const flash = (m) => { setMsg(m); setTimeout(()=>setMsg(""), 3000); };
+
+  const doScan = async () => {
+    if (!scanPath.trim()) return;
+    setLoading(true); setFiles([]); setSelected(new Set());
+    try {
+      const r = await fetch(`${API}/api/scan?path=${encodeURIComponent(scanPath)}&top=${topOnly}`);
+      const d = await r.json();
+      if (d.error) { flash(`Error: ${d.error}`); setLoading(false); return; }
+      setFiles(d.files.map((f,i) => ({ ...f, id: i, status: f.auto_approve ? "auto" : "pending" })));
+      loadCache();
+      flash(`Scanned ${d.total} files`);
+    } catch(e) { flash("API unreachable — run: python api_server.py"); }
+    setLoading(false);
+  };
+
+  const loadClassifiedFiles = async (rootPath = scanPath) => {
+    if (!rootPath.trim()) return;
+    setLoading(true); setFiles([]); setSelected(new Set());
+    try {
+      const r = await fetch(`${API}/api/cache/classify?root=${encodeURIComponent(rootPath)}&limit=300`);
+      const d = await r.json();
+      if (d.error) { flash(`Error: ${d.error}`); setLoading(false); return; }
+      setFiles((d.files || []).map((f,i) => ({ ...f, id: i, status: f.auto_approve ? "auto" : "pending" })));
+      setActivePage("sort");
+      loadCache();
+      flash(`Loaded ${d.total || 0} cached files for review`);
+    } catch(e) { flash("Cached classify failed"); }
+    setLoading(false);
+  };
+
+  const toggleSelect = (id) => setSelected(prev => { const n = new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
+  const selectAll = () => setSelected(new Set(files.map(f=>f.id)));
+  const selectNone = () => setSelected(new Set());
+  const selectInvert = () => setSelected(new Set(files.filter(f=>!selected.has(f.id)).map(f=>f.id)));
+  const selectBelow = () => setSelected(new Set(files.filter(f=>f.confidence<threshold).map(f=>f.id)));
+
+  const submitDecisions = async (action, overrideDomain) => {
+    const targets = files.filter(f => selected.has(f.id));
+    if (!targets.length) return;
+    const decisions = targets.map(f => ({
+      filepath: f.filepath, filename: f.filename, ext: f.ext, keywords: f.keywords||[],
+      proposed_domain: f.domain, final_domain: overrideDomain || f.domain,
+      confidence: f.confidence,
+      action: overrideDomain && overrideDomain !== f.domain ? "override" : action,
+      source: f.source || "yake",
+    }));
+    try {
+      const r = await fetch(`${API}/api/decide`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({decisions}) });
+      const d = await r.json();
+      setFiles(prev => prev.map(f => {
+        if (!selected.has(f.id)) return f;
+        return {...f, status: action==="reject"?"rejected":"approved", domain: overrideDomain||f.domain};
+      }));
+      setSelected(new Set());
+      setStats(prev => ({...prev, total_decisions:d.total_decisions, accuracy:d.accuracy, auto_approve_threshold:d.auto_approve_threshold}));
+      loadCache();
+      flash(`${action==="reject"?"Rejected":"Recorded"} ${d.recorded} decisions — accuracy: ${d.accuracy}%`);
+    } catch(e) { flash("API error"); }
+  };
+
+  const runNLP = async () => {
+    const targets = files.filter(f => selected.has(f.id));
+    if (!targets.length) return;
+    setLoading(true); flash(`Running NLP on ${targets.length} files...`);
+    try {
+      const r = await fetch(`${API}/api/nlp-classify`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({files: targets.map(f=>f.filepath)}) });
+      const d = await r.json();
+      if (d.results) {
+        setFiles(prev => prev.map(f => {
+          const m = d.results.find(nr => nr.filepath===f.filepath);
+          return m ? {...f, domain:m.domain, confidence:m.confidence, source:m.source} : f;
+        }));
+        flash(`NLP classified ${d.results.length} files`);
+      }
+    } catch(e) { flash("NLP failed — check models"); }
+    setLoading(false);
+  };
+
+  const domains = [...new Set(files.map(f=>f.domain))].sort();
+  const visible = files.filter(f=>!domainFilter||f.domain===domainFilter).sort((a,b) => {
+    if (sortBy==="confidence") return a.confidence-b.confidence;
+    if (sortBy==="name") return a.filename.localeCompare(b.filename);
+    if (sortBy==="size") return b.size-a.size;
+    if (sortBy==="domain") return a.domain.localeCompare(b.domain);
+    return 0;
+  });
+  const pendingCount = files.filter(f=>f.status==="pending"||f.status==="auto").length;
+  const approvedCount = files.filter(f=>f.status==="approved").length;
+
+  return (
+    <div style={{ fontFamily: "'SF Mono','Cascadia Code','Fira Code',monospace", background: "#0a0a0a", color: "#ccc", minHeight: "100vh", padding: "16px 20px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
+        <div><span style={{ fontSize:16, fontWeight:700, color:"#eee", letterSpacing:1 }}>FILE SORTER HUB</span><span style={{ fontSize:11, color:"#555", marginLeft:8 }}>three-workbench app</span></div>
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          <span style={{ width:8, height:8, borderRadius:"50%", background: apiOk===true?"#4a9":apiOk===false?"#d55":"#555" }} />
+          <span style={{ fontSize:10, color:"#666" }}>{apiOk===true?"API connected":apiOk===false?"API offline":"checking..."}</span>
+          <a href="/simple"
+                style={{ background:"#111", border:"1px solid #333", color:"#999", padding:"3px 10px", borderRadius:3, cursor:"pointer", fontSize:11, textDecoration:"none" }}>
+            Simple Mode</a>
+          <button onClick={()=>{setShowStats(!showStats); if(!showStats) fetch(`${API}/api/stats`).then(r=>r.json()).then(setStats).catch(()=>{})}}
+                style={{ background:"#1a1a1a", border:"1px solid #333", color:"#888", padding:"3px 10px", borderRadius:3, cursor:"pointer", fontSize:11 }}>
+            {showStats?"Hide":"Engine"} Stats</button>
+          <button onClick={()=>{setShowHub(!showHub); if(!showHub) loadHub();}}
+                style={{ background:"#1a1a1a", border:"1px solid #333", color:"#888", padding:"3px 10px", borderRadius:3, cursor:"pointer", fontSize:11 }}>
+            {showHub?"Hide":"Hub"}</button>
+        </div>
+      </div>
+      {showStats && <StatsPanel stats={stats} onClose={()=>setShowStats(false)} />}
+      {showHub && <HubPanel hub={hub} onClose={()=>setShowHub(false)} onRefresh={loadHub} />}
+      <div style={{ display:"flex", gap:6, marginBottom:12, flexWrap:"wrap" }}>
+        {[
+          ["home", "Home"],
+          ["sort", "Sort"],
+          ["rename", "Rename"],
+          ["manual", "Manual Advanced"],
+          ["intelligence", "Intelligence"],
+          ["cache", "Cache"],
+        ].map(([id,label]) => <button key={id} onClick={()=>setActivePage(id)}
+          style={{ background:activePage===id?"#222":"#111", border:"1px solid #333", color:activePage===id?"#eee":"#777", padding:"5px 12px", borderRadius:3, cursor:"pointer", fontSize:11, fontWeight:600 }}>
+          {label}
+        </button>)}
+      </div>
+      {activePage === "home" && <HomePage setActivePage={setActivePage} cache={cache} />}
+      {activePage === "cache" && <CachePage scanPath={scanPath} setScanPath={setScanPath} cache={cache} loadCache={loadCache} flash={flash} loadClassifiedFiles={loadClassifiedFiles} />}
+      {activePage === "manual" && <AdvancedWorkbenchPage scanPath={scanPath} flash={flash} />}
+      {activePage !== "sort" && activePage !== "home" && activePage !== "cache" && activePage !== "manual" && <WorkbenchPage page={activePage} scanPath={scanPath} setScanPath={setScanPath} flash={flash} />}
+      {activePage === "sort" && <>
+      <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+        <input value={scanPath} onChange={e=>setScanPath(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doScan()}
+          style={{ flex:1, background:"#111", border:"1px solid #333", borderRadius:3, padding:"6px 10px", color:"#eee", fontSize:12, fontFamily:"inherit" }} />
+        <button onClick={()=>setTopOnly(!topOnly)}
+          style={{ background:topOnly?"#111":"#1a1a2a", border:"1px solid #333", color:topOnly?"#666":"#88c", padding:"6px 10px", borderRadius:3, cursor:"pointer", fontSize:10, minWidth:70 }}>
+          {topOnly?"Top only":"Recursive"}</button>
+        <button onClick={doScan} disabled={loading}
+          style={{ background:"#1a2a1a", border:"1px solid #3a5a3a", color:"#8c8", padding:"6px 16px", borderRadius:3, cursor:loading?"wait":"pointer", fontSize:12, fontWeight:600 }}>
+          {loading?"Scanning...":"Scan"}</button>
+      </div>
+      {msg && <div style={{ background:"#1a1a2e", border:"1px solid #333", borderRadius:3, padding:"6px 12px", marginBottom:10, fontSize:11, color:"#aac" }}>{msg}</div>}
+      {files.length > 0 && <>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:10, alignItems:"center" }}>
+          <span style={{ fontSize:10, color:"#555" }}>FILTER:</span>
+          <span onClick={()=>setViewMode(viewMode==="grouped"?"flat":"grouped")}
+            style={{ fontSize:10, padding:"2px 8px", borderRadius:3, cursor:"pointer", background:"#111", color:viewMode==="grouped"?"#88c":"#c88", border:"1px solid #222" }}>
+            {viewMode==="grouped"?"📁 Grouped":"📄 Flat"}</span>
+          <span onClick={()=>setDomainFilter(null)} style={{ fontSize:10, padding:"2px 8px", borderRadius:3, cursor:"pointer", background:!domainFilter?"#333":"#111", color:!domainFilter?"#eee":"#666", border:"1px solid #333" }}>ALL ({files.length})</span>
+          {domains.map(d => {
+            const count = files.filter(f=>f.domain===d).length;
+            return <span key={d} onClick={()=>setDomainFilter(domainFilter===d?null:d)} style={{ cursor:"pointer", opacity: domainFilter&&domainFilter!==d?0.4:1 }}>
+              <DomainBadge domain={d} small /> <span style={{ fontSize:9, color:"#555" }}>{count}</span></span>;
+          })}
+        </div>
+        <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:10, flexWrap:"wrap" }}>
+          <div style={{ display:"flex", gap:4 }}>
+            {[{l:"All",fn:selectAll},{l:"None",fn:selectNone},{l:"Invert",fn:selectInvert}].map(b =>
+              <button key={b.l} onClick={b.fn} style={{ background:"#111", border:"1px solid #333", color:"#888", padding:"2px 8px", borderRadius:3, cursor:"pointer", fontSize:10 }}>{b.l}</button>)}
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:4, borderLeft:"1px solid #222", paddingLeft:8 }}>
+            <span style={{ fontSize:10, color:"#555" }}>Threshold:</span>
+            <input type="range" min={0} max={100} value={threshold} onChange={e=>setThreshold(+e.target.value)} style={{ width:80, accentColor:"#da5" }} />
+            <span style={{ fontSize:11, color:"#da5", fontWeight:600, minWidth:28 }}>{threshold}%</span>
+            <button onClick={selectBelow} style={{ background:"#2a1a1a", border:"1px solid #5a3a3a", color:"#d88", padding:"2px 8px", borderRadius:3, cursor:"pointer", fontSize:10 }}>Below {threshold}%</button>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:4, borderLeft:"1px solid #222", paddingLeft:8 }}>
+            <span style={{ fontSize:10, color:"#555" }}>Sort:</span>
+            {["confidence","name","size","domain"].map(s =>
+              <button key={s} onClick={()=>setSortBy(s)} style={{ background:sortBy===s?"#222":"#111", border:"1px solid #333", color:sortBy===s?"#eee":"#666", padding:"2px 6px", borderRadius:3, cursor:"pointer", fontSize:10 }}>{s}</button>)}
+          </div>
+          {selected.size>0 && <span style={{ fontSize:11, color:"#aac", fontWeight:600, borderLeft:"1px solid #222", paddingLeft:8 }}>{selected.size} selected</span>}
+        </div>
+        {selected.size > 0 && <div style={{ display:"flex", gap:6, marginBottom:10, padding:"8px 12px", background:"#111", border:"1px solid #333", borderRadius:4 }}>
+          <button onClick={()=>submitDecisions("approve")} style={{ background:"#1a2a1a", border:"1px solid #3a5a3a", color:"#8c8", padding:"4px 14px", borderRadius:3, cursor:"pointer", fontSize:11, fontWeight:600 }}>✓ Approve ({selected.size})</button>
+          <button onClick={()=>submitDecisions("reject")} style={{ background:"#2a1a1a", border:"1px solid #5a3a3a", color:"#d88", padding:"4px 14px", borderRadius:3, cursor:"pointer", fontSize:11, fontWeight:600 }}>✗ Reject ({selected.size})</button>
+          <button onClick={runNLP} disabled={loading} style={{ background:"#1a1a2a", border:"1px solid #3a3a5a", color:"#88c", padding:"4px 14px", borderRadius:3, cursor:"pointer", fontSize:11, fontWeight:600 }}>🧠 NLP Classify</button>
+          <div style={{ position:"relative", marginLeft:"auto" }}>
+            <button onClick={()=>setOverrideOpen(!overrideOpen)} style={{ background:"#2a2a1a", border:"1px solid #5a5a3a", color:"#cc8", padding:"4px 14px", borderRadius:3, cursor:"pointer", fontSize:11, fontWeight:600 }}>✎ Override →</button>
+            {overrideOpen && <div style={{ position:"absolute", top:"100%", right:0, marginTop:4, background:"#111", border:"1px solid #333", borderRadius:4, padding:4, zIndex:10, display:"flex", flexDirection:"column", gap:2, minWidth:140 }}>
+              {Object.keys(DOMAIN_COLORS).filter(d=>d!=="UNCATEGORIZED").map(d =>
+                <div key={d} onClick={()=>{submitDecisions("override",d);setOverrideOpen(false)}} style={{ cursor:"pointer", padding:"3px 8px", borderRadius:3 }}><DomainBadge domain={d} small /></div>)}
+            </div>}
+          </div>
+        </div>}
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+          <div style={{ flex:1, height:4, background:"#222", borderRadius:2, overflow:"hidden" }}>
+            <div style={{ width:`${(approvedCount/Math.max(files.length,1))*100}%`, height:"100%", background:"#4a9", borderRadius:2, transition:"width 0.3s" }} />
+          </div>
+          <span style={{ fontSize:10, color:"#555" }}>{approvedCount}/{files.length} decided · {pendingCount} pending</span>
+        </div>
+        {(() => {
+          // Group files by parent folder
+          const groups = {};
+          const looseFiles = [];
+          visible.forEach(f => {
+            const parts = (f.filepath||"").replace(/\\/g,"/").split("/");
+            parts.pop();
+            const folder = parts.length > 0 ? parts[parts.length-1] : "(loose)";
+            const fullPath = parts.join("/");
+            if (!groups[fullPath]) groups[fullPath] = { name: folder, files: [], fullPath };
+            groups[fullPath].files.push(f);
+          });
+          const groupList = Object.values(groups).sort((a,b) => b.files.length - a.files.length);
+
+          if (viewMode === "flat") {
+            // FLAT VIEW — just files with baseline names
+            return <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+              {visible.map(f => {
+                const isSel = selected.has(f.id);
+                const isExp = expandedFiles.has(f.id);
+                const baseline = f.names?.baseline || f.filename;
+                const presets = f.names?.presets || {};
+                const sc = f.status==="approved"?"#1a2a1a":f.status==="rejected"?"#2a1a1a":"transparent";
+                return <div key={f.id}>
+                  <div onClick={()=>toggleSelect(f.id)} style={{
+                    display:"grid", gridTemplateColumns:"24px 20px 1fr 110px 75px 65px", alignItems:"center", gap:6,
+                    padding:"5px 10px", background:isSel?"#1a1a2e":sc, border:isSel?"1px solid #3a3a6a":"1px solid transparent", borderRadius:2, cursor:"pointer"
+                  }}>
+                    <div style={{ width:12, height:12, border:`1px solid ${isSel?"#6a6aaa":"#2a2a2a"}`, borderRadius:2, background:isSel?"#3a3a6a":"transparent", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {isSel && <span style={{ color:"#aac", fontSize:9 }}>✓</span>}
+                    </div>
+                    <span onClick={(e)=>{e.stopPropagation();toggleFileExpand(f.id)}} style={{ fontSize:10, color:isExp?"#88c":"#444", cursor:"pointer" }}>{isExp?"▾":"▸"}</span>
+                    <div style={{ overflow:"hidden" }}>
+                      <div style={{ fontSize:11, color:"#bbb", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{f.filename}</div>
+                      <div style={{ fontSize:9, color:"#4a9", marginTop:1 }}>→ {baseline}</div>
+                    </div>
+                    <DomainBadge domain={f.domain} small />
+                    <ConfBar value={f.confidence} source={f.source} />
+                    <span style={{ fontSize:9, color:"#444", textAlign:"right" }}>{formatSize(f.size)}</span>
+                  </div>
+                  {isExp && <div style={{ marginLeft:58, padding:"4px 10px 8px", background:"#080808", borderBottom:"1px solid #1a1a1a" }}>
+                    <div style={{ fontSize:9, color:"#555", marginBottom:4, letterSpacing:0.5 }}>NAME PREDICTIONS</div>
+                    {Object.entries(presets).map(([preset, name]) => (
+                      <div key={preset} style={{ display:"flex", alignItems:"center", gap:8, padding:"2px 0" }}>
+                        <span onClick={(e)=>{e.stopPropagation(); setFiles(prev=>prev.map(x=>x.id===f.id?{...x, approvedPreset:preset}:x)); flash(`${preset}: ${name}`)}}
+                          style={{ width:14, height:14, border:"1px solid #333", borderRadius:2, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                            background:f.approvedPreset===preset?"#1a3a1a":"transparent" }}>
+                          {f.approvedPreset===preset && <span style={{ color:"#4a9", fontSize:9 }}>✓</span>}
+                        </span>
+                        <span style={{ fontSize:9, color:"#666", minWidth:90 }}>{preset.replace(/_/g,' ')}</span>
+                        <span style={{ fontSize:10, color:f.approvedPreset===preset?"#4a9":"#888" }}>{name}</span>
+                      </div>
+                    ))}
+                  </div>}
+                </div>;
+              })}
+            </div>;
+          }
+
+          // GROUPED VIEW — three-level progressive disclosure
+          return <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+            <div style={{ display:"flex", gap:4, marginBottom:4 }}>
+              <button onClick={()=>expandAllFolders(groupList)} style={{ background:"#111", border:"1px solid #222", color:"#666", padding:"2px 8px", borderRadius:2, cursor:"pointer", fontSize:9 }}>Expand all</button>
+              <button onClick={collapseAllFolders} style={{ background:"#111", border:"1px solid #222", color:"#666", padding:"2px 8px", borderRadius:2, cursor:"pointer", fontSize:9 }}>Collapse all</button>
+            </div>
+            {groupList.map(group => {
+              const isOpen = expandedFolders.has(group.fullPath);
+              const topDomain = (() => {
+                const dc = {}; group.files.forEach(f => { dc[f.domain]=(dc[f.domain]||0)+1; });
+                return Object.entries(dc).sort((a,b)=>b[1]-a[1])[0]?.[0] || "UNCATEGORIZED";
+              })();
+              const groupIds = group.files.map(f=>f.id);
+              const allSelected = groupIds.every(id=>selected.has(id));
+              const someSelected = groupIds.some(id=>selected.has(id));
+              const selectGroup = (e) => { e.stopPropagation(); setSelected(prev => {
+                const n = new Set(prev); if (allSelected) groupIds.forEach(id=>n.delete(id)); else groupIds.forEach(id=>n.add(id)); return n;
+              }); };
+              const avgConf = Math.round(group.files.reduce((s,f)=>s+f.confidence,0)/group.files.length);
+
+              return <div key={group.fullPath} style={{ border:"1px solid #151515", borderRadius:4, overflow:"hidden" }}>
+                {/* LEVEL 0 — Folder header */}
+                <div onClick={()=>toggleFolder(group.fullPath)} style={{
+                  display:"grid", gridTemplateColumns:"20px 24px 1fr auto auto auto", alignItems:"center", gap:8,
+                  padding:"8px 10px", background:isOpen?"#0e0e0e":"#0a0a0a", cursor:"pointer", borderBottom:isOpen?"1px solid #1a1a1a":"none"
+                }}>
+                  <span style={{ fontSize:11, color:isOpen?"#88c":"#555" }}>{isOpen?"▾":"▸"}</span>
+                  <div onClick={selectGroup} style={{ width:14, height:14, border:`1px solid ${allSelected?"#6a6aaa":someSelected?"#4a4a7a":"#333"}`,
+                    borderRadius:2, background:allSelected?"#3a3a6a":someSelected?"#2a2a4a":"transparent",
+                    display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
+                    {allSelected && <span style={{ color:"#aac", fontSize:10 }}>✓</span>}
+                    {someSelected && !allSelected && <span style={{ color:"#668", fontSize:10 }}>–</span>}
+                  </div>
+                  <div>
+                    <span style={{ fontSize:12, fontWeight:600, color:"#ccc" }}>📁 {group.name}</span>
+                    <span style={{ fontSize:10, color:"#555", marginLeft:8 }}>{group.files.length} file{group.files.length!==1?"s":""}</span>
+                  </div>
+                  <DomainBadge domain={topDomain} small />
+                  <span style={{ fontSize:10, color:"#666" }}>avg {avgConf}%</span>
+                  <span style={{ fontSize:10, color:"#555" }}>{formatSize(group.files.reduce((s,f)=>s+f.size,0))}</span>
+                </div>
+
+                {/* LEVEL 1 — Files with baseline clean names */}
+                {isOpen && <div style={{ display:"flex", flexDirection:"column" }}>
+                  {group.files.map(f => {
+                    const isSel = selected.has(f.id);
+                    const isExp = expandedFiles.has(f.id);
+                    const baseline = f.names?.baseline || f.filename;
+                    const presets = f.names?.presets || {};
+                    const sc = f.status==="approved"?"#0d1a0d":f.status==="rejected"?"#1a0d0d":"transparent";
+                    return <div key={f.id}>
+                      <div onClick={(e)=>{e.stopPropagation();toggleSelect(f.id)}} style={{
+                        display:"grid", gridTemplateColumns:"20px 24px 20px 1fr 100px 70px 60px", alignItems:"center", gap:4,
+                        padding:"4px 10px 4px 20px", background:isSel?"#12122a":sc,
+                        borderBottom:"1px solid #111", cursor:"pointer"
+                      }}>
+                        <span style={{ fontSize:9, color:"#333" }}>└</span>
+                        <div style={{ width:12, height:12, border:`1px solid ${isSel?"#6a6aaa":"#222"}`, borderRadius:2,
+                          background:isSel?"#3a3a6a":"transparent", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          {isSel && <span style={{ color:"#aac", fontSize:9 }}>✓</span>}
+                        </div>
+                        <span onClick={(e)=>{e.stopPropagation();toggleFileExpand(f.id)}}
+                          style={{ fontSize:10, color:isExp?"#88c":"#333", cursor:"pointer", userSelect:"none" }}>{isExp?"▾":"▸"}</span>
+                        <div style={{ overflow:"hidden" }}>
+                          <div style={{ fontSize:11, color:"#999", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{f.filename}</div>
+                          <div style={{ fontSize:10, color:"#4a9", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>→ {baseline}</div>
+                        </div>
+                        <DomainBadge domain={f.domain} small />
+                        <ConfBar value={f.confidence} source={f.source} />
+                        <span style={{ fontSize:9, color:"#333", textAlign:"right" }}>{formatSize(f.size)}</span>
+                      </div>
+
+                      {/* LEVEL 2 — AI preset predictions */}
+                      {isExp && <div style={{ marginLeft:64, padding:"6px 10px 8px", background:"#060606", borderBottom:"1px solid #151515" }}>
+                        <div style={{ fontSize:9, color:"#444", marginBottom:4, letterSpacing:0.5 }}>PREDICTED NAMES — approve one</div>
+                        {Object.entries(presets).map(([preset, name]) => {
+                          const isChosen = f.approvedPreset === preset;
+                          return <div key={preset} style={{ display:"flex", alignItems:"center", gap:8, padding:"3px 0", borderBottom:"1px solid #0a0a0a" }}>
+                            <span onClick={(e)=>{e.stopPropagation();
+                              setFiles(prev=>prev.map(x=>x.id===f.id?{...x, approvedPreset: isChosen?null:preset}:x));
+                              if (!isChosen) flash(`✓ ${preset.replace(/_/g,' ')}`);
+                            }} style={{ width:16, height:16, border:`1px solid ${isChosen?"#3a6a3a":"#222"}`, borderRadius:2, cursor:"pointer",
+                              display:"flex", alignItems:"center", justifyContent:"center", background:isChosen?"#1a3a1a":"transparent", flexShrink:0 }}>
+                              {isChosen && <span style={{ color:"#4a9", fontSize:10, fontWeight:700 }}>✓</span>}
+                            </span>
+                            <span style={{ fontSize:9, color:isChosen?"#4a9":"#555", minWidth:95, flexShrink:0 }}>{preset.replace(/_/g,' ')}</span>
+                            <span style={{ fontSize:10, color:isChosen?"#4a9":"#777", fontFamily:"inherit", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{name}</span>
+                          </div>;
+                        })}
+                      </div>}
+                    </div>;
+                  })}
+                </div>}
+              </div>;
+            })}
+          </div>;
+        })()}
+        {visible.length===0 && <div style={{ textAlign:"center", padding:40, color:"#444", fontSize:12 }}>No files match filter.</div>}
+      </>}
+      {files.length===0 && !loading && <div style={{ textAlign:"center", padding:"60px 20px", color:"#444" }}>
+        <div style={{ fontSize:14, marginBottom:8 }}>Enter a path and hit Scan</div>
+        <div style={{ fontSize:11, color:"#333" }}>Start the API first: <span style={{ color:"#666" }}>python api_server.py</span></div>
+        <div style={{ fontSize:11, color:"#333", marginTop:12 }}>Every approve/reject/override trains the Markov chain.<br/>The more you decide, the faster it gets, until it's automatic.</div>
+      </div>}
+      </>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
