@@ -34,6 +34,23 @@ const DOMAIN_COLORS = {
 };
 const SOURCE_LABELS = { yake: "Keywords", deberta: "DeBERTa", ollama: "Ollama", markov: "Learned" };
 const formatSize = (b) => b < 1024 ? b + " B" : b < 1048576 ? (b/1024).toFixed(1) + " KB" : (b/1048576).toFixed(1) + " MB";
+const BLOCK_COLORS = {
+  scan: { bg:"#102018", border:"#2f7a58", fg:"#9ee0be" },
+  composition: { bg:"#172016", border:"#7aa34a", fg:"#c8e59b" },
+  compare: { bg:"#121a26", border:"#4f8cc9", fg:"#a9d2ff" },
+  duplicates: { bg:"#251a10", border:"#c98a3f", fg:"#ffd49a" },
+  combine: { bg:"#201820", border:"#b16bb0", fg:"#e9b9e8" },
+  separate: { bg:"#241818", border:"#c96767", fg:"#ffb4b4" },
+  rename: { bg:"#1f1a12", border:"#d4b046", fg:"#ffe08a" },
+  move: { bg:"#111f24", border:"#48a9c5", fg:"#9de5f7" },
+  copy: { bg:"#151d2a", border:"#6d8ee8", fg:"#bdccff" },
+  archive: { bg:"#1d1a12", border:"#9c8450", fg:"#dcc58b" },
+  deleteLater: { bg:"#241414", border:"#c95a5a", fg:"#ffa3a3" },
+  hub: { bg:"#171827", border:"#8b82e6", fg:"#c7c2ff" },
+  automation: { bg:"#14221d", border:"#53b889", fg:"#a6efca" },
+  review: { bg:"#211d13", border:"#d0a44b", fg:"#ffd98e" },
+  report: { bg:"#171717", border:"#777", fg:"#ddd" },
+};
 const WORK_BLOCKS = {
   scan: {
     title: "Scan",
@@ -70,6 +87,18 @@ const WORK_BLOCKS = {
       ["recursive", "Scan mode", "select", ["recursive", "top only"]],
       ["maxFiles", "File limit", "text", "50000"],
       ["exclude", "Exclude folders", "text", "node_modules, .git, .venv, __pycache__"],
+    ],
+  },
+  duplicates: {
+    title: "Duplicates",
+    purpose: "Find repeated files by name, size, or hash before deciding what to keep.",
+    fields: [
+      ["source", "Source location", "path"],
+      ["matchBy", "Match by", "select", ["same filename", "same size", "same hash", "near name", "name + size"]],
+      ["scope", "Scope", "select", ["inside source", "compare against cache", "two folders"]],
+      ["keepRule", "Keep rule", "select", ["review manually", "keep newest", "keep largest", "keep shortest path"]],
+      ["destination", "Review / delete-later folder", "path"],
+      ["hash", "Calculate hash if missing", "select", ["yes", "no"]],
     ],
   },
   combine: {
@@ -685,21 +714,25 @@ function AdvancedWorkbenchPage({ scanPath, flash }) {
       <div style={{ background:"#090909", border:"1px solid #1d1d1d", borderRadius:6, padding:12, marginBottom:12 }}>
         <div style={{ color:"#888", fontSize:10, marginBottom:8 }}>ADD WORK BLOCK</div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-          {blockButtons.map(([type, spec], i) => <button key={type} onClick={()=>addBlock(type)}
-            style={{ background:"#111", border:"1px solid #333", color:"#bbb", borderRadius:3, padding:"6px 9px", cursor:"pointer", fontSize:10, fontWeight:600 }}>
-            {i + 1}. {spec.title}
-          </button>)}
+          {blockButtons.map(([type, spec], i) => {
+            const color = BLOCK_COLORS[type] || BLOCK_COLORS.report;
+            return <button key={type} onClick={()=>addBlock(type)}
+              style={{ background:color.bg, border:`1px solid ${color.border}`, color:color.fg, borderRadius:3, padding:"7px 10px", cursor:"pointer", fontSize:10, fontWeight:700, boxShadow:`inset 3px 0 0 ${color.border}` }}>
+              {i + 1}. {spec.title}
+            </button>;
+          })}
         </div>
       </div>
 
       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
         {blocks.map((block, index) => {
           const spec = WORK_BLOCKS[block.type];
+          const color = BLOCK_COLORS[block.type] || BLOCK_COLORS.report;
           return (
-            <div key={block.id} style={{ background:"#0c0c0c", border:"1px solid #242424", borderRadius:6, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, alignItems:"center", padding:"10px 12px", borderBottom:"1px solid #1c1c1c", background:"#101010" }}>
+            <div key={block.id} style={{ background:"#0c0c0c", border:`1px solid ${color.border}`, borderRadius:6, overflow:"hidden", boxShadow:`inset 5px 0 0 ${color.border}` }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8, alignItems:"center", padding:"11px 12px 11px 16px", borderBottom:`1px solid ${color.border}`, background:`linear-gradient(90deg, ${color.bg}, #101010 70%)` }}>
                 <div>
-                  <div style={{ color:"#ddd", fontSize:13, fontWeight:700 }}>Function {index + 1}: {spec.title}</div>
+                  <div style={{ color:color.fg, fontSize:15, fontWeight:800 }}>Function {index + 1}: {spec.title}</div>
                   <div style={{ color:"#777", fontSize:10, marginTop:3 }}>{spec.purpose}</div>
                 </div>
                 <span style={{ color:statusColor[block.status] || "#777", fontSize:10, fontWeight:700 }}>{block.status}</span>
