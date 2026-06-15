@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Local runtime state
+*.log
+*.err
+*.db
+*.sqlite
+*.sqlite3
+
+# Local clipboard/session dumps
+Clipboard Text*.txt
+
+# Local environment files
+.env
+.venv/
+venv/
+
