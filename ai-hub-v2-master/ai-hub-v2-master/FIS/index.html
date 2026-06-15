@@ -52,7 +52,8 @@ const WORK_BLOCKS = {
     purpose: "Find folders dominated by an extension and separate archives, apps, notes, and mixed review.",
     fields: [
       ["root", "Broad folder to inspect", "path", "\\\\dlowenas\\h_hp\\Desktop\\Folders"],
-      ["extension", "Extension to isolate", "text", "html"],
+      ["profile", "Extension family", "select", ["html_pages", "web_project", "markdown_obsidian", "images", "documents", "spreadsheets", "presentations", "code", "archives", "media", "custom"]],
+      ["extension", "Add extensions", "text", "html, htm, xhtml"],
       ["threshold", "Minimum percentage", "text", "60"],
       ["maxFolders", "Folder limit", "text", "400"],
       ["maxFiles", "Per-folder file cap", "text", "20000"],
@@ -437,7 +438,8 @@ function CompositionResults({ data }) {
           ["Checked", data.folder_count],
           ["Matches", data.matching_count],
           ["Threshold", `${data.threshold}%`],
-          ["Extension", data.target_ext],
+          ["Family", data.target_profile || "custom"],
+          ["Extensions", data.target_ext],
         ].map(([label, value]) => (
           <div key={label} style={{ background:"#0d0d0d", padding:10 }}>
             <div style={{ color:"#eee", fontSize:18, fontWeight:700 }}>{value}</div>
@@ -633,7 +635,7 @@ function AdvancedWorkbenchPage({ scanPath, flash }) {
       setBlocks(prev => prev.map(b => b.id === id ? { ...b, status:"scanning", preview:"Reading folder composition. Nothing is being changed.", previewData:null } : b));
       try {
         const v = block.values;
-        const url = `${API}/api/folders/composition?root=${encodeURIComponent(v.root || "")}&extension=${encodeURIComponent(v.extension || "html")}&threshold=${encodeURIComponent(v.threshold || "60")}&max_folders=${encodeURIComponent(v.maxFolders || "400")}&max_files_per_folder=${encodeURIComponent(v.maxFiles || "20000")}&exclude=${encodeURIComponent(v.exclude || "")}`;
+        const url = `${API}/api/folders/composition?root=${encodeURIComponent(v.root || "")}&profile=${encodeURIComponent(v.profile || "html_pages")}&extension=${encodeURIComponent(v.extension || "")}&threshold=${encodeURIComponent(v.threshold || "60")}&max_folders=${encodeURIComponent(v.maxFolders || "400")}&max_files_per_folder=${encodeURIComponent(v.maxFiles || "20000")}&exclude=${encodeURIComponent(v.exclude || "")}`;
         const res = await fetch(url);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data.error || "Composition scan failed");

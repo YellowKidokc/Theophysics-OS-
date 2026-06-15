@@ -109,8 +109,58 @@ def _split_exclusions(raw):
     return defaults | custom
 
 
-def _folder_kind(folder, counts, total_files, target_ext, prod_hints):
-    html_count = counts.get(".html", 0) + counts.get(".htm", 0)
+EXTENSION_PROFILES = {
+    "html_pages": [".html", ".htm", ".xhtml", ".shtml", ".mhtml", ".mht"],
+    "web_project": [".html", ".htm", ".xhtml", ".css", ".scss", ".sass", ".js", ".jsx", ".ts", ".tsx", ".json", ".map"],
+    "markdown_obsidian": [".md", ".markdown", ".mdx", ".canvas"],
+    "images": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tif", ".tiff", ".ico"],
+    "documents": [".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".md", ".markdown"],
+    "spreadsheets": [".xls", ".xlsx", ".csv", ".tsv", ".ods"],
+    "presentations": [".ppt", ".pptx", ".odp", ".key"],
+    "code": [".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css", ".json", ".yaml", ".yml", ".toml", ".rs", ".lean", ".ahk"],
+    "archives": [".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz"],
+    "media": [".mp3", ".wav", ".flac", ".m4a", ".mp4", ".mov", ".mkv", ".avi", ".webm"],
+}
+
+
+def _normalize_extensions(raw):
+    exts = []
+    for part in (raw or "").replace(";", ",").split(","):
+        token = part.strip().lower()
+        if not token:
+            continue
+        if token in EXTENSION_PROFILES:
+            exts.extend(EXTENSION_PROFILES[token])
+            continue
+        if not token.startswith("."):
+            token = "." + token
+        exts.append(token)
+    return sorted(set(exts))
+
+
+def _extension_profile(profile, custom):
+    selected = EXTENSION_PROFILES.get((profile or "").strip().lower(), [])
+    custom_exts = _normalize_extensions(custom)
+    exts = sorted(set(selected) | set(custom_exts))
+    if not exts:
+        exts = EXTENSION_PROFILES["html_pages"]
+        profile = "html_pages"
+    label = (profile or "custom").replace("_", " ")
+    custom_extra = [ext for ext in custom_exts if ext not in selected]
+    if custom_extra and selected:
+        label = f"{label} + custom"
+    elif custom_exts and not selected:
+        label = "custom"
+    return label, exts
+
+
+def _count_extensions(counts, exts):
+    return sum(counts.get(ext, 0) for ext in exts)
+
+
+def _folder_kind(folder, counts, total_files, target_exts, prod_hints):
+    html_exts = EXTENSION_PROFILES["html_pages"]
+    html_count = _count_extensions(counts, html_exts)
     md_count = counts.get(".md", 0) + counts.get(".markdown", 0) + counts.get(".canvas", 0)
     js_count = counts.get(".js", 0) + counts.get(".jsx", 0) + counts.get(".ts", 0) + counts.get(".tsx", 0)
     css_count = counts.get(".css", 0) + counts.get(".scss", 0) + counts.get(".sass", 0)
@@ -118,7 +168,8 @@ def _folder_kind(folder, counts, total_files, target_ext, prod_hints):
     html_pct = round((html_count / total_files) * 100, 1) if total_files else 0
     md_pct = round((md_count / total_files) * 100, 1) if total_files else 0
     web_pct = round((web_count / total_files) * 100, 1) if total_files else 0
-    target_pct = round((counts.get(target_ext, 0) / total_files) * 100, 1) if total_files else 0
+    target_count = _count_extensions(counts, target_exts)
+    target_pct = round((target_count / total_files) * 100, 1) if total_files else 0
     has_obsidian = os.path.isdir(os.path.join(folder, ".obsidian"))
 
     if prod_hints >= 3:
@@ -127,22 +178,20 @@ def _folder_kind(folder, counts, total_files, target_ext, prod_hints):
         if html_count:
             return "obsidian_or_web_capture_mix", "Review before moving; notes and captured pages are mixed."
         return "obsidian_vault_or_notes", "Protect as notes/knowledge folder."
-    if target_ext in (".html", ".htm") and target_pct >= 60:
+    if any(ext in html_exts for ext in target_exts) and target_pct >= 60:
         return "html_archive_or_webpages", "Candidate for web-page/archive grouping."
     if html_pct >= 40 or web_pct >= 65:
         return "webpage_heavy_mixed", "Likely web material; inspect before combining."
-    if counts.get(target_ext, 0):
+    if target_count:
         return "some_target_extension_present", "Contains the extension, but it is not dominant."
     return "not_target_focused", "No strong match for this extension."
 
 
-def folder_composition_scan(root, extension="html", threshold=60, max_folders=400, max_files_per_folder=20000, exclude=""):
+def folder_composition_scan(root, extension="", profile="html_pages", threshold=60, max_folders=400, max_files_per_folder=20000, exclude=""):
     """Read-only folder composition scan for Advanced Mode."""
     if not root or not os.path.exists(root):
         return {"error": f"Path not found: {root}"}
-    ext = (extension or "html").strip().lower()
-    if not ext.startswith("."):
-        ext = "." + ext
+    profile_label, target_exts = _extension_profile(profile, extension)
     threshold = max(0, min(100, int(float(threshold or 60))))
     max_folders = max(1, min(2000, int(max_folders or 400)))
     max_files_per_folder = max(100, min(200000, int(max_files_per_folder or 20000)))
@@ -200,18 +249,18 @@ def folder_composition_scan(root, extension="html", threshold=60, max_folders=40
             skipped += 1
             continue
 
-        target_count = counts.get(ext, 0)
-        if ext == ".html":
-            target_count += counts.get(".htm", 0)
+        target_count = _count_extensions(counts, target_exts)
         target_pct = round((target_count / total_files) * 100, 1)
-        kind, recommendation = _folder_kind(folder, counts, total_files, ext, prod_hints)
+        kind, recommendation = _folder_kind(folder, counts, total_files, target_exts, prod_hints)
         top_ext = [{"ext": k, "count": v} for k, v in counts.most_common(6)]
         rows.append({
             "path": folder,
             "name": os.path.basename(folder),
             "file_count": total_files,
             "size_bytes": total_size,
-            "target_ext": ext,
+            "target_ext": ", ".join(target_exts),
+            "target_profile": profile_label,
+            "target_exts": target_exts,
             "target_count": target_count,
             "target_pct": target_pct,
             "kind": kind,
@@ -226,7 +275,10 @@ def folder_composition_scan(root, extension="html", threshold=60, max_folders=40
     summary = Counter(r["kind"] for r in rows)
     return {
         "root": root,
-        "target_ext": ext,
+        "target_ext": ", ".join(target_exts),
+        "target_profile": profile_label,
+        "target_exts": target_exts,
+        "extension_profiles": EXTENSION_PROFILES,
         "threshold": threshold,
         "folder_count": len(rows),
         "skipped_empty": skipped,
@@ -234,7 +286,7 @@ def folder_composition_scan(root, extension="html", threshold=60, max_folders=40
         "summary": dict(summary),
         "rows": rows,
         "matches": [r for r in rows if r["matches_threshold"]],
-        "message": f"Found {sum(1 for r in rows if r['matches_threshold'])} folders at or above {threshold}% {ext}. Nothing was changed.",
+        "message": f"Found {sum(1 for r in rows if r['matches_threshold'])} folders at or above {threshold}% for {profile_label}. Nothing was changed.",
     }
 
 
@@ -605,7 +657,8 @@ class SorterAPI(BaseHTTPRequestHandler):
 
         elif parsed.path == '/api/folders/composition':
             root = params.get('root', [''])[0]
-            extension = params.get('extension', ['html'])[0]
+            extension = params.get('extension', [''])[0]
+            profile = params.get('profile', ['html_pages'])[0]
             threshold = params.get('threshold', ['60'])[0]
             max_folders = params.get('max_folders', ['400'])[0]
             max_files = params.get('max_files_per_folder', ['20000'])[0]
@@ -613,6 +666,7 @@ class SorterAPI(BaseHTTPRequestHandler):
             result = folder_composition_scan(
                 root,
                 extension=extension,
+                profile=profile,
                 threshold=threshold,
                 max_folders=max_folders,
                 max_files_per_folder=max_files,
