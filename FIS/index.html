@@ -727,7 +727,8 @@ function CompareResults({ data }) {
 
 function FingerprintResults({ data }) {
   if (!data || data.result_kind !== "fingerprint") return null;
-  const exact = data.exact_duplicates || [];
+  const exact = data.exact_duplicate_group_details || [];
+  const nearGroups = data.near_duplicate_group_details || [];
   const near = data.near_duplicates || [];
   const patterns = data.name_patterns || [];
   return (
@@ -736,7 +737,7 @@ function FingerprintResults({ data }) {
         {[
           ["Fingerprinted", data.fingerprinted],
           ["Exact groups", data.exact_duplicate_groups],
-          ["Near pairs", data.near_duplicate_pairs],
+          ["Near groups", data.near_duplicate_groups ?? data.near_duplicate_pairs],
           ["Threshold", data.threshold],
           ["Patterns", patterns.length],
         ].map(([label, value]) => (
@@ -753,21 +754,30 @@ function FingerprintResults({ data }) {
         <div style={{ background:"#0d0d0d", border:"1px solid #222", borderRadius:4, padding:10 }}>
           <div style={{ color:"#d5ccff", fontSize:11, fontWeight:800, marginBottom:8 }}>Exact Duplicate Groups</div>
           {exact.length ? exact.slice(0, 8).map(group => (
-            <div key={group.hash} style={{ borderTop:"1px solid #1a1a1a", padding:"7px 0" }}>
-              <div style={{ color:"#ddd", fontSize:10, fontWeight:700 }}>{group.count} copies · {group.hash}</div>
-              {(group.paths || []).slice(0, 4).map(p => <div key={p} style={{ color:"#777", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p}</div>)}
+            <div key={group.group_id} style={{ borderTop:"1px solid #1a1a1a", padding:"7px 0" }}>
+              <div style={{ color:"#ddd", fontSize:10, fontWeight:700 }}>{group.size} files · keep representative</div>
+              <div style={{ color:"#8c8", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>rep: {group.representative}</div>
+              <div style={{ color:"#666", fontSize:9 }}>formats: {(group.format_mix || []).join(", ") || "unknown"}</div>
+              {(group.files || []).slice(0, 4).map(p => <div key={p} style={{ color:"#777", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p}</div>)}
             </div>
           )) : <div style={{ color:"#666", fontSize:10 }}>No exact duplicate groups in this preview.</div>}
         </div>
         <div style={{ background:"#0d0d0d", border:"1px solid #222", borderRadius:4, padding:10 }}>
-          <div style={{ color:"#d5ccff", fontSize:11, fontWeight:800, marginBottom:8 }}>Near Duplicate Signals</div>
-          {near.length ? near.slice(0, 8).map((pair, i) => (
+          <div style={{ color:"#d5ccff", fontSize:11, fontWeight:800, marginBottom:8 }}>Near Duplicate Groups</div>
+          {nearGroups.length ? nearGroups.slice(0, 8).map(group => (
+            <div key={group.group_id} style={{ borderTop:"1px solid #1a1a1a", padding:"7px 0" }}>
+              <div style={{ color:"#ddd", fontSize:10, fontWeight:700 }}>{group.size} files · {Math.round((group.avg_similarity || 0) * 100)}% avg</div>
+              <div style={{ color:"#8c8", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>rep: {group.representative}</div>
+              <div style={{ color:"#666", fontSize:9 }}>formats: {(group.format_mix || []).join(", ") || "unknown"}</div>
+              {(group.files || []).slice(0, 4).map(p => <div key={p} style={{ color:"#777", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p}</div>)}
+            </div>
+          )) : near.length ? near.slice(0, 8).map((pair, i) => (
             <div key={`${pair.file_a}-${i}`} style={{ borderTop:"1px solid #1a1a1a", padding:"7px 0" }}>
               <div style={{ color:"#ddd", fontSize:10, fontWeight:700 }}>{Math.round((pair.similarity || 0) * 100)}% similar</div>
               <div style={{ color:"#777", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>A: {pair.file_a}</div>
               <div style={{ color:"#777", fontSize:9, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>B: {pair.file_b}</div>
             </div>
-          )) : <div style={{ color:"#666", fontSize:10 }}>No near-duplicate pairs above threshold.</div>}
+          )) : <div style={{ color:"#666", fontSize:10 }}>No near-duplicate groups above threshold.</div>}
         </div>
         <div style={{ background:"#0d0d0d", border:"1px solid #222", borderRadius:4, padding:10 }}>
           <div style={{ color:"#d5ccff", fontSize:11, fontWeight:800, marginBottom:8 }}>Naming Patterns</div>

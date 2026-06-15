@@ -12,6 +12,7 @@ Usage:
   python fingerprint.py FOLDER1 FOLDER2 ...
   python fingerprint.py FOLDER1 FOLDER2 --threshold 0.7
   python fingerprint.py FOLDER1 --report fingerprint_report.json
+  python fingerprint.py FOLDER1 FOLDER2 --export-river river_findings.json
 """
 from __future__ import annotations
 import hashlib, json, re, sys, os
@@ -211,6 +212,189 @@ def content_hash(text: str) -> str:
     """SHA256 of normalized text for exact-duplicate detection."""
     return hashlib.sha256(normalize(text).encode()).hexdigest()[:16]
 
+
+# ── Duplicate grouping ──
+
+def _union_find_init(nodes: list[str]) -> dict[str, str]:
+    return {node: node for node in nodes}
+
+
+def _union_find_find(parent: dict[str, str], node: str) -> str:
+    while parent[node] != node:
+        parent[node] = parent[parent[node]]  # path compression
+        node = parent[node]
+    return node
+
+
+def _union_find_union(parent: dict[str, str], a: str, b: str) -> None:
+    ra, rb = _union_find_find(parent, a), _union_find_find(parent, b)
+    if ra != rb:
+        parent[rb] = ra
+
+
+def build_duplicate_groups(
+    docs: list[dict],
+    exact_duplicate_paths: dict[str, list[str]],
+    near_duplicate_pairs: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """
+    Collapse exact duplicates and near-duplicate pairs into connected groups.
+
+    Returns:
+      exact_groups: list of exact-duplicate group dicts
+      near_groups: list of near-duplicate group dicts
+    """
+    path_to_doc = {d["path"]: d for d in docs if "error" not in d}
+
+    # ── Exact duplicate groups ──
+    exact_groups = []
+    for group_idx, (h, paths) in enumerate(sorted(exact_duplicate_paths.items()), start=1):
+        if len(paths) < 2:
+            continue
+        files = sorted(paths)
+        representative = _pick_representative(files, path_to_doc)
+        exts = sorted({Path(p).suffix.lower() for p in files if Path(p).suffix})
+        exact_groups.append({
+            "group_id": f"exact_{group_idx:03d}",
+            "size": len(files),
+            "representative": representative,
+            "files": files,
+            "format_mix": exts,
+            "suggested_action": "review_group_keep_representative",
+        })
+
+    # ── Near-duplicate connected components ──
+    near_nodes = set()
+    edges = []
+    for pair in near_duplicate_pairs:
+        a, b = pair["file_a"], pair["file_b"]
+        near_nodes.add(a)
+        near_nodes.add(b)
+        edges.append((a, b, pair["similarity"]))
+
+    parent = _union_find_init(list(near_nodes))
+    for a, b, _ in edges:
+        _union_find_union(parent, a, b)
+
+    # bucket edges and nodes by root
+    root_edges = defaultdict(list)
+    root_nodes = defaultdict(set)
+    for a, b, sim in edges:
+        root = _union_find_find(parent, a)
+        root_edges[root].append((a, b, sim))
+        root_nodes[root].update([a, b])
+
+    near_groups = []
+    for group_idx, (root, nodes) in enumerate(sorted(root_nodes.items()), start=1):
+        files = sorted(nodes)
+        representative = _pick_representative(files, path_to_doc)
+        group_edges = root_edges[root]
+        avg_sim = round(sum(sim for _, _, sim in group_edges) / len(group_edges), 3)
+        exts = sorted({Path(p).suffix.lower() for p in files if Path(p).suffix})
+        near_groups.append({
+            "group_id": f"near_{group_idx:03d}",
+            "size": len(files),
+            "representative": representative,
+            "files": files,
+            "avg_similarity": avg_sim,
+            "format_mix": exts,
+            "suggested_action": "review_group_keep_representative",
+        })
+
+    return exact_groups, near_groups
+
+
+def _pick_representative(files: list[str], path_to_doc: dict[str, dict]) -> str:
+    """
+    Choose a group representative.
+    Preference: shortest path; tie-break by largest word count.
+    """
+    if not files:
+        return ""
+
+    def sort_key(path: str):
+        doc = path_to_doc.get(path, {})
+        word_count = doc.get("word_count", 0)
+        return (len(path), -word_count, path.lower())
+
+    return min(files, key=sort_key)
+
+
+# ── River export ──
+
+def export_river_findings(
+    exact_groups: list[dict],
+    near_groups: list[dict],
+    output_path: str,
+) -> None:
+    """Write River-shaped findings JSON for ingestion into FIS."""
+    findings = []
+
+    for g in exact_groups:
+        files = g["files"]
+        rep = g["representative"]
+        others = [f for f in files if f != rep]
+        evidence = (
+            f"Exact duplicate group {g['group_id']} has {g['size']} copies. "
+            f"Representative: {rep}."
+        )
+        if others:
+            evidence += f" Other copies: {', '.join(others[:5])}"
+            if len(others) > 5:
+                evidence += f", and {len(others) - 5} more."
+        findings.append({
+            "finding_type": "exact_duplicate_group",
+            "evidence": evidence,
+            "suggested_action": "review_before_delete_or_move",
+            "risk": "low" if g["size"] <= 3 else "medium",
+            "requires_approval": True,
+            "group_id": g["group_id"],
+            "size": g["size"],
+            "representative": rep,
+            "files": files,
+            "format_mix": g.get("format_mix", []),
+        })
+
+    for g in near_groups:
+        files = g["files"]
+        rep = g["representative"]
+        evidence = (
+            f"Near-duplicate group {g['group_id']} has {g['size']} files "
+            f"with average similarity {g['avg_similarity']}. "
+            f"Representative: {rep}."
+        )
+        others = [f for f in files if f != rep]
+        if others:
+            evidence += f" Related files: {', '.join(others[:5])}"
+            if len(others) > 5:
+                evidence += f", and {len(others) - 5} more."
+        findings.append({
+            "finding_type": "near_duplicate_group",
+            "evidence": evidence,
+            "suggested_action": "review_before_move_or_delete",
+            "risk": "medium",
+            "requires_approval": True,
+            "group_id": g["group_id"],
+            "size": g["size"],
+            "representative": rep,
+            "avg_similarity": g["avg_similarity"],
+            "files": files,
+            "format_mix": g.get("format_mix", []),
+        })
+
+    payload = {
+        "generated": datetime.now().isoformat(timespec="seconds"),
+        "source": "fingerprint.py",
+        "finding_count": len(findings),
+        "findings": findings,
+    }
+
+    Path(output_path).write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
+
+
 # ── Document processing ──
 
 def process_file(path: Path) -> Optional[dict]:
@@ -239,7 +423,7 @@ def process_file(path: Path) -> Optional[dict]:
 
 # ── Main ──
 
-def find_duplicates(docs: list[dict], threshold: float = 0.7) -> tuple[list, list]:
+def find_duplicates(docs: list[dict], threshold: float = 0.7) -> tuple[dict, list]:
     """Find exact duplicates and near-duplicates."""
     # Exact duplicates (same content hash)
     hash_groups = defaultdict(list)
@@ -250,7 +434,6 @@ def find_duplicates(docs: list[dict], threshold: float = 0.7) -> tuple[list, lis
 
     # Near-duplicates (MinHash similarity above threshold)
     near_dupes = []
-    n = len(docs)
     valid = [d for d in docs if "error" not in d]
     for i in range(len(valid)):
         for j in range(i + 1, len(valid)):
@@ -269,11 +452,13 @@ def find_duplicates(docs: list[dict], threshold: float = 0.7) -> tuple[list, lis
     near_dupes.sort(key=lambda x: x["similarity"], reverse=True)
     return exact_dupes, near_dupes
 
+
 def main():
     parser = argparse.ArgumentParser(description="Content fingerprinter & duplicate finder")
     parser.add_argument("folders", nargs="+", help="Folders to scan")
     parser.add_argument("--threshold", type=float, default=0.7, help="Similarity threshold (0-1, default 0.7)")
     parser.add_argument("--report", type=str, default=None, help="Save JSON report to this path")
+    parser.add_argument("--export-river", type=str, default=None, help="Save River-shaped findings JSON to this path")
     parser.add_argument("--max-files", type=int, default=500, help="Max files to compare (default 500)")
     args = parser.parse_args()
 
@@ -315,21 +500,27 @@ def main():
     print(f"\nFinding duplicates (threshold={args.threshold})...")
 
     exact_dupes, near_dupes = find_duplicates(docs, args.threshold)
+    exact_groups, near_groups = build_duplicate_groups(docs, exact_dupes, near_dupes)
 
     # Report
     print(f"\n{'='*70}")
-    print(f"EXACT DUPLICATES: {len(exact_dupes)} groups")
-    for h, paths in list(exact_dupes.items())[:15]:
-        print(f"\n  [{h}] ({len(paths)} copies)")
-        for p in paths:
+    print(f"EXACT DUPLICATES: {len(exact_groups)} groups")
+    for g in exact_groups[:15]:
+        print(f"\n  [{g['group_id']}] ({g['size']} copies) rep: {g['representative']}")
+        for p in g["files"][:10]:
             print(f"    {p}")
+        if len(g["files"]) > 10:
+            print(f"    ... and {len(g['files']) - 10} more")
 
     print(f"\n{'='*70}")
-    print(f"NEAR-DUPLICATES: {len(near_dupes)} pairs (>{args.threshold:.0%} similar)")
-    for pair in near_dupes[:20]:
-        print(f"\n  {pair['similarity']:.0%} similar:")
-        print(f"    A: {pair['file_a']} ({pair['words_a']} words)")
-        print(f"    B: {pair['file_b']} ({pair['words_b']} words)")
+    print(f"NEAR-DUPLICATES: {len(near_groups)} groups ({len(near_dupes)} pairs, >{args.threshold:.0%} similar)")
+    for g in near_groups[:20]:
+        print(f"\n  [{g['group_id']}] {g['size']} files, avg {g['avg_similarity']:.0%} similar")
+        print(f"    rep: {g['representative']}")
+        for p in g["files"][:8]:
+            print(f"      {p}")
+        if len(g["files"]) > 8:
+            print(f"      ... and {len(g['files']) - 8} more")
 
     # Save report
     report = {
@@ -338,10 +529,13 @@ def main():
         "threshold": args.threshold,
         "total_files": len(all_files),
         "fingerprinted": len(docs),
-        "exact_duplicate_groups": len(exact_dupes),
+        "exact_duplicate_groups": len(exact_groups),
+        "near_duplicate_groups": len(near_groups),
         "near_duplicate_pairs": len(near_dupes),
         "exact_duplicates": {h: paths for h, paths in exact_dupes.items()},
         "near_duplicates": near_dupes,
+        "exact_duplicate_group_details": exact_groups,
+        "near_duplicate_group_details": near_groups,
     }
 
     report_path = args.report or str(Path(args.folders[0]) / f"fingerprint_report_{datetime.now():%Y%m%d_%H%M%S}.json")
@@ -350,6 +544,14 @@ def main():
         print(f"\nFull report: {report_path}")
     except Exception as e:
         print(f"\nCould not save report: {e}")
+
+    # Export River-shaped findings
+    if args.export_river:
+        try:
+            export_river_findings(exact_groups, near_groups, args.export_river)
+            print(f"River findings: {args.export_river}")
+        except Exception as e:
+            print(f"Could not export River findings: {e}")
 
     print("=" * 70)
 

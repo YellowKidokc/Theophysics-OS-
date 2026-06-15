@@ -449,16 +449,27 @@ def fingerprint_scan(folders, threshold=0.8, max_files=300):
         ext_counts[result.get("ext", "(none)")] += 1
 
     exact, near = fp.find_duplicates(docs, threshold)
+    if hasattr(fp, "build_duplicate_groups"):
+        exact_groups, near_groups = fp.build_duplicate_groups(docs, exact, near)
+    else:
+        exact_groups = [
+            {
+                "group_id": f"exact_{i:03d}",
+                "size": len(paths),
+                "representative": sorted(paths, key=lambda p: (len(p), p.lower()))[0],
+                "files": sorted(paths),
+                "format_mix": sorted({Path(p).suffix.lower() for p in paths if Path(p).suffix}),
+                "suggested_action": "review_group_keep_representative",
+            }
+            for i, (_, paths) in enumerate(sorted(exact.items(), key=lambda item: len(item[1]), reverse=True), start=1)
+        ]
+        near_groups = []
     html_docs = sum(1 for d in docs if d.get("ext") in (".html", ".htm"))
     html_near = sum(1 for p in near if str(p.get("file_a", "")).lower().endswith((".html", ".htm")) or str(p.get("file_b", "")).lower().endswith((".html", ".htm")))
     warning = ""
     if html_docs and html_near:
         warning = "HTML near-duplicate counts may be inflated by shared navigation, sidebars, and footers. Treat exact hashes as strong; review HTML near-matches by article body."
 
-    exact_groups = [
-        {"hash": h, "count": len(paths), "paths": paths[:20]}
-        for h, paths in sorted(exact.items(), key=lambda item: len(item[1]), reverse=True)
-    ]
     name_patterns = Counter()
     for d in docs:
         stem = Path(d["path"]).stem.lower()
@@ -482,11 +493,17 @@ def fingerprint_scan(folders, threshold=0.8, max_files=300):
         "extension_counts": dict(ext_counts),
         "exact_duplicate_groups": len(exact_groups),
         "near_duplicate_pairs": len(near),
-        "exact_duplicates": exact_groups[:50],
+        "near_duplicate_groups": len(near_groups),
+        "exact_duplicate_group_details": exact_groups[:50],
+        "near_duplicate_group_details": near_groups[:50],
+        "exact_duplicates": [
+            {"hash": h, "count": len(paths), "paths": paths[:20]}
+            for h, paths in sorted(exact.items(), key=lambda item: len(item[1]), reverse=True)
+        ][:50],
         "near_duplicates": near[:100],
         "name_patterns": pattern_groups,
         "warning": warning,
-        "message": f"Fingerprinted {len(docs)} documents. Found {len(exact_groups)} exact duplicate groups and {len(near)} near-duplicate pairs.",
+        "message": f"Fingerprinted {len(docs)} documents. Found {len(exact_groups)} exact groups and {len(near_groups)} near groups.",
     }
 
 
