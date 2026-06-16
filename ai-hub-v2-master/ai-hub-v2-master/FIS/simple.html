@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>River - File Intelligence System</title>
+<meta name="description" content="Guided file organization with preview-first safety.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --surface: #0f0f10;
+  --surface2: #17181b;
+  --surface3: #202229;
+  --border: #2b2d36;
+  --border-hover: #d4af37;
+  --gold: #d4af37;
+  --gold-dim: rgba(212,175,55,0.14);
+  --text: #e6e6e6;
+  --text-dim: #989ba6;
+  --text-muted: #5b5d66;
+  --green: #34d399;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --teal: #2dd4bf;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Inter, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+.serif { font-family: "Crimson Text", serif; }
+.mono { font-family: "JetBrains Mono", monospace; }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,8,8,0.92);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.brand { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; }
+.brand span { color: var(--gold); }
+.topnav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.status { color: var(--green); font-size: 11px; }
+.status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--green);
+  margin-right: 7px;
+}
+.mode-link {
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.mode-link:hover { color: var(--gold); border-color: var(--gold); }
+.hero {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 66px 24px 48px;
+  border-bottom: 1px solid var(--border);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 28% 45%, rgba(212,175,55,0.055) 0%, transparent 58%),
+    radial-gradient(ellipse at 72% 50%, rgba(45,212,191,0.04) 0%, transparent 58%);
+  pointer-events: none;
+}
+.hero > * { position: relative; }
+.hero-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.hero h1 {
+  font-family: "Crimson Text", serif;
+  font-size: clamp(2.35rem, 5vw, 4rem);
+  line-height: 1.05;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 14px;
+}
+.hero h1 span { color: var(--gold); }
+.hero-sub {
+  max-width: 720px;
+  margin: 0 auto 22px;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+.flow-pill {
+  display: inline-block;
+  color: var(--gold);
+  background: rgba(0,0,0,0.42);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 15px;
+  font-size: 12px;
+}
+.quick-links {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.quick-link {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 7px 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12px;
+  cursor: pointer;
+}
+.quick-link:hover { border-color: var(--gold); color: var(--gold); }
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 38px 24px 82px;
+}
+.section-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  gap: 14px;
+  margin-bottom: 34px;
+}
+.workflow-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 22px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.18s, box-shadow 0.2s;
+  position: relative;
+  min-height: 178px;
+}
+.workflow-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold);
+  box-shadow: 0 8px 24px rgba(212,175,55,0.08);
+}
+.card-code {
+  color: var(--gold);
+  background: var(--gold-dim);
+  border-radius: 3px;
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10px;
+  margin-bottom: 12px;
+}
+.workflow-card h3 {
+  font-family: "Crimson Text", serif;
+  font-size: 24px;
+  color: white;
+  margin-bottom: 7px;
+}
+.workflow-card p {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.workflow-card .arrow {
+  position: absolute;
+  right: 18px;
+  bottom: 15px;
+  color: var(--text-muted);
+}
+.preflight-panel {
+  background: linear-gradient(180deg, rgba(212,175,55,0.08), rgba(15,15,16,1) 42%);
+  border: 1px solid rgba(212,175,55,0.36);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.preflight-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 18px;
+  align-items: start;
+}
+.preflight-panel h2 {
+  font-family: "Crimson Text", serif;
+  font-size: 34px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 8px;
+}
+.preflight-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.preflight-list div {
+  border: 1px solid #272a32;
+  background: rgba(0,0,0,0.22);
+  border-radius: 6px;
+  padding: 9px 11px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.preflight-status {
+  border: 1px solid #272a32;
+  border-radius: 8px;
+  background: #090a0c;
+  padding: 16px;
+}
+.preflight-status strong {
+  display: block;
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.panel h2 {
+  font-family: "Crimson Text", serif;
+  font-size: 30px;
+  font-weight: 600;
+}
+.panel-desc { color: var(--text-dim); font-size: 13px; max-width: 650px; }
+.back {
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.back:hover { color: var(--gold); border-color: var(--gold); }
+.folder-row {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+.input {
+  flex: 1;
+  min-width: 180px;
+  background: #0b0c0f;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.input:focus { outline: none; border-color: var(--gold); }
+.btn {
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.45; cursor: wait; }
+.btn-gold { background: var(--gold); color: #141414; }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--text-dim); }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.metric {
+  background: #0a0b0d;
+  border: 1px solid #20222a;
+  border-radius: 6px;
+  padding: 13px;
+}
+.metric strong { display: block; font-size: 24px; color: white; }
+.metric span { color: var(--text-muted); font-size: 11px; }
+.stats-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+.choice-card {
+  border: 1px solid var(--border);
+  background: #0a0b0d;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+}
+.choice-card:hover,
+.choice-card.selected {
+  border-color: var(--gold);
+  background: rgba(212,175,55,0.08);
+  box-shadow: 0 8px 24px rgba(212,175,55,0.12);
+}
+.choice-card.selected { border-width: 2px; }
+.choice-card h3 {
+  font-family: "Crimson Text", serif;
+  color: white;
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+.choice-card p { color: var(--text-dim); font-size: 12px; }
+.review-item {
+  border: 1px solid rgba(96,165,250,0.24);
+  background: rgba(96,165,250,0.06);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 14px 0;
+}
+.current-item {
+  border: 1px solid rgba(212,175,55,0.42);
+  background: rgba(212,175,55,0.08);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 14px 0;
+}
+.current-item h4 {
+  color: white;
+  font-family: "Crimson Text", serif;
+  font-size: 25px;
+  margin-bottom: 6px;
+}
+.current-item .path {
+  color: var(--text-muted);
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.before-after {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.before-after div {
+  border: 1px solid #252832;
+  background: rgba(0,0,0,0.25);
+  border-radius: 6px;
+  padding: 10px;
+}
+.before-after span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.before-after strong {
+  color: white;
+  overflow-wrap: anywhere;
+}
+.suggestion-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+.suggestion-card {
+  border: 1px solid #252832;
+  background: #08090b;
+  border-radius: 7px;
+  padding: 12px;
+  cursor: pointer;
+}
+.suggestion-card.recommended { border-color: var(--gold); }
+.suggestion-card:hover { border-color: var(--blue); }
+.suggestion-card strong { color: white; }
+.custom-row {
+  display: flex;
+  gap: 9px;
+  margin-top: 10px;
+}
+.result-card {
+  background: #0a0b0d;
+  border: 1px solid #20222a;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.result-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.result-title h3 {
+  font-family: "Crimson Text", serif;
+  color: white;
+  font-size: 23px;
+}
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-green { background: rgba(52,211,153,0.12); color: var(--green); }
+.tag-blue { background: rgba(96,165,250,0.12); color: var(--blue); }
+.tag-purple { background: rgba(167,139,250,0.12); color: var(--purple); }
+.tag-amber { background: rgba(251,191,36,0.12); color: var(--amber); }
+.tag-red { background: rgba(248,113,113,0.12); color: var(--red); }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.table th, .table td {
+  text-align: left;
+  border-bottom: 1px solid #1c1e25;
+  padding: 8px 7px;
+  color: var(--text-dim);
+}
+.table th { color: var(--text-muted); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+.table td.clean { color: var(--green); }
+.approval-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.025);
+  padding: 10px;
+  margin-top: 14px;
+}
+.approval-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.schema-select {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.sample-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 14px;
+}
+.sample-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.sample-heading h4 {
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+}
+.approval-row {
+  display: grid;
+  grid-template-columns: 34px minmax(210px, 0.9fr) minmax(360px, 1.35fr) 126px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #1c1e25;
+}
+.approval-row:last-child { border-bottom: 0; }
+.approval-row.warning { background: rgba(251,191,36,0.045); }
+.approval-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+}
+.rename-name {
+  color: var(--text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.rename-path {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.rename-input {
+  width: 100%;
+  min-height: 34px;
+  background: #08090b;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--green);
+  padding: 7px 9px;
+}
+.rename-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.suggestion-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 8px;
+}
+.suggestion-mini {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.025);
+  border-radius: 6px;
+  color: var(--text-dim);
+  padding: 7px;
+  text-align: left;
+  cursor: pointer;
+  min-height: 54px;
+}
+.suggestion-mini:hover {
+  border-color: var(--gold);
+  color: var(--text);
+}
+.suggestion-mini strong {
+  display: block;
+  color: var(--gold);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.suggestion-mini span {
+  display: block;
+  overflow-wrap: anywhere;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.trust-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.trust-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255,255,255,0.025);
+}
+.trust-card strong {
+  display: block;
+  color: white;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.trust-card span {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.approve-count {
+  color: var(--gold);
+  font-weight: 700;
+}
+.approval-empty {
+  padding: 18px;
+  color: var(--text-dim);
+}
+.explain {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.75;
+}
+.notice {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.28);
+  font-size: 12px;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.footer {
+  border-top: 1px solid var(--border);
+  background: #050505;
+  padding: 28px 24px 34px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.footer::after {
+  content: "";
+  display: block;
+  width: 58px;
+  height: 1px;
+  margin: 16px auto 0;
+  background: var(--gold);
+  opacity: 0.55;
+}
+@media (max-width: 640px) {
+  .topbar, .panel-head, .folder-row { flex-direction: column; align-items: stretch; }
+  .preflight-grid { grid-template-columns: 1fr; }
+  .approval-row { grid-template-columns: 28px 1fr; }
+  .approval-row > :nth-child(3), .approval-row > :nth-child(4) { grid-column: 2; }
+  .suggestion-strip, .trust-panel { grid-template-columns: 1fr; }
+  .hero { padding-top: 42px; }
+  .main { padding: 28px 16px 42px; }
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">RIVER <span>FIS</span></div>
+  <div class="topnav">
+    <a class="mode-link" href="/">Advanced Mode</a>
+    <span class="status">API connected</span>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero-label">File Intelligence System - Simple Mode</div>
+  <h1>One folder.<br><span>One guided action.</span></h1>
+  <p class="hero-sub">A reusable event page for file organization: scan the folder, explain what was found, preview the next action, then approve only when it is safe.</p>
+  <div class="flow-pill mono">folder -> preview -> action -> approve -> record</div>
+  <div class="quick-links">
+    <button class="quick-link" data-flow="sort">Sort files myself</button>
+    <button class="quick-link" data-flow="intel">Let intelligence sort</button>
+    <button class="quick-link" data-flow="rename">Rename files</button>
+    <button class="quick-link" data-flow="cache">Build file cache</button>
+    <button class="quick-link" data-flow="create">Create from template</button>
+  </div>
+</section>
+
+<main class="main">
+  <div id="app"></div>
+</main>
+
+<footer class="footer">Preview first. Nothing destructive without approval.</footer>
+
+<script>
+const API = "http://127.0.0.1:8450";
+const DEFAULT_PATH = "C:\\Users\\lowes\\OneDrive\\A";
+let state = {
+  flow: null,
+  path: DEFAULT_PATH,
+  busy: false,
+  result: null,
+  message: "",
+  stats: null,
+  rename: { schema: "baseline", seed: 0 },
+  decision: { goal: null, action: null, items: [], index: 0, saved: 0, custom: "" },
+  intel: { step: 0, decisions: {} }
+};
+
+const flows = {
+  sort: {
+    code: "SORT-01",
+    title: "Sort files myself",
+    desc: "Use the SQLite cache to explain the folder shape: file count, folder count, common extensions, duplicate groups, and safe next actions.",
+    route: path => `${API}/api/cache/summary?root=${encodeURIComponent(path)}`,
+    button: "Load Cached Preview",
+    tag: "Manual"
+  },
+  intel: {
+    code: "FIS-02",
+    title: "Let intelligence sort",
+    desc: "Load cached organization opportunities first: protected items, duplicates, bad names, unknown files, metadata gaps, and review cards.",
+    route: path => `${API}/api/findings?root=${encodeURIComponent(path)}&min_weight=3`,
+    button: "Start Intelligence Walkthrough",
+    tag: "Cache"
+  },
+  rename: {
+    code: "NAME-03",
+    title: "Rename files",
+    desc: "Use cached rename findings to review the weirdest names first, approve the rule, and edit exceptions before anything changes.",
+    route: path => `${API}/api/cache/rename-sample?root=${encodeURIComponent(path)}&schema=${encodeURIComponent(state.rename.schema)}&seed=${encodeURIComponent(state.rename.seed)}`,
+    button: "Load Rename Review",
+    tag: "Rename"
+  },
+  cache: {
+    code: "CACHE-04",
+    title: "Build file cache",
+    desc: "Scan folder inventory into the shared FIS database so the dashboard can load folder knowledge quickly.",
+    route: path => `${API}/api/cache/scan?path=${encodeURIComponent(path)}&recursive=true&follow_links=true&max=250000`,
+    button: "Scan Into Cache",
+    tag: "SQLite"
+  },
+  create: {
+    code: "CREATE-05",
+    title: "Create folder from template",
+    desc: "Stamp out a new folder with preset structure: subfolders, starter files, and naming conventions built in.",
+    route: null,
+    button: "Create Folder",
+    tag: "Template"
+  }
+};
+
+const decisionGoals = {
+  clean: {
+    title: "Clean names",
+    desc: "Fix messy names, apply naming schemas, or batch rename.",
+    actions: {
+      baseline: { title: "Baseline", desc: "lowercase + hyphens" },
+      date_schema: { title: "Date schema", desc: "YYYY-MM-DD prefix" },
+      domain_schema: { title: "Domain schema", desc: "domain__topic__type" }
+    }
+  },
+  organize: {
+    title: "Organize",
+    desc: "Combine, split, or connect related files and folders.",
+    actions: {
+      combine: { title: "Combine", desc: "merge related folders" },
+      separate: { title: "Separate", desc: "split by type, domain, or date" },
+      hub: { title: "Link / Hub", desc: "connect without moving" }
+    }
+  },
+  relocate: {
+    title: "Relocate",
+    desc: "Move, archive, or quarantine files safely.",
+    actions: {
+      move: { title: "Move", desc: "put it where it belongs" },
+      archive: { title: "Archive", desc: "remove from active but preserve" },
+      delete_later: { title: "Delete Later", desc: "quarantine with review" }
+    }
+  }
+};
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+function fmtInt(value) {
+  const num = Number(value || 0);
+  return Number.isFinite(num) ? num.toLocaleString() : "0";
+}
+
+function fmtBytes(value) {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index += 1;
+  }
+  return `${size.toFixed(size >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
+function setFlow(flow) {
+  state = { ...state, flow, result: null, message: "" };
+  render();
+}
+
+function goHome() {
+  state = { ...state, flow: null, result: null, message: "" };
+  render();
+}
+
+async function runFlow() {
+  const spec = flows[state.flow];
+  if (!spec || !state.path.trim()) return;
+  state = { ...state, busy: true, result: null, message: "Working..." };
+  render();
+  try {
+    let data;
+    if (state.flow === "create") {
+      const res = await fetch(API + "/api/create/folder", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          parent: state.path,
+          name: state.createName || "my-new-folder",
+          template: state.createTemplate || "station"
+        })
+      });
+      data = await res.json();
+    } else {
+      const res = await fetch(spec.route(state.path));
+      data = await res.json();
+    }
+    state = { ...state, busy: false, result: data, message: data.error ? data.error : "Preview ready." };
+  } catch (err) {
+    state = { ...state, busy: false, result: { error: String(err) }, message: "Could not reach the local API." };
+  }
+  render();
+}
+
+async function runPreflightScan() {
+  if (!state.path.trim()) return;
+  state = { ...state, flow: null, busy: true, result: null, message: "Building file memory..." };
+  render();
+  try {
+    const res = await fetch(flows.cache.route(state.path));
+    const data = await res.json();
+    state = {
+      ...state,
+      busy: false,
+      result: data,
+      message: data.error ? data.error : "File memory is ready. The next steps can use the cache."
+    };
+  } catch (err) {
+    state = { ...state, busy: false, result: { error: String(err) }, message: "Could not reach the local API." };
+  }
+  render();
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/api/cache/status`);
+    const data = await res.json();
+    state = { ...state, stats: data };
+    render();
+  } catch (err) {
+    state = { ...state, stats: { error: String(err) } };
+    render();
+  }
+}
+
+function resetDecision() {
+  state = {
+    ...state,
+    decision: { goal: null, action: null, items: [], index: 0, saved: 0, custom: "" },
+    message: ""
+  };
+  render();
+}
+
+function selectDecisionGoal(goal) {
+  state = {
+    ...state,
+    decision: { ...state.decision, goal, action: null, items: [], index: 0, custom: "" },
+    message: ""
+  };
+  render();
+}
+
+async function selectDecisionAction(action) {
+  const decision = { ...state.decision, action, items: [], index: 0, custom: "" };
+  state = { ...state, decision, busy: true, message: "Loading cached review cards..." };
+  render();
+  try {
+    const items = await loadDecisionItems(decision.goal, action);
+    state = {
+      ...state,
+      busy: false,
+      decision: { ...decision, items },
+      message: items.length ? "Review cards loaded from SQLite." : "No cached cards found for that action yet."
+    };
+  } catch (err) {
+    state = { ...state, busy: false, message: "Could not load cached review cards." };
+  }
+  render();
+}
+
+async function loadDecisionItems(goal, action) {
+  if (goal === "clean") {
+    const res = await fetch(`${API}/api/cache/rename-plan?root=${encodeURIComponent(state.path)}&limit=50`);
+    const data = await res.json();
+    return (data.operations || []).map(op => ({
+      kind: "rename",
+      path: op.filepath,
+      filename: op.filename,
+      evidence: `Current name: ${op.filename}`,
+      weight: op.status === "collision" ? 8 : 7,
+      base: op.baseline,
+      status: op.status
+    }));
+  }
+  const res = await fetch(`${API}/api/cache/findings?root=${encodeURIComponent(state.path)}&limit=80`);
+  const data = await res.json();
+  const actionTypes = {
+    combine: ["tiny_folder", "similar_folder_names", "single_theme_cluster"],
+    separate: ["archive_export_residue", "mixed_purpose_folder", "unknown_file", "bad_folder_name"],
+    hub: ["single_theme_cluster", "project_seed"],
+    move: ["wrong_location_file", "orphan_file", "unknown_file"],
+    archive: ["archive_export_residue", "old_inactive_folder", "large_space_user"],
+    delete_later: ["empty_folder", "duplicate_filename_size"]
+  };
+  const allowed = actionTypes[action] || [];
+  return (data.findings || [])
+    .filter(f => !allowed.length || allowed.includes(f.finding_type))
+    .map(f => ({
+      kind: "finding",
+      finding_type: f.finding_type,
+      path: f.path,
+      filename: (f.path || "").split(/[\\/]/).pop(),
+      evidence: f.evidence,
+      title: f.title,
+      weight: f.weight,
+      suggested_action: f.suggested_action
+    }));
+}
+
+function resetIntelWalkthrough() {
+  state = { ...state, intel: { step: 0, decisions: {} }, message: "" };
+  render();
+}
+
+async function decideIntelTier(action, tier) {
+  const schemaEl = document.getElementById("intelSchema");
+  const schema = schemaEl ? schemaEl.value : "baseline";
+  const findings = (tier.findings || []).slice(0, action === "approve" ? 25 : 1);
+  state = { ...state, busy: true, message: "Recording decision..." };
+  render();
+  try {
+    for (const finding of findings) {
+      await fetch(`${API}/api/findings/decide`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          finding_id: finding.finding_id,
+          action,
+          schema,
+          tier_weight: tier.weight,
+          tier_title: tier.title
+        })
+      });
+    }
+    const key = String(tier.weight);
+    const decisions = {
+      ...state.intel.decisions,
+      [key]: { action, schema, count: findings.length, title: tier.title }
+    };
+    state = {
+      ...state,
+      busy: false,
+      intel: { ...state.intel, decisions, step: state.intel.step + 1 },
+      message: `${actionLabel(action)} recorded for ${findings.length} item(s).`
+    };
+  } catch (err) {
+    state = { ...state, busy: false, message: "Could not record that decision." };
+  }
+  render();
+}
+
+function actionLabel(action) {
+  return {
+    approve: "Approved",
+    skip: "Skipped",
+    disapprove: "Disapproved",
+    defer: "Deferred",
+    auto_approve: "Auto-approved"
+  }[action] || action;
+}
+
+function decisionSuggestions(item) {
+  const goal = state.decision.goal;
+  const action = state.decision.action;
+  if (!item) return [];
+  if (goal === "clean") {
+    const base = item.base || "clean-name";
+    const stem = base.replace(/\.[^.]+$/, "");
+    const ext = (base.match(/\.[^.]+$/) || [""])[0];
+    return [
+      { source: "Rules engine", value: base, confidence: 72 },
+      { source: "River", value: action === "domain_schema" ? `brain_system__${stem.replaceAll("-", "_")}__v01${ext}` : base, confidence: 84, recommended: true },
+      { source: "NLP", value: action === "date_schema" ? `2026-06-14-${base}` : `programming__${stem.replaceAll("-", "_")}__v01${ext}`, confidence: 68 }
+    ];
+  }
+  const pathName = item.filename || "selected item";
+  const actionText = {
+    combine: "combine into reviewed theme folder",
+    separate: "separate into clearer sub-buckets",
+    hub: "create a hub link without moving files",
+    move: "move to the best matching active folder",
+    archive: "archive after review",
+    delete_later: "send to delete-later quarantine"
+  }[action] || "review";
+  return [
+    { source: "Rules engine", value: item.suggested_action || actionText, confidence: 70 },
+    { source: "River", value: actionText, confidence: Math.min(92, 65 + Number(item.weight || 5) * 3), recommended: true },
+    { source: "NLP", value: `review ${pathName} as ${item.finding_type || "organization item"}`, confidence: 64 }
+  ];
+}
+
+async function chooseDecisionOption(choice, customValue = "") {
+  const item = state.decision.items[state.decision.index];
+  if (!item) return;
+  const suggestions = decisionSuggestions(item);
+  const selected = choice === "custom"
+    ? { source: "Custom", value: customValue || state.decision.custom || "custom answer", confidence: 100 }
+    : suggestions[choice];
+  if (!selected) return;
+  const recommended = suggestions.find(s => s.recommended) || suggestions[1] || suggestions[0];
+  const decision = {
+    filepath: item.kind === "rename" ? item.path : "",
+    filename: item.filename || item.path || "review item",
+    ext: item.path ? (item.path.match(/\.[^\\.\\/]+$/) || [""])[0] : "",
+    proposed_domain: recommended.value,
+    final_domain: selected.value,
+    confidence: selected.confidence || 0,
+    action: choice === "custom" ? "custom_correction" : "guided_choice",
+    source: selected.source,
+    keywords: [state.decision.goal, state.decision.action, item.kind, item.finding_type || item.status || ""].filter(Boolean),
+    goal: state.decision.goal,
+    selected_action: state.decision.action,
+    shown_options: suggestions,
+    river_recommendation: recommended.value,
+    selected_option: selected.value,
+    correction_weight: choice === "custom" ? 10 : 1
+  };
+  try {
+    await fetch(`${API}/api/decide`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decisions: [decision] })
+    });
+  } catch (err) {
+    state = { ...state, message: "Decision could not be recorded." };
+    render();
+    return;
+  }
+  const nextIndex = state.decision.index + 1;
+  state = {
+    ...state,
+    decision: { ...state.decision, index: nextIndex, saved: state.decision.saved + 1, custom: "" },
+    message: "Decision recorded. River learned from that choice."
+  };
+  render();
+}
+
+function homeHtml() {
+  const cacheReady = state.result && state.result.mode === "inventory" && !state.result.error;
+  const findingCount = cacheReady ? (state.result.finding_count ?? 0) : null;
+  return `
+    <section class="preflight-panel">
+      <div class="preflight-grid">
+        <div>
+          <span class="card-code mono">STEP-00</span>
+          <h2>Build the file memory first.</h2>
+          <p class="explain">
+        The first run scans the folder and writes the inventory into SQLite. Large folders can take a little while the first time. After that, the sorter,
+        rename preview, intelligence checks, and reports can read from memory instead of walking every file again.
+          </p>
+          <div class="preflight-list">
+            <div>1. Count files, folders, extensions, dates, and size.</div>
+            <div>2. Protect system folders and project seeds before suggestions.</div>
+            <div>3. Cache organization opportunities as review cards.</div>
+            <div>4. Use the cached memory for fast follow-up work.</div>
+          </div>
+        </div>
+        <div class="preflight-status">
+          <strong>${cacheReady ? "Cache Ready" : "Prerequisite"}</strong>
+          <p class="explain">
+            ${cacheReady
+            ? `This folder has been indexed. ${findingCount} organization finding card(s) are ready for review.`
+              : "Choose the folder once, build the cache, then use the work cards below. The first pass is the slow pass."}
+          </p>
+          <div class="folder-row">
+            <input class="input mono" id="homePathInput" value="${esc(state.path)}">
+            <button class="btn btn-gold" id="homeScanBtn" ${state.busy ? "disabled" : ""}>${state.busy ? "Scanning..." : "Scan First"}</button>
+          </div>
+          ${state.message ? `<div class="notice">${esc(state.message)}</div>` : ""}
+        </div>
+      </div>
+    </section>
+    ${cacheReady ? cacheResult(state.result) : ""}
+    ${statsHtml(state.stats)}
+    ${decisionTreeHtml()}
+    <div class="section-label">${cacheReady ? "Next Workflows" : "Available After Cache"}</div>
+    <div class="workflow-grid">
+      ${Object.entries(flows).filter(([key]) => key !== "cache").map(([key, flow]) => `
+        <article class="workflow-card" data-flow="${key}">
+          <span class="card-code mono">${flow.code}</span>
+          <h3>${flow.title}</h3>
+          <p>${flow.desc}</p>
+          <span class="arrow">-&gt;</span>
+        </article>
+      `).join("")}
+    </div>
+    <section class="panel">
+      <div class="section-label">Reusable Template</div>
+      <p class="explain">
+        This page is the repeatable public-facing shape for file events. Each run should explain what happened,
+        what the system found, what it recommends next, and what still needs approval. The black advanced
+        workbench stays behind it for deeper controls.
+      </p>
+      <div class="tag-row">
+        <span class="tag tag-green">scan</span>
+        <span class="tag tag-blue">classify</span>
+        <span class="tag tag-purple">rename</span>
+        <span class="tag tag-amber">cache</span>
+        <span class="tag tag-green">create</span>
+      </div>
+    </section>
+  `;
+}
+
+function decisionTreeHtml() {
+  const d = state.decision;
+  const goalSpec = d.goal ? decisionGoals[d.goal] : null;
+  const actionSpec = goalSpec && d.action ? goalSpec.actions[d.action] : null;
+  const item = d.items[d.index];
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="card-code mono">GUIDE-01</span>
+          <h2>Three-question decision tree</h2>
+          <p class="panel-desc">Answer one question at a time. River narrows the action, then shows one cached item with three suggestions plus a custom correction.</p>
+        </div>
+        <button class="back" id="resetDecisionBtn">Reset</button>
+      </div>
+
+      <div class="section-label">Question 1 - What's the goal?</div>
+      <div class="choice-grid">
+        ${Object.entries(decisionGoals).map(([key, goal]) => `
+          <article class="choice-card ${d.goal === key ? "selected" : ""}" data-goal="${key}">
+            <h3>${goal.title}</h3>
+            <p>${goal.desc}</p>
+          </article>
+        `).join("")}
+      </div>
+
+      ${goalSpec ? `
+        <div class="section-label">Question 2 - Which action?</div>
+        <div class="choice-grid">
+          ${Object.entries(goalSpec.actions).map(([key, action]) => `
+            <article class="choice-card ${d.action === key ? "selected" : ""}" data-action="${key}">
+              <h3>${action.title}</h3>
+              <p>${action.desc}</p>
+            </article>
+          `).join("")}
+        </div>
+      ` : ""}
+
+      ${actionSpec ? reviewCardHtml(item) : ""}
+    </section>
+  `;
+}
+
+function reviewCardHtml(item) {
+  const d = state.decision;
+  if (state.busy) {
+    return `<div class="notice">Loading cached cards from SQLite...</div>`;
+  }
+  if (!d.items.length) {
+    return `
+      <div class="review-item">
+        <div class="result-title"><h3>Question 3 - Pick for each item</h3><span class="tag tag-amber">waiting</span></div>
+        <p class="explain">No cached cards are loaded for this lane yet. If the folder has not been scanned, run Scan First. If it has, this lane may not have matching findings yet.</p>
+      </div>
+    `;
+  }
+  if (!item) {
+    return `
+      <div class="review-item">
+        <div class="result-title"><h3>Review complete</h3><span class="tag tag-green">recorded</span></div>
+        <p class="explain">${fmtInt(d.saved)} decision(s) recorded. These choices become training data for River's preference engine.</p>
+      </div>
+    `;
+  }
+  const suggestions = decisionSuggestions(item);
+  const riverPick = suggestions.find(s => s.recommended) || suggestions[1] || suggestions[0] || {};
+  const currentLabel = item.kind === "rename" ? "Current name" : "Current item";
+  const proposedLabel = item.kind === "rename" ? "River suggested name" : "River suggested action";
+  return `
+    <div class="review-item">
+      <div class="result-title">
+        <h3>Question 3 - Choose the best answer</h3>
+        <span class="tag tag-blue">${fmtInt(d.index + 1)} of ${fmtInt(d.items.length)}</span>
+      </div>
+      <div class="current-item">
+        <div class="section-label">Now Reviewing</div>
+        <h4>${esc(item.title || item.filename || "Cached item")}</h4>
+        <p class="explain">${esc(item.evidence || "")}</p>
+        <div class="before-after">
+          <div>
+            <span>${currentLabel}</span>
+            <strong>${esc(item.filename || item.path || "item")}</strong>
+          </div>
+          <div>
+            <span>${proposedLabel}</span>
+            <strong>${esc(riverPick.value || "review")}</strong>
+          </div>
+        </div>
+        <span class="path mono">${esc(item.path || "")}</span>
+      </div>
+      <div class="section-label" style="margin-top:14px">River recommends option 2</div>
+      <div class="suggestion-list">
+        ${suggestions.map((s, i) => `
+          <button class="suggestion-card ${s.recommended ? "recommended" : ""}" data-choice="${i}">
+            <strong>${i + 1}. ${esc(s.source)} says:</strong> ${esc(s.value)}
+            <span class="tag ${s.recommended ? "tag-amber" : "tag-blue"}">${esc(s.confidence)}%</span>
+          </button>
+        `).join("")}
+      </div>
+      <div class="custom-row">
+        <input class="input mono" id="customDecisionInput" value="${esc(d.custom)}" placeholder="None of these - type the right answer">
+        <button class="btn btn-ghost" id="customDecisionBtn">Use custom</button>
+      </div>
+      <div class="notice">Saved decisions in this session: ${fmtInt(d.saved)}. Custom corrections count more because they teach River what it missed.</div>
+    </div>
+  `;
+}
+
+function statsHtml(stats) {
+  if (!stats) {
+    return `
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="card-code mono">TOTALS</span>
+            <h2>System statistics</h2>
+            <p class="panel-desc">Combined cache totals appear here after the dashboard talks to SQLite.</p>
+          </div>
+          <button class="back" id="refreshStatsBtn">Refresh totals</button>
+        </div>
+      </section>
+    `;
+  }
+  if (stats.error) {
+    return `<section class="panel"><div class="section-label">System Statistics</div><p class="explain">${esc(stats.error)}</p></section>`;
+  }
+  const counts = stats.counts || {};
+  const latestInventory = (stats.inventory_scans || [])[0];
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="card-code mono">TOTALS</span>
+          <h2>System statistics</h2>
+          <p class="panel-desc">This is the combined SQLite memory: scans, cached files, folders, findings, decisions, and actions across the system.</p>
+        </div>
+        <button class="back" id="refreshStatsBtn">Refresh totals</button>
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><strong>${fmtInt(counts.files)}</strong><span>Cached files</span></div>
+        <div class="metric"><strong>${fmtInt(counts.folders)}</strong><span>Cached folders</span></div>
+        <div class="metric"><strong>${fmtInt(counts.findings)}</strong><span>Finding cards</span></div>
+        <div class="metric"><strong>${fmtBytes(counts.total_size)}</strong><span>Cached file size</span></div>
+        <div class="metric"><strong>${fmtInt(counts.scan_runs)}</strong><span>Scan runs</span></div>
+        <div class="metric"><strong>${fmtInt(counts.actions)}</strong><span>Logged actions</span></div>
+      </div>
+      ${latestInventory ? `
+        <div class="notice">
+          Latest inventory scan: <strong>${fmtInt(latestInventory.file_count)}</strong> files from
+          <span class="mono">${esc(latestInventory.scan_path)}</span>
+          <span class="tag ${latestInventory.status === "complete" ? "tag-green" : "tag-amber"}">${esc(latestInventory.status)}</span>
+        </div>
+      ` : ""}
+      <div class="stats-split">
+        <div class="notice">
+          <div class="section-label">Top File Types</div>
+          ${(stats.extensions || []).slice(0, 8).map(row => `<p>${esc(row.ext)} - ${fmtInt(row.count)}</p>`).join("")}
+        </div>
+        <div class="notice">
+          <div class="section-label">Finding Types</div>
+          ${(stats.finding_types || []).slice(0, 8).map(row => `<p>${esc(row.finding_type)} - ${fmtInt(row.count)}</p>`).join("") || "<p>No finding cards yet.</p>"}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function wizardHtml() {
+  const spec = flows[state.flow];
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <span class="card-code mono">${spec.code}</span>
+          <h2>${spec.title}</h2>
+          <p class="panel-desc">${spec.desc}</p>
+        </div>
+        <button class="back" id="backBtn">Back to workflows</button>
+      </div>
+      <div class="section-label">Source Folder</div>
+      <div class="folder-row">
+        <input class="input mono" id="pathInput" value="${esc(state.path)}">
+        <button class="btn btn-gold" id="runBtn" ${state.busy ? "disabled" : ""}>${state.busy ? "Working..." : spec.button}</button>
+      </div>
+      ${state.flow === "create" ? createForm() : ""}
+      ${state.message ? `<div class="notice">${esc(state.message)}</div>` : ""}
+    </section>
+    ${state.result ? resultHtml(state.flow, state.result) : explainerHtml(state.flow)}
+  `;
+}
+
+function explainerHtml(flow) {
+  const map = {
+    sort: "This preview reads the folder shape first. It is meant to answer: what is here, how mixed is it, and what simple sorting action should happen next?",
+    intel: "This preview asks the classification engines to create a first-pass read. It should show domain, confidence, and review needs before any action is approved.",
+    rename: "This preview only creates clean-name suggestions. The baseline rule is mechanical: lowercase words separated by hyphens.",
+    cache: "This preview writes inventory into SQLite. That makes later screens faster and gives the dashboard a shared memory of what was seen.",
+    create: "Pick a template, name the folder, and preview the structure before it is created. Templates include preset subfolders and starter files."
+  };
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>What this step does</h3><span class="tag tag-blue">preview only</span></div>
+      <p class="explain">${map[flow]}</p>
+    </section>
+  `;
+}
+
+function resultHtml(flow, result) {
+  if (result.error) {
+    return `<section class="result-card"><div class="result-title"><h3>Needs attention</h3><span class="tag tag-red">error</span></div><p class="explain">${esc(result.error)}</p></section>`;
+  }
+  if (flow === "sort") return sortResult(result);
+  if (flow === "intel") return intelResult(result);
+  if (flow === "rename") return renameResult(result);
+  if (flow === "cache") return cacheResult(result);
+  if (flow === "create") return createResult(result);
+  return "";
+}
+
+function sortResult(r) {
+  const kinds = Object.entries(r.kind_counts || {}).slice(0, 8);
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Folder shape</h3><span class="tag tag-green">manual preview</span></div>
+      <p class="explain">This folder was inspected for manual sorting. The next safe step is to choose one visible pattern, preview it, and approve it separately.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${r.total_files ?? 0}</strong><span>Files</span></div>
+        <div class="metric"><strong>${r.folder_count ?? 0}</strong><span>Folders</span></div>
+        <div class="metric"><strong>${r.duplicate_name_groups ?? 0}</strong><span>Duplicate name groups</span></div>
+      </div>
+      <div class="tag-row">${kinds.map(([k,v]) => `<span class="tag tag-green">${esc(k)} ${v}</span>`).join("") || `<span class="tag tag-amber">no kinds found</span>`}</div>
+      <div class="actions">
+        <button class="btn btn-ghost">Separate by type - coming</button>
+        <button class="btn btn-ghost">Find duplicates - coming</button>
+        <button class="btn btn-ghost">Send to review - coming</button>
+      </div>
+    </section>
+  `;
+}
+
+function intelResult(r) {
+  if (Array.isArray(r.tiers)) return intelWalkthroughResult(r);
+  if (Array.isArray(r.findings)) return findingsResult(r);
+  const files = (r.files || []).slice(0, 20);
+  const domains = {};
+  files.forEach(f => { domains[f.domain || "UNKNOWN"] = (domains[f.domain || "UNKNOWN"] || 0) + 1; });
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Intelligence read</h3><span class="tag tag-blue">classification</span></div>
+      <p class="explain">These are machine suggestions, not file actions. High-confidence items can become an approval batch after review.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${r.total ?? files.length}</strong><span>Files classified</span></div>
+        <div class="metric"><strong>${Object.keys(domains).length}</strong><span>Domains seen</span></div>
+        <div class="metric"><strong>${r.auto_approve_threshold ?? "-"}</strong><span>Auto threshold</span></div>
+      </div>
+      <div class="tag-row">${Object.entries(domains).map(([d,c]) => `<span class="tag tag-blue">${esc(d)} ${c}</span>`).join("")}</div>
+      ${fileTable(files)}
+      <div class="actions"><button class="btn btn-ghost">Approve high confidence - coming</button><button class="btn btn-ghost">Open review queue - coming</button></div>
+    </section>
+  `;
+}
+
+function intelWalkthroughResult(r) {
+  const tiers = r.tiers || [];
+  const step = Math.min(state.intel.step || 0, tiers.length);
+  const tier = tiers[step];
+  if (!tiers.length) {
+    return `<section class="result-card"><div class="result-title"><h3>No findings ready</h3><span class="tag tag-amber">scan first</span></div><p class="explain">Run Scan First to create weighted finding cards.</p></section>`;
+  }
+  if (!tier) {
+    return intelSummaryCard(r);
+  }
+  const samples = (tier.findings || []).slice(0, 8);
+  const counts = tier.counts || {};
+  const auto = tier.weight === 10;
+  const badNames = Object.keys(counts).some(k => k.includes("bad"));
+  return `
+    <section class="result-card">
+      <div class="result-title">
+        <h3>Step ${fmtInt(step + 1)} - ${esc(tier.title)}</h3>
+        <span class="tag ${auto ? "tag-green" : "tag-blue"}">${auto ? "River auto-approved" : "needs approval"}</span>
+      </div>
+      <p class="explain">${tierExplanation(tier.weight)}</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${fmtInt(tier.findings.length)}</strong><span>Finding cards</span></div>
+        <div class="metric"><strong>${fmtInt(tier.weight)}</strong><span>Weight</span></div>
+        <div class="metric"><strong>${fmtInt(Object.keys(counts).length)}</strong><span>Finding types</span></div>
+      </div>
+      <div class="tag-row">
+        ${Object.entries(counts).map(([type, count]) => `<span class="tag tag-blue">${esc(type)} ${fmtInt(count)}</span>`).join("")}
+      </div>
+      ${badNames ? namingSchemaPicker() : ""}
+      <div class="notice">
+        <div class="section-label">Sample Items</div>
+        ${samples.map(item => `<p><strong>${esc(item.title)}</strong> - ${esc(item.evidence)}<br><span class="mono">${esc(item.path)}</span></p>`).join("")}
+      </div>
+      ${auto ? `
+        <div class="notice">River marks these as protected. They will not be moved, renamed, archived, or deleted.</div>
+        <div class="actions"><button class="btn btn-gold" data-intel-action="auto_approve">Continue</button></div>
+      ` : `
+        <div class="actions">
+          <button class="btn btn-gold" data-intel-action="approve">Approve this step</button>
+          <button class="btn btn-ghost" data-intel-action="defer">Defer</button>
+          <button class="btn btn-ghost" data-intel-action="skip">Skip</button>
+          <button class="btn btn-ghost" data-intel-action="disapprove">Disapprove</button>
+        </div>
+      `}
+      ${state.message ? `<div class="notice">${esc(state.message)}</div>` : ""}
+      ${intelRunningSummary()}
+    </section>
+  `;
+}
+
+function tierExplanation(weight) {
+  return {
+    10: "Safety first: these are protected/system items. River reports them, then leaves them alone.",
+    9: "These look like active project seeds or important duplicates. Review carefully before changing anything.",
+    8: "These are high-value cleanup opportunities like bad names or wrong-location candidates.",
+    7: "These need mapping or review: metadata gaps, unknown files, and archive/export residue.",
+    6: "These are structure opportunities: similar folders, scattered themes, or hub candidates.",
+    5: "These are low-risk cleanup candidates such as tiny or empty folders.",
+    4: "These appear inactive and may belong in archive review.",
+    3: "These are storage review candidates, not automatic cleanup targets."
+  }[weight] || "Review this group before taking action.";
+}
+
+function namingSchemaPicker() {
+  return `
+    <div class="notice">
+      <div class="section-label">Naming Schema</div>
+      <select id="intelSchema" class="input">
+        <option value="baseline">Baseline - lowercase + hyphens</option>
+        <option value="date_first">Date First - YYYY-MM-DD prefix</option>
+        <option value="domain_topic">Domain + Topic - domain__topic__type</option>
+        <option value="johnny_decimal">Johnny Decimal</option>
+        <option value="para">PARA</option>
+      </select>
+    </div>
+  `;
+}
+
+function intelRunningSummary() {
+  const rows = Object.entries(state.intel.decisions || {});
+  if (!rows.length) return `<div class="notice">Running summary: no decisions recorded in this walkthrough yet.</div>`;
+  return `
+    <div class="notice">
+      <div class="section-label">Running Summary</div>
+      ${rows.map(([weight, item]) => `<p>Weight ${esc(weight)} - ${esc(item.title)}: ${esc(actionLabel(item.action))} (${fmtInt(item.count)} item(s))</p>`).join("")}
+    </div>
+  `;
+}
+
+function intelSummaryCard(r) {
+  const decisions = Object.values(state.intel.decisions || {});
+  const total = decisions.reduce((sum, item) => sum + Number(item.count || 0), 0);
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Intelligence sort complete</h3><span class="tag tag-green">summary</span></div>
+      <p class="explain">River reviewed ${fmtInt(r.finding_count)} cached finding cards in weighted groups.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${fmtInt(total)}</strong><span>Items recorded</span></div>
+        <div class="metric"><strong>${fmtInt(decisions.length)}</strong><span>Steps handled</span></div>
+        <div class="metric"><strong>${fmtInt(r.tiers.length)}</strong><span>Total tiers</span></div>
+      </div>
+      ${intelRunningSummary()}
+      <div class="actions"><button class="btn btn-gold" id="resetIntelBtn">Run again</button><button class="btn btn-ghost" id="backBtn">Back to workflows</button></div>
+    </section>
+  `;
+}
+
+function findingsResult(r) {
+  const findings = (r.findings || []).slice(0, 12);
+  const groups = {};
+  findings.forEach(f => { groups[f.finding_type || "finding"] = (groups[f.finding_type || "finding"] || 0) + 1; });
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Cached intelligence read</h3><span class="tag tag-blue">from SQLite</span></div>
+      <p class="explain">This is the fast layer. It reads organization finding cards created during the scan. Deep NLP classification can run later as a separate heavier pass.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${fmtInt(findings.length)}</strong><span>Cards loaded</span></div>
+        <div class="metric"><strong>${fmtInt(Object.keys(groups).length)}</strong><span>Finding types</span></div>
+        <div class="metric"><strong>${findings[0]?.weight ?? "-"}</strong><span>Top weight</span></div>
+      </div>
+      <div class="tag-row">${Object.entries(groups).map(([k,v]) => `<span class="tag tag-blue">${esc(k)} ${fmtInt(v)}</span>`).join("")}</div>
+      <div class="notice">
+        <div class="section-label">Top Review Cards</div>
+        ${findings.map((f, i) => `
+          <p><strong>${i + 1}. ${esc(f.title)}</strong> - ${esc(f.evidence)} <span class="tag tag-amber">weight ${esc(f.weight)}</span></p>
+        `).join("") || "<p>No cached findings yet. Run Scan First.</p>"}
+      </div>
+      <div class="actions"><button class="btn btn-ghost">Run deeper NLP pass - coming</button><button class="btn btn-ghost">Open review queue - coming</button></div>
+    </section>
+  `;
+}
+
+function renameResult(r) {
+  if (r.groups) return renameSampleResult(r);
+  const ops = (r.operations || []).slice(0, 30);
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Baseline rename plan</h3><span class="tag tag-purple">dry run</span></div>
+      <p class="explain">Every suggested name comes from the baseline rule first: lowercase and hyphenated. Collisions still require review.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${r.counts?.would_rename ?? 0}</strong><span>Would rename</span></div>
+        <div class="metric"><strong>${r.counts?.already_clean ?? 0}</strong><span>Already clean</span></div>
+        <div class="metric"><strong>${r.counts?.collision ?? 0}</strong><span>Needs review</span></div>
+      </div>
+      <table class="table"><thead><tr><th>Original</th><th>Clean name</th><th>Status</th></tr></thead><tbody>
+        ${ops.map(op => `<tr><td>${esc(op.filename)}</td><td class="clean">${esc(op.baseline)}</td><td>${esc(op.status)}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="actions"><button class="btn btn-ghost">Approve selected names - coming</button></div>
+    </section>
+  `;
+}
+
+function suggestionButtons(row) {
+  const suggestions = row.suggestions || {};
+  const options = [
+    ["Baseline", "Known rule", suggestions.baseline || row.new_name || row.suggested || ""],
+    ["David", "domain slug", suggestions.david_domain_slug || suggestions.domain_slug || ""],
+    ["River", "NLP style", suggestions.river_nlp || suggestions.river || ""]
+  ].filter(option => option[2]);
+  return `
+    <div class="suggestion-strip">
+      ${options.map(([label, sublabel, value]) => `
+        <button class="suggestion-mini" data-suggestion-value="${esc(value)}" type="button">
+          <strong>${esc(label)} - ${esc(sublabel)}</strong>
+          <span>${esc(value)}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renameSampleResult(r) {
+  const total = r.total_candidates || 0;
+  const sample = r.sample_size || 0;
+  const allMode = r.mode === "all";
+  const title = allMode
+    ? `Rename approval: ${fmtInt(total)} candidates`
+    : `Rename batch: ${fmtInt(total)} candidates`;
+  const approvalText = allMode
+    ? "The scan already looked through the folder and pulled out only the names that look worth human attention. Since this is a manageable set, every flagged candidate is shown."
+    : `The scan already looked through the folder. River pulled a review sample of ${fmtInt(sample)} names: the strangest ones first, then a spread by alphabet, extension, folder, and random spot checks.`;
+  return `
+    <section class="result-card">
+      <div class="result-title">
+        <h3>${esc(title)}</h3>
+        <span class="tag tag-purple">${esc(r.schema_label || "Baseline")}</span>
+      </div>
+      <p class="explain">${approvalText} The point is not to ask you to trust a black box. It is to show the evidence, offer a few naming choices, let you correct anything that feels off, and keep file changes gated until you explicitly approve them.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${fmtInt(total)}</strong><span>Total flagged</span></div>
+        <div class="metric"><strong>${fmtInt(sample)}</strong><span>${allMode ? "Shown" : "Review sample"}</span></div>
+        <div class="metric"><strong>${r.confirmation_required ? "Yes" : "No"}</strong><span>Large-batch gate</span></div>
+      </div>
+      <div class="trust-panel">
+        <div class="trust-card"><strong>What was scanned</strong><span>The cache checks the folder names, file names, extensions, and known finding cards before this screen appears.</span></div>
+        <div class="trust-card"><strong>Why these rows</strong><span>These are the names most likely to benefit from cleanup. Clean names stay out of your way.</span></div>
+        <div class="trust-card"><strong>Who decides</strong><span>River suggests. You select, edit, defer, or cancel. Nothing changes files from this screen alone.</span></div>
+      </div>
+      <div class="approval-toolbar">
+        <div>
+          <div class="section-label" style="margin-bottom:2px">Approval Count</div>
+          <div><span class="approve-count" id="renameApproveCount">${fmtInt(sample)}</span> selected for this review</div>
+        </div>
+        <div class="approval-tools">
+          <button class="btn btn-ghost" id="renameSelectAll">Select All</button>
+          <button class="btn btn-ghost" id="renameDeselectAll">Deselect All</button>
+          <select class="schema-select" id="renameSchemaSelect">
+            ${[
+              ["baseline", "Baseline"],
+              ["date_schema", "Date First"],
+              ["domain_schema", "Domain + Topic"],
+              ["johnny_decimal", "Johnny Decimal"],
+              ["para", "PARA"]
+            ].map(([value, label]) => `<option value="${value}" ${value === r.schema ? "selected" : ""}>${label}</option>`).join("")}
+          </select>
+          <button class="btn btn-ghost" id="renameMoreSample" ${allMode ? "disabled" : ""}>Review Another Sample</button>
+        </div>
+      </div>
+      ${(r.groups || []).map(group => `
+        <div class="sample-group">
+          <div class="sample-heading">
+            <h4>${esc(group.title)}</h4>
+            <span class="tag tag-blue">${fmtInt((group.rows || []).length)} rows</span>
+          </div>
+          ${(group.rows || []).length ? (group.rows || []).map(row => `
+            <div class="approval-row ${row.status === "collision" ? "warning" : ""}" data-rename-row>
+              <input class="approval-check" type="checkbox" checked data-rename-check>
+              <div>
+                <div class="rename-name">${esc(row.original || row.filename)}</div>
+                <div class="rename-path mono">${esc(row.parent_path || row.path || "")}</div>
+              </div>
+              <div>
+                <input class="rename-input mono" value="${esc(row.new_name || row.suggested || "")}" data-original-suggestion="${esc(row.new_name || row.suggested || "")}">
+                ${suggestionButtons(row)}
+              </div>
+              <div>
+                <span class="tag ${row.status === "collision" ? "tag-amber" : "tag-green"}">${esc(row.status || "would_rename")}</span>
+                <div class="rename-path">${esc(row.reason || "")}</div>
+              </div>
+            </div>
+          `).join("") : `<div class="approval-empty">No rows in this sample group.</div>`}
+        </div>
+      `).join("")}
+      <div class="actions">
+        <button class="btn btn-gold" id="approveRenameSample">Approve Selected Sample</button>
+        <button class="btn btn-ghost" id="approveRenameBatch">Approve Full Matching Batch</button>
+        <button class="btn btn-ghost" id="renameCancelBtn">Cancel</button>
+      </div>
+      <div class="notice" id="renameApprovalMessage">
+        Pick the name that feels right, or type your own. Corrections become training examples, so a few good fixes can improve the whole batch before execution.
+      </div>
+    </section>
+  `;
+}
+
+function updateRenameApprovalCount() {
+  const count = document.querySelectorAll("[data-rename-check]:checked").length;
+  const node = document.getElementById("renameApproveCount");
+  if (node) node.textContent = fmtInt(count);
+  const sampleBtn = document.getElementById("approveRenameSample");
+  if (sampleBtn) sampleBtn.textContent = `Approve ${fmtInt(count)} Selected`;
+}
+
+async function reloadRenameSample({ nextSeed = false } = {}) {
+  state = {
+    ...state,
+    busy: true,
+    message: nextSeed ? "Pulling another review sample..." : "Rebuilding rename review...",
+    rename: { ...state.rename, seed: nextSeed ? (state.rename.seed || 0) + 1 : state.rename.seed }
+  };
+  render();
+  try {
+    const res = await fetch(flows.rename.route(state.path));
+    const data = await res.json();
+    state = { ...state, busy: false, result: data, message: data.error ? data.error : "Rename review ready." };
+  } catch (err) {
+    state = { ...state, busy: false, message: "Could not reload the rename sample." };
+  }
+  render();
+}
+
+function collectRenameReviewRows() {
+  return Array.from(document.querySelectorAll("[data-rename-row]")).map(row => {
+    const check = row.querySelector("[data-rename-check]");
+    const input = row.querySelector(".rename-input");
+    return {
+      selected: Boolean(check?.checked),
+      suggestion: input?.value || "",
+      original_suggestion: input?.dataset.originalSuggestion || "",
+      edited: (input?.value || "") !== (input?.dataset.originalSuggestion || "")
+    };
+  });
+}
+
+async function recordRenameApproval(scope) {
+  const rows = collectRenameReviewRows();
+  const selected = rows.filter(row => row.selected).length;
+  const edited = rows.filter(row => row.edited).length;
+  const message = document.getElementById("renameApprovalMessage");
+  if (scope === "batch" && state.result?.confirmation_required) {
+    const ok = window.confirm("This is a large rename batch. Record approval for the full matching batch?");
+    if (!ok) return;
+  }
+  try {
+    await fetch(`${API}/api/decide`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        action: scope === "batch" ? "approve_rename_batch_preview" : "approve_rename_sample_preview",
+        source: "simple_rename_review",
+        final_domain: "rename",
+        confidence: 1,
+        payload: {
+          root: state.path,
+          schema: state.result?.schema,
+          total_candidates: state.result?.total_candidates,
+          sample_size: state.result?.sample_size,
+          selected,
+          edited,
+          preview_only: true
+        }
+      })
+    });
+    if (message) {
+      message.innerHTML = `<strong>Recorded.</strong> ${fmtInt(selected)} selected, ${fmtInt(edited)} edited. No files were changed yet; this approval pattern is saved for the execution gate.`;
+    }
+  } catch (err) {
+    if (message) message.textContent = "Could not record that approval yet.";
+  }
+}
+
+function cacheResult(r) {
+  const findings = (r.top_findings || []).slice(0, 5);
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Cache event recorded</h3><span class="tag tag-amber">shared memory</span></div>
+      <p class="explain">The folder inventory was written into the shared FIS SQLite cache. That gives the GUI a fast memory of file names, folders, extensions, and scan history.</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${r.file_count ?? 0}</strong><span>${r.stopped_at_limit ? "Files cached before cap" : "Files cached"}</span></div>
+        <div class="metric"><strong>${r.folder_count ?? 0}</strong><span>Folders cached</span></div>
+        <div class="metric"><strong>${r.action_code || "-----"}</strong><span>Action code</span></div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><strong>${r.finding_count ?? 0}</strong><span>Finding cards</span></div>
+        <div class="metric"><strong>${r.stopped_at_limit ? "Yes" : "No"}</strong><span>Hit scan cap</span></div>
+        <div class="metric"><strong>${Object.keys(r.ext_counts || {}).length}</strong><span>File types</span></div>
+      </div>
+      ${findings.length ? `
+        <div class="notice">
+          <div class="section-label">Top Opportunities</div>
+          ${findings.map((f, i) => `
+            <p><strong>${i + 1}. ${esc(f.title)}</strong> - ${esc(f.evidence)} <span class="tag tag-amber">weight ${esc(f.weight)}</span></p>
+          `).join("")}
+        </div>
+      ` : `<div class="notice">No organization opportunities were cached yet.</div>`}
+      <div class="notice mono">${esc(r.scan_path || state.path)}</div>
+    </section>
+  `;
+}
+
+function fileTable(files) {
+  if (!files.length) return `<div class="notice">No file rows returned yet.</div>`;
+  return `
+    <table class="table"><thead><tr><th>File</th><th>Domain</th><th>Confidence</th></tr></thead><tbody>
+      ${files.map(f => `<tr><td>${esc(f.filename)}</td><td>${esc(f.domain || "")}</td><td>${esc(f.confidence ?? "")}</td></tr>`).join("")}
+    </tbody></table>
+  `;
+}
+
+function createForm() {
+  const templates = [
+    { id: "station", label: "Station", desc: "NLP station with INPUT, OUTPUT, _LOGS, config, RUN.bat", folders: ["INPUT","OUTPUT","_LOGS"], files: ["station.json","README.md","RUN.bat","requirements.txt"] },
+    { id: "job", label: "Job Card", desc: "Workflow job definition", folders: [], files: ["job.json"] },
+    { id: "project", label: "Project", desc: "General project with docs, src, assets", folders: ["docs","src","assets","_archive"], files: ["README.md",".gitignore"] },
+    { id: "brain", label: "Brain Folder", desc: "Brain subsystem with front_door, inbox, state", folders: ["_front_door","_inbox","_outbox","_logs","_state","_processed"], files: ["HEALTHCHECK.bat","README.md","START.bat","PROCESS_INBOX.bat"] },
+    { id: "empty", label: "Empty", desc: "Just the folder, nothing inside", folders: [], files: [] },
+  ];
+  const sel = state.createTemplate || "station";
+  const t = templates.find(x => x.id === sel) || templates[0];
+  return `
+    <div class="section-label" style="margin-top:16px">Template</div>
+    <div class="tag-row" style="margin-bottom:12px">
+      ${templates.map(x => `<button class="btn ${x.id===sel?'btn-gold':'btn-ghost'}" style="font-size:11px;padding:6px 12px" onclick="state.createTemplate='${x.id}';render()">${x.label}</button>`).join("")}
+    </div>
+    <div class="notice">${t.desc}</div>
+    <div class="section-label" style="margin-top:12px">Folder name</div>
+    <input class="input mono" id="createName" value="${esc(state.createName || "my-new-folder")}" style="margin-bottom:8px" oninput="state.createName=this.value">
+    <div class="section-label" style="margin-top:8px">Preview</div>
+    <div class="result-card" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);line-height:1.8">
+      📁 ${esc(state.createName || "my-new-folder")}/
+      ${t.folders.map(f => `<br>&nbsp;&nbsp;📁 ${f}/`).join("")}
+      ${t.files.map(f => `<br>&nbsp;&nbsp;📄 ${f}`).join("")}
+    </div>
+  `;
+}
+
+function createResult(r) {
+  return `
+    <section class="result-card">
+      <div class="result-title"><h3>Folder created</h3><span class="tag tag-green">done</span></div>
+      <p class="explain">${esc(r.message || "Folder structure created successfully.")}</p>
+      <div class="metric-grid">
+        <div class="metric"><strong>${r.folders_created ?? 0}</strong><span>Folders</span></div>
+        <div class="metric"><strong>${r.files_created ?? 0}</strong><span>Files</span></div>
+      </div>
+      <div class="notice mono">${esc(r.path || "")}</div>
+    </section>
+  `;
+}
+
+function render() {
+  document.getElementById("app").innerHTML = state.flow ? wizardHtml() : homeHtml();
+  document.querySelectorAll("[data-flow]").forEach(el => el.addEventListener("click", () => setFlow(el.dataset.flow)));
+  const back = document.getElementById("backBtn");
+  if (back) back.addEventListener("click", goHome);
+  const homeInput = document.getElementById("homePathInput");
+  if (homeInput) homeInput.addEventListener("input", e => { state.path = e.target.value; });
+  const homeScan = document.getElementById("homeScanBtn");
+  if (homeScan) homeScan.addEventListener("click", runPreflightScan);
+  const refreshStats = document.getElementById("refreshStatsBtn");
+  if (refreshStats) refreshStats.addEventListener("click", loadStats);
+  document.querySelectorAll("[data-goal]").forEach(el => {
+    el.addEventListener("click", () => selectDecisionGoal(el.dataset.goal));
+  });
+  document.querySelectorAll("[data-action]").forEach(el => {
+    el.addEventListener("click", () => selectDecisionAction(el.dataset.action));
+  });
+  document.querySelectorAll("[data-choice]").forEach(el => {
+    el.addEventListener("click", () => chooseDecisionOption(Number(el.dataset.choice)));
+  });
+  document.querySelectorAll("[data-intel-action]").forEach(el => {
+    el.addEventListener("click", () => {
+      const tier = state.result?.tiers?.[state.intel.step || 0];
+      if (tier) decideIntelTier(el.dataset.intelAction, tier);
+    });
+  });
+  const resetIntelBtn = document.getElementById("resetIntelBtn");
+  if (resetIntelBtn) resetIntelBtn.addEventListener("click", resetIntelWalkthrough);
+  const resetDecisionBtn = document.getElementById("resetDecisionBtn");
+  if (resetDecisionBtn) resetDecisionBtn.addEventListener("click", resetDecision);
+  const customDecisionInput = document.getElementById("customDecisionInput");
+  if (customDecisionInput) {
+    customDecisionInput.addEventListener("input", e => {
+      state.decision.custom = e.target.value;
+    });
+  }
+  const customDecisionBtn = document.getElementById("customDecisionBtn");
+  if (customDecisionBtn) {
+    customDecisionBtn.addEventListener("click", () => chooseDecisionOption("custom", state.decision.custom));
+  }
+  document.querySelectorAll("[data-rename-check]").forEach(el => {
+    el.addEventListener("change", updateRenameApprovalCount);
+  });
+  document.querySelectorAll(".rename-input").forEach(el => {
+    el.addEventListener("input", updateRenameApprovalCount);
+  });
+  document.querySelectorAll("[data-suggestion-value]").forEach(el => {
+    el.addEventListener("click", () => {
+      const row = el.closest("[data-rename-row]");
+      const input = row?.querySelector(".rename-input");
+      if (input) {
+        input.value = el.dataset.suggestionValue || "";
+        updateRenameApprovalCount();
+      }
+    });
+  });
+  const renameSelectAll = document.getElementById("renameSelectAll");
+  if (renameSelectAll) {
+    renameSelectAll.addEventListener("click", () => {
+      document.querySelectorAll("[data-rename-check]").forEach(el => { el.checked = true; });
+      updateRenameApprovalCount();
+    });
+  }
+  const renameDeselectAll = document.getElementById("renameDeselectAll");
+  if (renameDeselectAll) {
+    renameDeselectAll.addEventListener("click", () => {
+      document.querySelectorAll("[data-rename-check]").forEach(el => { el.checked = false; });
+      updateRenameApprovalCount();
+    });
+  }
+  const renameSchemaSelect = document.getElementById("renameSchemaSelect");
+  if (renameSchemaSelect) {
+    renameSchemaSelect.addEventListener("change", e => {
+      state.rename.schema = e.target.value;
+      reloadRenameSample();
+    });
+  }
+  const renameMoreSample = document.getElementById("renameMoreSample");
+  if (renameMoreSample) renameMoreSample.addEventListener("click", () => reloadRenameSample({ nextSeed: true }));
+  const approveRenameSample = document.getElementById("approveRenameSample");
+  if (approveRenameSample) approveRenameSample.addEventListener("click", () => recordRenameApproval("sample"));
+  const approveRenameBatch = document.getElementById("approveRenameBatch");
+  if (approveRenameBatch) approveRenameBatch.addEventListener("click", () => recordRenameApproval("batch"));
+  const renameCancelBtn = document.getElementById("renameCancelBtn");
+  if (renameCancelBtn) renameCancelBtn.addEventListener("click", goHome);
+  updateRenameApprovalCount();
+  const input = document.getElementById("pathInput");
+  if (input) input.addEventListener("input", e => { state.path = e.target.value; });
+  const run = document.getElementById("runBtn");
+  if (run) run.addEventListener("click", runFlow);
+}
+
+render();
+loadStats();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,115 @@
+# ═══════════════════════════════════════════════════════════════
+# .sortconfig.yaml — Portable file organization schema
+# Drop this in any folder. Any tool that scans picks it up.
+# ═══════════════════════════════════════════════════════════════
+
+# Schema version
+version: 1.0
+
+# ─── NAMING TEMPLATE ────────────────────────────────────────
+# Available tokens: {date} {domain} {slug} {seq} {version}
+#                   {author} {ext} {cluster} {session}
+# Users rearrange these however they want.
+naming:
+  template: "{domain}_{slug}_{seq}.{ext}"
+  # Presets (user picks one or builds custom):
+  presets:
+    domain_first:  "{domain}_{slug}_{seq}.{ext}"
+    date_first:    "{date}_{slug}_{domain}.{ext}"
+    johnny_hybrid: "{domain}.{seq} {slug}.{ext}"
+    research:      "{domain}_{slug}_v{version}_{date}.{ext}"
+    session_based: "{date}_{session}_{slug}.{ext}"
+  active_preset: "domain_first"
+  
+  # Token formatting rules
+  format:
+    date: "YYYYMMDD"          # or YYYY-MM-DD, MM-DD-YYYY
+    slug_case: "kebab"        # kebab, snake, camel, title
+    slug_max_words: 4
+    seq_digits: 4             # 0042 vs 000042
+    separator: "_"            # _ or - between tokens
+    lowercase_ext: true
+
+# ─── CLASSIFICATION ─────────────────────────────────────────
+# Mode: "supervised" (predefined domains) or "cluster" (auto-discover)
+classification:
+  mode: "cluster"             # <-- the new hotness
+  
+  # If supervised: predefined domain list
+  domains:
+    - code: TP
+      name: Theophysics
+      keywords: [theophysics, master equation, coherence, logos]
+    - code: DV
+      name: Development
+      keywords: [function, class, import, api, docker]
+    # ... etc
+  
+  # If cluster: feature weights for unsupervised discovery
+  cluster:
+    algorithm: "dbscan"       # dbscan, kmeans, hdbscan
+    features:
+      filename_tokens: 0.3    # weight: words in the filename
+      content_keywords: 0.4   # weight: YAKE/DeBERTa keywords
+      extension: 0.1          # weight: file type
+      temporal: 0.15          # weight: creation/mod timestamps
+      path_context: 0.05      # weight: folder location
+    min_cluster_size: 3       # minimum files to form a cluster
+    auto_name_clusters: true  # name clusters from top keywords
+    temporal_window: "3h"     # files within 3h = same session
+
+# ─── METADATA / TAGS ────────────────────────────────────────
+# Sidecar metadata — written as .meta.yaml next to each file,
+# or embedded in a SQLite index. Any scanner picks these up.
+metadata:
+  storage: "sqlite"           # sqlite, sidecar_yaml, xattr
+  db_name: ".sortindex.db"
+  fields:
+    - name: domain
+      type: string
+    - name: keywords
+      type: list
+    - name: confidence
+      type: float
+    - name: source           # which tier classified it
+      type: string
+    - name: session_id       # temporal cluster ID
+      type: string
+    - name: approved         # user confirmed?
+      type: boolean
+    - name: original_name
+      type: string
+    - name: classified_at
+      type: datetime
+
+# ─── CLUSTERING MATRIX ──────────────────────────────────────
+# How to build the feature matrix for unsupervised discovery
+matrix:
+  # Temporal co-occurrence: files saved near each other in time
+  temporal:
+    enabled: true
+    window: "3h"              # cluster files within 3-hour windows
+    weight_recency: true      # recent sessions weighted higher
+  
+  # Keyword co-occurrence: files that share keywords
+  keyword:
+    enabled: true
+    min_shared: 2             # minimum shared keywords to link
+    tfidf: true               # use TF-IDF not raw counts
+  
+  # Extension affinity: which extensions appear together
+  extension:
+    enabled: true
+  
+  # Path proximity: files in same/nearby folders
+  path:
+    enabled: true
+    depth_weight: 0.5         # deeper nesting = weaker signal
+
+# ─── LEARNING ───────────────────────────────────────────────
+learning:
+  engine: "markov"            # markov, bayesian, neural
+  auto_approve_threshold: 95  # starts high, drops with accuracy
+  min_training: 20            # decisions before predictions kick in
+  feedback_loop: true         # every approve/reject trains
+  cluster_refinement: true    # user overrides refine clusters
