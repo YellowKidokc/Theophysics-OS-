@@ -972,20 +972,21 @@ class SorterAPI(BaseHTTPRequestHandler):
             root = params.get('root', [''])[0]
             limit = int(params.get('limit', ['200'])[0])
             only_unclassified = params.get('only_unclassified', ['false'])[0].lower() == 'true'
+            use_nlp = params.get('nlp', ['false'])[0].lower() in ('true', '1', 'yes')
             paths = cached_file_paths(root=root, limit=limit, only_unclassified=only_unclassified)
             action = record_action(
                 'cache_classify',
                 target_path=root,
                 status='running',
-                payload={'limit': limit, 'only_unclassified': only_unclassified, 'cached_paths': len(paths)},
+                payload={'limit': limit, 'only_unclassified': only_unclassified, 'cached_paths': len(paths), 'use_nlp': use_nlp},
             )
-            scan_id = start_scan(root or 'cache', mode='cache_classify', top_only=False, use_nlp=False)
+            scan_id = start_scan(root or 'cache', mode='cache_classify', top_only=False, use_nlp=use_nlp)
             engine = NamingEngine()
             enriched = []
             threshold = get_auto_approve_threshold()
             try:
                 for fp in paths:
-                    r = classify_file(fp, use_nlp=False, use_markov=True)
+                    r = classify_file(fp, use_nlp=use_nlp, use_markov=True)
                     if 'error' in r:
                         continue
                     entry = {

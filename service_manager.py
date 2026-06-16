@@ -19,7 +19,7 @@ SERVICES = [
         "name": "ClipSync Bridge",
         "port": 3456,
         "cmd": ["python", "sync_server.py"],
-        "cwd": r"C:\Users\lowes\Downloads\Compressed\ai-hub-clipsync-master\ai-hub-clipsync-master",
+        "cwd": r"D:\GitHub\clipsync-bridge",
         "desc": "Clipboard sync between devices"
     },
     {
@@ -27,24 +27,24 @@ SERVICES = [
         "name": "BIL Server",
         "port": 8420,
         "cmd": ["python", "-c", "from bil.bil_server import start_bil_server; start_bil_server()"],
-        "cwd": r"X:\BIL\behavioral-intelligence-layer-OBS-Plugin-Final-Claude",
+        "cwd": r"X:\04_STATIONS\A_behavioral-intelligence-layer-OBS-Plugin-Final-Claude",
         "desc": "Behavioral Intelligence Layer — preference learning"
     },
     {
         "id": "fis",
         "name": "FIS (File Intelligence)",
-        "port": 8420,
-        "cmd": ["python", "-m", "fis", "all"],
-        "cwd": r"X:\file-intelligence-system-master\file-intelligence-system-master",
-        "desc": "File watcher + NLP pipeline + clipboard monitor",
-        "note": "Shares port 8420 with BIL — run one or the other"
+        "port": 8450,
+        "cmd": ["python", "api_server.py"],
+        "cwd": r"D:\GitHub\Theophysics-OS-\FIS",
+        "desc": "File Intelligence System — classification + scanning",
+        "note": "Also available at X:\\08_DASHBOARDS\\FILE SORTER\\api_server.py"
     },
     {
         "id": "organize",
         "name": "Organize Server",
         "port": 8500,
         "cmd": ["python", "server.py"],
-        "cwd": r"C:\Users\lowes\Desktop\Theophysics-OS-clone\1files",
+        "cwd": r"D:\GitHub\Theophysics-OS-\1files",
         "desc": "File organization + scanning UI"
     },
     {
@@ -91,6 +91,14 @@ SERVICES = [
         "cwd": None,
         "desc": "Frontend dev server (FORGE or similar)",
         "managed": False
+    },
+    {
+        "id": "openwebui",
+        "name": "Open WebUI",
+        "port": 8080,
+        "cmd": ["open-webui", "serve"],
+        "cwd": None,
+        "desc": "ChatGPT-style UI for Ollama local LLMs"
     },
 ]
 

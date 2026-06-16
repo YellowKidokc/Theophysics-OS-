@@ -733,7 +733,7 @@ body {
   <p class="hero-sub">A reusable event page for file organization: scan the folder, explain what was found, preview the next action, then approve only when it is safe.</p>
   <div class="flow-pill mono">folder -> preview -> action -> approve -> record</div>
   <div class="quick-links">
-    <button class="quick-link" data-flow="sort">Sort files myself</button>
+    <button class="quick-link" id="heroScanBtn">Scan folder first</button>
     <button class="quick-link" data-flow="intel">Let intelligence sort</button>
     <button class="quick-link" data-flow="rename">Rename files</button>
     <button class="quick-link" data-flow="cache">Build file cache</button>
@@ -910,10 +910,26 @@ async function runPreflightScan() {
       ...state,
       busy: false,
       result: data,
-      message: data.error ? data.error : "File memory is ready. The next steps can use the cache."
+      message: data.error ? data.error : "File memory is ready. Starting River classification in the background..."
     };
+    if (!data.error) runBackgroundNlpClassify();
   } catch (err) {
     state = { ...state, busy: false, result: { error: String(err) }, message: "Could not reach the local API." };
+  }
+  render();
+}
+
+async function runBackgroundNlpClassify() {
+  try {
+    const res = await fetch(`${API}/api/cache/classify?root=${encodeURIComponent(state.path)}&limit=300&only_unclassified=true&nlp=true`);
+    const data = await res.json();
+    if (data.error) {
+      state = { ...state, message: `File memory is ready. River classification needs review: ${data.error}` };
+    } else {
+      state = { ...state, message: `File memory is ready. River classified ${fmtInt(data.total || 0)} cached files for review.` };
+    }
+  } catch (err) {
+    state = { ...state, message: "File memory is ready. River classification can run from Intelligence when the API is free." };
   }
   render();
 }
@@ -1953,6 +1969,8 @@ function render() {
   if (homeInput) homeInput.addEventListener("input", e => { state.path = e.target.value; });
   const homeScan = document.getElementById("homeScanBtn");
   if (homeScan) homeScan.addEventListener("click", runPreflightScan);
+  const heroScan = document.getElementById("heroScanBtn");
+  if (heroScan) heroScan.addEventListener("click", runPreflightScan);
   const askPathInput = document.getElementById("askPathInput");
   if (askPathInput) askPathInput.addEventListener("input", e => { state.path = e.target.value; });
   const askRiverInput = document.getElementById("askRiverInput");
