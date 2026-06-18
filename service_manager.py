@@ -15,6 +15,14 @@ PORT = 9999
 # Each service: name, port, start command, working directory, description
 SERVICES = [
     {
+        "id": "nlp_api",
+        "name": "NLP API (FastAPI)",
+        "port": 8700,
+        "cmd": ["python", "main.py"],
+        "cwd": r"D:\GitHub\BACKSIDE-NLP-NEW\nlp_api",
+        "desc": "Shared NLP model service — contradiction, embeddings, NER, summarization, QA, vector store"
+    },
+    {
         "id": "clipsync",
         "name": "ClipSync Bridge",
         "port": 3456,

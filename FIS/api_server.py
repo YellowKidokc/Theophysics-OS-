@@ -34,6 +34,7 @@ from hub_engines import (
     organizer_preview,
     rename_preview,
 )
+from intelligence_scorer import handle_intelligence_request
 
 FINGERPRINT_TOOL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shared", "fingerprint.py")
 FINGERPRINT_TOOL_FALLBACK = r"X:\04_STATIONS\_shared\fingerprint.py"
@@ -706,6 +707,65 @@ def create_from_template(parent, name, template_id):
         return {"error": str(e)}
 
 
+def _short_file_summary(result: dict) -> str:
+    if result.get("nlp_summary"):
+        return str(result["nlp_summary"]).strip()
+    keywords = [item.get("keyword") for item in result.get("keywords", [])[:4] if item.get("keyword")]
+    domain = result.get("classification", {}).get("domain", "UNCATEGORIZED")
+    filename = result.get("filename", "This file")
+    if keywords:
+        return f"{filename} appears related to {', '.join(keywords)} in {domain}."
+    return f"{filename} is a {result.get('ext') or 'file'} currently classified as {domain}."
+
+
+def _build_cache_classification_entry(result: dict, engine: NamingEngine, auto_approve_threshold: float) -> dict:
+    classification = result["classification"]
+    entry = {
+        "filepath": result["filepath"],
+        "filename": result["filename"],
+        "ext": result["ext"],
+        "size": result["size"],
+        "baseline": clean_filename(result["filename"]),
+        "summary": _short_file_summary(result),
+        "domain": classification["domain"],
+        "domain_code": classification.get("code"),
+        "confidence": classification.get("confidence"),
+        "source": classification.get("source", "yake"),
+        "matched": classification.get("matched", []),
+        "keywords": [item["keyword"] for item in result.get("keywords", [])[:5]],
+        "tags": [item["keyword"] for item in result.get("keywords", [])[:10]],
+        "text_preview": result.get("text_preview", "")[:100],
+        "nlp_result": result.get("nlp_result"),
+        "nlp_summary": result.get("nlp_summary"),
+    }
+
+    markov = result.get("markov_prediction")
+    if markov:
+        entry["markov"] = {
+            "domain": markov.get("domain"),
+            "confidence": markov.get("confidence"),
+            "training_size": markov.get("training_size", 0),
+        }
+        if markov.get("correction_warning"):
+            entry["markov"]["warning"] = markov.get("correction_warning")
+
+    if entry["confidence"] >= auto_approve_threshold:
+        entry["auto_approve"] = True
+
+    file_info = {
+        "filename": result["filename"],
+        "ext": result["ext"],
+        "domain": classification["domain"],
+        "domain_code": classification.get("code", ""),
+        "keywords": [item["keyword"] for item in result.get("keywords", [])[:4]],
+    }
+    entry["names"] = {
+        "baseline": entry["baseline"],
+        "presets": engine.preview_all_presets(file_info),
+    }
+    return entry
+
+
 class SorterAPI(BaseHTTPRequestHandler):
     
     def _cors(self):
@@ -785,49 +845,7 @@ class SorterAPI(BaseHTTPRequestHandler):
             enriched = []
             threshold = get_auto_approve_threshold()
             for r in results:
-                entry = {
-                    'filepath': r['filepath'],
-                    'filename': r['filename'],
-                    'ext': r['ext'],
-                    'size': r['size'],
-                    'baseline': clean_filename(r['filename']),
-                    'domain': r['classification']['domain'],
-                    'domain_code': r['classification']['code'],
-                    'confidence': r['classification']['confidence'],
-                    'source': r['classification'].get('source', 'yake'),
-                    'matched': r['classification'].get('matched', []),
-                    'keywords': [k['keyword'] for k in r.get('keywords', [])[:5]],
-                    'text_preview': r.get('text_preview', '')[:100],
-                }
-                
-                # Markov prediction
-                mp = r.get('markov_prediction')
-                if mp:
-                    entry['markov'] = {
-                        'domain': mp['domain'],
-                        'confidence': mp['confidence'],
-                        'training_size': mp.get('training_size', 0),
-                    }
-                    if mp.get('correction_warning'):
-                        entry['markov']['warning'] = mp['correction_warning']
-                
-                # Auto-approve suggestion
-                if entry['confidence'] >= threshold:
-                    entry['auto_approve'] = True
-                
-                # Naming predictions — all presets
-                file_info = {
-                    'filename': r['filename'],
-                    'ext': r['ext'],
-                    'domain': r['classification']['domain'],
-                    'domain_code': r['classification']['code'],
-                    'keywords': [k['keyword'] for k in r.get('keywords', [])[:4]],
-                }
-                entry['names'] = {
-                    'baseline': entry['baseline'],
-                    'presets': engine.preview_all_presets(file_info),
-                }
-
+                entry = _build_cache_classification_entry(r, engine, threshold)
                 cache_classification(scan_id, entry)
                 enriched.append(entry)
 
@@ -878,6 +896,10 @@ class SorterAPI(BaseHTTPRequestHandler):
             min_weight = int(params.get('min_weight', ['3'])[0])
             self._json(grouped_organization_findings(root=root, min_weight=min_weight))
 
+        elif parsed.path == '/api/intelligence':
+            result = handle_intelligence_request(params)
+            self._json(result, 200 if result.get('ok') else 400)
+
         elif parsed.path == '/api/cache/summary':
             root = params.get('root', [''])[0]
             self._json(cached_folder_summary(root))
@@ -900,6 +922,141 @@ class SorterAPI(BaseHTTPRequestHandler):
             follow_links = params.get('follow_links', ['false'])[0].lower() == 'true'
             compute_hash = params.get('hash', ['false'])[0].lower() in ('true', '1', 'yes', 'md5')
             self._json(scan_inventory(scan_path, max_files=max_files, recursive=recursive, follow_links=follow_links, compute_hash=compute_hash))
+
+        elif parsed.path == '/api/bootstrap':
+            scan_path = params.get('path', [''])[0]
+            if not scan_path or not os.path.exists(scan_path):
+                self._json({'error': f'Path not found: {scan_path}'}, 404)
+                return
+
+            scan_max_files = int(params.get('max', ['250000'])[0])
+            recursive = params.get('recursive', ['true'])[0].lower() == 'true'
+            follow_links = params.get('follow_links', ['false'])[0].lower() == 'true'
+            compute_hash = params.get('hash', ['false'])[0].lower() in ('true', '1', 'yes', 'md5')
+            run_classify = params.get('classify', ['true'])[0].lower() in ('true', '1', 'yes')
+            only_unclassified = params.get('only_unclassified', ['true'])[0].lower() in ('true', '1', 'yes')
+            classify_max = int(params.get('classify_max', ['250000'])[0])
+            classify_max = max(0, classify_max)
+            if classify_max == 0:
+                classify_max = 250000
+            preview_limit = int(params.get('preview', ['200'])[0])
+            preview_limit = max(0, preview_limit)
+            use_nlp = params.get('nlp', ['true'])[0].lower() in ('true', '1', 'yes')
+
+            scan_result = scan_inventory(
+                scan_path,
+                max_files=scan_max_files,
+                recursive=recursive,
+                follow_links=follow_links,
+                compute_hash=compute_hash,
+            )
+            if scan_result.get("error"):
+                self._json(scan_result, 500)
+                return
+
+            classification_preview = []
+            classify_scan_id = None
+            classify_action = None
+            classification_count = 0
+            candidate_count = 0
+            errors = 0
+            domains = Counter()
+            tags = Counter()
+            if run_classify:
+                paths = cached_file_paths(root=scan_path, limit=classify_max, only_unclassified=only_unclassified)
+                candidate_count = len(paths)
+                classify_action = record_action(
+                    'bootstrap',
+                    target_path=scan_path,
+                    status='running',
+                    payload={
+                        'bootstrap_max': scan_max_files,
+                        'classify_max': classify_max,
+                        'classify_only_unclassified': only_unclassified,
+                        'classify_nlp': use_nlp,
+                        'candidates': len(paths),
+                    },
+                )
+                classify_scan_id = start_scan(scan_path, mode='bootstrap_classify', top_only=not recursive, use_nlp=use_nlp)
+                engine = NamingEngine()
+                threshold = get_auto_approve_threshold()
+                try:
+                    for fp in paths:
+                        r = classify_file(fp, use_nlp=use_nlp, use_markov=True)
+                        if 'error' in r:
+                            errors += 1
+                            continue
+                        entry = _build_cache_classification_entry(r, engine, threshold)
+                        cache_classification(classify_scan_id, entry)
+                        classification_count += 1
+                        domains[entry.get("domain")] += 1
+                        for tag in entry.get("tags", []):
+                            tags[tag] += 1
+                        if len(classification_preview) < preview_limit:
+                            classification_preview.append(entry)
+                    finish_scan(
+                        classify_scan_id,
+                        classification_count,
+                        status="complete_with_errors" if errors else "complete",
+                        error=None if errors == 0 else f"{errors} classification errors",
+                    )
+                    update_action_status(
+                        classify_action["action_id"],
+                        'complete_with_errors' if errors else 'complete',
+                        {
+                            'scan_id': classify_scan_id,
+                        'classified': classification_count,
+                        'candidate_count': candidate_count,
+                        'errors': errors,
+                    },
+                    f"Bootstrap classified {classification_count} files."
+                    )
+                except Exception as exc:
+                    finish_scan(
+                        classify_scan_id,
+                        classification_count,
+                        status='error',
+                        error=str(exc),
+                    )
+                    if classify_action:
+                        update_action_status(
+                            classify_action["action_id"],
+                            'error',
+                            {'scan_id': classify_scan_id, 'classified': classification_count, 'errors': errors},
+                            str(exc),
+                        )
+                    self._json({'error': str(exc), 'scan': scan_result, 'classify_scan_id': classify_scan_id}, 500)
+                    return
+
+            response = {
+                'schema': 'fis.bootstrap.v1',
+                'mode': 'bootstrap',
+                'bootstrap': True,
+                'scan_path': scan_path,
+                'bootstrap_scan_action_code': scan_result.get('action_code'),
+                'classify_action_code': classify_action['action_code'] if classify_action else None,
+                'bootstrap_scan_id': classify_scan_id,
+                'classify_scan_id': classify_scan_id,
+                'classify_requested': run_classify,
+                'classify_only_unclassified': only_unclassified,
+                'classify_max': classify_max,
+                'candidate_paths': candidate_count,
+                'classified': classification_count,
+                'classification_errors': errors,
+                'classify_threshold': get_auto_approve_threshold(),
+                'classify_top_domains': [
+                    {'domain': domain, 'count': count}
+                    for domain, count in domains.most_common(12)
+                ],
+                'classify_top_tags': [
+                    {'tag': tag, 'count': count}
+                    for tag, count in tags.most_common(24)
+                ],
+                'classify_preview': classification_preview,
+                'message': f"Bootstrap completed for {scan_path}.",
+            }
+            response.update(scan_result)
+            self._json(response)
 
         elif parsed.path == '/api/cache/folder':
             folder_path = params.get('path', [''])[0]
@@ -989,42 +1146,7 @@ class SorterAPI(BaseHTTPRequestHandler):
                     r = classify_file(fp, use_nlp=use_nlp, use_markov=True)
                     if 'error' in r:
                         continue
-                    entry = {
-                        'filepath': r['filepath'],
-                        'filename': r['filename'],
-                        'ext': r['ext'],
-                        'size': r['size'],
-                        'baseline': clean_filename(r['filename']),
-                        'domain': r['classification']['domain'],
-                        'domain_code': r['classification']['code'],
-                        'confidence': r['classification']['confidence'],
-                        'source': r['classification'].get('source', 'yake'),
-                        'matched': r['classification'].get('matched', []),
-                        'keywords': [k['keyword'] for k in r.get('keywords', [])[:5]],
-                        'text_preview': r.get('text_preview', '')[:100],
-                    }
-                    mp = r.get('markov_prediction')
-                    if mp:
-                        entry['markov'] = {
-                            'domain': mp['domain'],
-                            'confidence': mp['confidence'],
-                            'training_size': mp.get('training_size', 0),
-                        }
-                        if mp.get('correction_warning'):
-                            entry['markov']['warning'] = mp['correction_warning']
-                    if entry['confidence'] >= threshold:
-                        entry['auto_approve'] = True
-                    file_info = {
-                        'filename': r['filename'],
-                        'ext': r['ext'],
-                        'domain': r['classification']['domain'],
-                        'domain_code': r['classification']['code'],
-                        'keywords': [k['keyword'] for k in r.get('keywords', [])[:4]],
-                    }
-                    entry['names'] = {
-                        'baseline': entry['baseline'],
-                        'presets': engine.preview_all_presets(file_info),
-                    }
+                    entry = _build_cache_classification_entry(r, engine, threshold)
                     cache_classification(scan_id, entry)
                     enriched.append(entry)
                 finish_scan(scan_id, len(enriched))
