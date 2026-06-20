@@ -88,46 +88,46 @@
 
   .card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 6px; padding: 12px 14px; cursor: pointer;
-    transition: all 0.08s ease; border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 10px 12px; cursor: pointer;
+    transition: all 0.08s ease;
   }
   .card:hover { background: #14141e; border-color: var(--border-hover); }
   .card:active { transform: scale(0.99); }
 
   .card-title {
-    font-size: 13px; font-weight: 700; color: var(--text-bright);
+    font-size: 12px; font-weight: 700; color: var(--text-bright);
     margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .card-url {
-    font-size: 10px; color: var(--text-dim); margin-bottom: 8px;
+    font-size: 9px; color: var(--text-dim); margin-bottom: 6px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
   .tag-pill {
     font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
     padding: 2px 8px; border-radius: 3px; background: #15151f;
     color: var(--text-dim); border: 1px solid #1e1e2e;
   }
 
-  .card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-actions { display: flex; gap: 5px; align-items: center; }
   .action-btn {
     display: flex; align-items: center; justify-content: center; gap: 4px;
-    min-width: 52px; min-height: 44px; padding: 8px 14px;
+    min-width: 34px; min-height: 30px; padding: 5px 9px;
     border-radius: 5px; border: 1px solid #2a2a3a; background: transparent;
-    color: var(--text-dim); font-size: 10px; letter-spacing: 1px;
+    color: var(--text-dim); font-size: 9px; letter-spacing: .8px;
     text-transform: uppercase; font-family: inherit; cursor: pointer;
     transition: all 0.1s ease; font-weight: 500;
   }
   .action-btn:active { transform: scale(0.95); }
-  .action-btn.open { border-color: rgba(59,130,246,0.4); color: var(--blue); flex: 1; }
-  .action-btn.open:hover { background: rgba(59,130,246,0.12); }
+  .action-btn.open { border-color: rgba(59,130,246,0.25); color: var(--blue); }
+  .action-btn.open:hover { background: rgba(59,130,246,0.08); }
   .action-btn.copy { border-color: rgba(16,185,129,0.4); color: var(--green); }
-  .action-btn.copy:hover { background: rgba(16,185,129,0.12); }
+  .action-btn.copy:hover { background: rgba(16,185,129,0.08); }
   .action-btn.edit { border-color: rgba(139,92,246,0.4); color: var(--purple); }
-  .action-btn.edit:hover { background: rgba(139,92,246,0.12); }
+  .action-btn.edit:hover { background: rgba(139,92,246,0.08); }
   .action-btn.delete { border-color: rgba(239,68,68,0.3); color: #884444; }
   .action-btn.delete:hover { background: rgba(239,68,68,0.08); color: var(--red); }
-  .action-btn .icon { font-size: 16px; }
+  .action-btn .icon { font-size: 13px; }
 
   /* Modal */
   .modal-overlay {
@@ -186,8 +186,7 @@
 
   @media (max-width: 480px) {
     .card-actions { gap: 4px; }
-    .action-btn { min-height: 48px; font-size: 11px; }
-    .action-btn.open { flex: 2; }
+    .action-btn { min-height: 34px; font-size: 10px; }
   }
 </style>
 </head>
@@ -331,18 +330,19 @@ function render() {
   }
 
   list.innerHTML = filtered.map(b => `
-    <div class="card" style="border-left-color:${getCatColor(b.category)}">
+    <div class="card">
       <div class="card-title">${esc(b.title)}</div>
       <div class="card-url">${esc(b.url)}</div>
       <div class="card-tags">
         ${(b.tags||[]).map(t => `<span class="tag-pill">${esc(t)}</span>`).join('')}
+        <span class="tag-pill" style="color:${getCatColor(b.category)};border-color:${getCatColor(b.category)}33">${esc(b.category || 'General')}</span>
       </div>
       <div class="card-actions">
         <button class="action-btn open" onclick="event.stopPropagation();window.open('${esc(b.url)}','_blank')">
-          <span class="icon">🔗</span> OPEN
+          <span class="icon">🔗</span> Open
         </button>
         <button class="action-btn copy" onclick="event.stopPropagation();copyUrl('${esc(b.url)}')">
-          <span class="icon">📋</span> COPY
+          <span class="icon">📋</span> Copy
         </button>
         <button class="action-btn edit" onclick="event.stopPropagation();openEditModal('${b.id}')">
           <span class="icon">✏️</span>
